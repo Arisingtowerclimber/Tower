@@ -289,11 +289,11 @@ function hubHtml(st) {
   const event = todaysEvent();
 
   // Выбор фона по времени суток
-  let bgImage = "/assets/backgrounds/hub_day.webp"; // по умолчанию день
-  if (state.phase === 0) bgImage = "/assets/backgrounds/hub_morning.webp";
-  else if (state.phase === 1) bgImage = "/assets/backgrounds/hub_day.webp";
-  else if (state.phase === 2) bgImage = "/assets/backgrounds/hub_evening.webp";
-  else if (state.phase === 3) bgImage = "/assets/backgrounds/hub_night.webp";
+  let bgImage = "assets/backgrounds/hub_day.webp"; // по умолчанию день
+  if (state.phase === 0) bgImage = "assets/backgrounds/hub_morning.webp";
+  else if (state.phase === 1) bgImage = "assets/backgrounds/hub_day.webp";
+  else if (state.phase === 2) bgImage = "assets/backgrounds/hub_evening.webp";
+  else if (state.phase === 3) bgImage = "assets/backgrounds/hub_night.webp";
 
   return `
     <div class="screen-bg" style="background-image: url('${bgImage}');"></div>
@@ -1062,7 +1062,7 @@ function floorHtml() {
   `;
 
   return `
-    <div class="screen-bg" style="background-image: url('${floor.bg || "/assets/backgrounds/tower.webp"}');"></div>
+    <div class="screen-bg" style="background-image: url('${floor.bg || "assets/backgrounds/tower.webp"}');"></div>
     ${subHeader(`Этаж ${floor.id}: ${floor.name}`, floor.subtitle, "tower", "← Назад к этажам")}
     <p class="lead" style="margin-bottom: 20px;">${floor.desc || ""}</p>
     ${towerControls}

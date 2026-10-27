@@ -447,7 +447,7 @@ function enemy(def) {
 const FLOORS = [
   { id: 1, name: "Подвал", subtitle: "Сырость, крысы и запах старого железа", icon: "🕳️",
     desc: "Тёмный подвал, где пахнет сыростью и гнилью. Крысы шуршат в углах, а из темноты доносится тяжёлое дыхание Мясника.",
-    bg: "/assets/backgrounds/floor1.webp",
+    bg: "assets/backgrounds/floor1.webp",
     mobs: [
       enemy({ id: "rat", name: "Крыса-падальщик", icon: "rat", hp: 150, atk: 16, def: 2, gold: 27, xp: 42, prefers: ["legs", "belly"], desc: "Бросается под ноги, норовит вцепиться в сухожилия.",
         drops: [
@@ -473,7 +473,7 @@ const FLOORS = [
   },
   { id: 2, name: "Караульный ярус", subtitle: "Скелеты всё ещё стоят на своих постах", icon: "🛡️",
     desc: "Каменные коридоры, где эхо шагов не стихает. Скелеты в истлевших доспехах всё ещё держат строй, а цепи на стенах звенят от сквозняка.",
-    bg: "/assets/backgrounds/floor2.webp",
+    bg: "assets/backgrounds/floor2.webp",
     mobs: [
       enemy({ id: "skeleton", name: "Скелет-стражник", icon: "skeleton", hp: 350, atk: 24, def: 12, gold: 60, xp: 84, prefers: ["chest", "legs"], desc: "Бьёт размеренно, как по уставу.",
         drops: [
@@ -511,7 +511,7 @@ const FLOORS = [
   },
   { id: 3, name: "Затопленный ярус", subtitle: "Вода по колено, и в ней кто-то двигается", icon: "🌊",
     desc: "Вода стоит по колено, отражая тусклый свет факелов. Из-под поверхности тянутся руки, а в тёмной глубине что-то тяжело ворочается.",
-    bg: "/assets/backgrounds/floor3.webp",
+    bg: "assets/backgrounds/floor3.webp",
     mobs: [
       enemy({ id: "drowned", name: "Утопленник", icon: "drowned", hp: 110, atk: 18, def: 7, gold: 30, xp: 44, prefers: ["head", "chest"], desc: "Тянется к горлу обеими руками.",
         drops: [
@@ -549,7 +549,7 @@ const FLOORS = [
   },
   { id: 4, name: "Кристальный ярус", subtitle: "Свет преломляется и режет глаза", icon: "💎",
     desc: "Стены покрыты кристаллами, которые ловят каждый луч света. Тишина здесь звенит, а отражения в гранях двигаются чуть медленнее, чем вы.",
-    bg: "/assets/backgrounds/floor4.webp",
+    bg: "assets/backgrounds/floor4.webp",
     mobs: [
       enemy({ id: "golem", name: "Кристальный голем", icon: "golem", hp: 900, atk: 48, def: 34, gold: 144, xp: 204, prefers: ["chest"], desc: "Медленный, но каждый удар как обвал.",
         drops: [
@@ -575,7 +575,7 @@ const FLOORS = [
   },
   { id: 5, name: "Шпиль", subtitle: "Ветер, темнота и чей-то шёпот", icon: "🗼",
     desc: "Вершина Башни. Ветер вырывается из щелей, а темнота кажется гуще, чем должна быть. Где-то наверху ждёт Владыка.",
-    bg: "/assets/backgrounds/floor5.webp",
+    bg: "assets/backgrounds/floor5.webp",
     mobs: [
       enemy({ id: "shadow", name: "Тень", icon: "shadow", hp: 1100, atk: 68, def: 26, gold: 186, xp: 276, prefers: ["legs", "waist"], desc: "Не отбрасывает тени, потому что сама — тень.",
         drops: [

@@ -127,30 +127,30 @@ function preloadImages() {
   // Собираем пути ко всем фонам, портретам и иконкам
   const imagesToPreload = [
     // Фоны хаба (все время суток)
-    "/assets/backgrounds/hub_morning.jpg",
-    "/assets/backgrounds/hub_day.jpg",
-    "/assets/backgrounds/hub_evening.jpg",
-    "/assets/backgrounds/hub_night.jpg",
+    "assets/backgrounds/hub_morning.jpg",
+    "assets/backgrounds/hub_day.jpg",
+    "assets/backgrounds/hub_evening.jpg",
+    "assets/backgrounds/hub_night.jpg",
     // Фоны магазинов
-    "/assets/backgrounds/market.jpg",
-    "/assets/backgrounds/forge.jpg",
-    "/assets/backgrounds/alchemy.jpg",
-    "/assets/backgrounds/jewelry.jpg",
-    "/assets/backgrounds/hotel.jpg",
-    "/assets/backgrounds/training.jpg",
-    "/assets/backgrounds/tower.jpg",
+    "assets/backgrounds/market.jpg",
+    "assets/backgrounds/forge.jpg",
+    "assets/backgrounds/alchemy.jpg",
+    "assets/backgrounds/jewelry.jpg",
+    "assets/backgrounds/hotel.jpg",
+    "assets/backgrounds/training.jpg",
+    "assets/backgrounds/tower.jpg",
     // Фоны этажей Башни
-    "/assets/backgrounds/floor1.jpg",
-    "/assets/backgrounds/floor2.jpg",
-    "/assets/backgrounds/floor3.jpg",
-    "/assets/backgrounds/floor4.jpg",
-    "/assets/backgrounds/floor5.jpg",
+    "assets/backgrounds/floor1.jpg",
+    "assets/backgrounds/floor2.jpg",
+    "assets/backgrounds/floor3.jpg",
+    "assets/backgrounds/floor4.jpg",
+    "assets/backgrounds/floor5.jpg",
     // Фон создания персонажа
-    "/assets/backgrounds/create-bg.jpg",
+    "assets/backgrounds/create-bg.jpg",
     // Портреты спутниц (грузятся при заходе в гостиницу)
-    "/assets/portraits/mira.jpg",
-    "/assets/portraits/alva.jpg",
-    "/assets/portraits/solveig.jpg"
+    "assets/portraits/mira.jpg",
+    "assets/portraits/alva.jpg",
+    "assets/portraits/solveig.jpg"
   ];
 
   // Создаем виртуальные теги img — браузер скачает их в кэш, но на экране не покажет
