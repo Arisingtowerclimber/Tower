@@ -1438,7 +1438,7 @@ function levelUpModalHtml() {
   
   return `
     <div class="result-overlay" data-act="levelup-close" style="z-index: 200;">
-      <div class="result-card levelup-card" onclick="event.stopPropagation()">
+      <div class="result-card levelup-card">
         <h2 style="color: var(--gold2); font-size: 32px; text-shadow: 0 0 20px rgba(223, 184, 108, 0.5);">Новый уровень!</h2>
         <p style="font-size: 18px; margin-bottom: 20px;">Вы достигли <b>${level}</b> уровня.</p>
         
