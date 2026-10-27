@@ -1634,4 +1634,11 @@ kbd {
     width: 95vw !important;
   }
 }
-
+.pill.ok {
+  border-color: #3c573f;
+  background: #142016;
+  color: #a9d3b1;
+}
+.pill.ok b {
+  color: #c8e8ce;
+}

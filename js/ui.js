@@ -260,9 +260,24 @@ function topbarHtml(st) {
   const phase = phaseInfo(); const event = todaysEvent(); const lockNav = battleActive() ? " locked" : "";
   
   ensureQuests();
+  ensureNpcQuests();
+  
   const qDone = state.quests.list.filter(q => q.done && !state.quests.claimed.includes(q.id)).length;
   const qTotal = state.quests.list.length;
-  const questPill = qTotal > 0 ? `<button class="pill" data-act="quests-open" type="button" title="Ежедневные задания">📋 <b>${qDone}/${qTotal}</b></button>` : "";
+  
+  const nqDone = state.npcQuests.list.filter(q => {
+    const have = state.resources[q.resId] || 0;
+    return have >= q.target && !q.claimed;
+  }).length;
+  const nqTotal = state.npcQuests.list.length;
+
+  const dailyPill = qTotal > 0 
+    ? `<button class="pill${qDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="daily" type="button" title="Зал Охотников (Ежедневные)">📋 <b>${qDone}/${qTotal}</b></button>` 
+    : "";
+    
+  const weeklyPill = nqTotal > 0 
+    ? `<button class="pill${nqDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="weekly" type="button" title="Заказы горожан (Еженедельные)">📦 <b>${nqDone}/${nqTotal}</b></button>` 
+    : "";
 
   return `
     <button class="brand" data-act="goto" data-screen="hub" type="button"><span class="brand-text"><b>ВОСХОЖДЕНИЕ</b></span></button>
@@ -277,7 +292,8 @@ function topbarHtml(st) {
                   <div class="pill event event-pill" data-tip="${event ? esc(event.desc) : 'Нет события'}">
         ${event ? event.icon : "·"} <b>${event ? event.name : "—"}</b>
       </div>
-      ${questPill}
+      ${dailyPill}
+      ${weeklyPill}
     </div>
     <nav class="topnav${lockNav}"><button class="nav-btn" data-act="goto" data-screen="hero" type="button">Герой</button><button class="nav-btn" data-act="goto" data-screen="hub" type="button">Йорстед</button></nav>
   `;
@@ -1599,6 +1615,11 @@ function onClick(event) {
   switch (act) {
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
+    case "quests-open-tab": 
+      view.questsOpen = true; 
+      view.questsTab = el.dataset.tab || "daily"; 
+      render(); 
+      break;
     case "quests-close": view.questsOpen = false; render(); break;
     case "quests-tab": view.questsTab = el.dataset.tab; render(); break;
     case "levelup-close": view.levelUp = null; render(); break;
