@@ -446,9 +446,29 @@ function claimQuest(id) {
 function generateNpcQuests() {
   const floorId = state.maxFloor;
   const resources = FLOOR_RESOURCES[floorId] || [];
-  const list = resources.map((res, i) => {
-    return { id: `nq_${state.day}_${i}`, npc: res.npc, resId: res.id, target: 3, progress: 0, claimed: false, gold: res.sellPrice * 3 * 3, xp: res.sellPrice * 2 * 5, potions: res.npc === "elain" ? 1 : 0 };
+  
+  const npcs = ["ron", "elain", "elize"];
+  const list = [];
+  
+  npcs.forEach((npc, index) => {
+    const npcResources = resources.filter(r => r.npc === npc);
+    if (!npcResources.length) return;
+    
+    const res = npcResources[Math.floor(Math.random() * npcResources.length)];
+    
+    list.push({
+      id: `nq_${state.day}_${index}`,
+      npc: res.npc,
+      resId: res.id,
+      target: 3,
+      progress: 0,
+      claimed: false,
+      gold: res.sellPrice * 3 * 3,
+      xp: res.sellPrice * 2 * 5,
+      potions: res.npc === "elain" ? 1 : 0
+    });
   });
+  
   state.npcQuests = { day: state.day, list };
 }
 
@@ -956,103 +976,45 @@ function simulateFarmBattle(mob, isBoss = false) {
   if (state.energy < FIGHT_ENERGY_COST) return { ok: false, text: "Энергия на исходе." };
   state.energy -= FIGHT_ENERGY_COST;
 
-  const st = stats();
-  let enemyHp = mob.hp;
-  let playerHp = state.hp;
+  const battle = createBattle(mob, mob.floorId || state.maxFloor);
+  const logs = [];
   let turns = 0;
   const maxTurns = 50;
-  
-  const logs = [];
+  let summary = null;
 
-  let dmgTakenMult = 1;
-  let dmgDealtMult = 1;
-  if (state.archetype === "assassin") dmgTakenMult = 0.6;
-  if (state.archetype === "guardian") { dmgTakenMult = 0.9; dmgDealtMult = 0.9; }
-  if (state.archetype === "berserker") dmgDealtMult = 1.2;
+  // Автоматический выбор зон для игрока
+  const autoZone = "belly"; // Бьем в живот (пробивает броню, хороший урон)
+  const preferredZones = mob.prefers || ["chest"];
+  const autoBlocks = preferredZones.slice(0, stats().blockZones); // Блокируем то, куда моб любит бить
 
-  while (turns < maxTurns && enemyHp > 0 && playerHp > 0) {
+  while (turns < maxTurns && !battle.over) {
     turns++;
+    const result = exchange(state, battle, { type: "attack", zone: autoZone, blocks: autoBlocks });
     
-    // Ход игрока
-    let playerDmg = Math.max(1, st.atk - Math.floor(mob.def * 0.5));
-    playerDmg = Math.round(playerDmg * dmgDealtMult * (0.9 + Math.random() * 0.2));
-    let isCrit = false;
-    if (Math.random() * 100 < st.crit) { 
-      playerDmg = Math.round(playerDmg * 1.7); 
-      isCrit = true; 
-    }
-    enemyHp -= playerDmg;
-    logs.push(`⚔ Вы бьёте ${mob.name} на ${playerDmg}${isCrit ? " (КРИТ!)" : ""}.`);
-
-    if (enemyHp <= 0) break;
-
-    // Ход врага
-    if (Math.random() * 100 < st.dodge) {
-      logs.push(`💨 Вы уклоняетесь от атаки ${mob.name}.`);
-      if (Math.random() * 100 < st.counter) {
-        let counterDmg = Math.max(1, Math.round(st.atk * 0.5 - mob.def * 0.3));
-        enemyHp -= counterDmg;
-        logs.push(`⚡ Контратака! ${mob.name} теряет ${counterDmg} HP.`);
-      }
-    } else {
-      let enemyDmg = Math.max(1, mob.atk - Math.floor(st.def * 0.5));
-      enemyDmg = Math.round(enemyDmg * dmgTakenMult * (0.85 + Math.random() * 0.3));
-      playerHp -= enemyDmg;
-      logs.push(`🩸 ${mob.name} бьёт вас на ${enemyDmg} урона.`);
-
-      if (state.archetype === "guardian" && Math.random() < 0.3) {
-        const retaliation = Math.max(1, Math.round(mob.atk * (st.mods?.blockCounter || 0.1)));
-        enemyHp -= retaliation;
-        logs.push(`🛡 Страж блокирует и отвечает: ${mob.name} теряет ${retaliation} HP.`);
-      }
-    }
-
-    // Авто-питье зелий (ниже 40% HP)
-    if (playerHp > 0 && playerHp < st.maxHp * 0.4) {
-      if ((state.potions["hp_small"] || 0) > 0) {
-        const heal = Math.min(100, st.maxHp - playerHp);
-        playerHp += heal;
-        state.potions["hp_small"] -= 1;
-        logs.push(`🧪 Вы выпили Малое зелье лечения (+${heal} HP).`);
-      } else if ((state.potions["hp_big"] || 0) > 0) {
-        const heal = Math.min(225, st.maxHp - playerHp);
-        playerHp += heal;
-        state.potions["hp_big"] -= 1;
-        logs.push(`⚗️ Вы выпили Большое зелье лечения (+${heal} HP).`);
-      }
-    }
+    // Копируем новые строки лога
+    const newLogs = battle.log.slice(-3);
+    logs.push(...newLogs.map(l => l.text));
+    
+    if (result.summary) summary = result.summary;
   }
 
-  const victory = enemyHp <= 0;
-  const hpLeft = Math.max(1, playerHp);
+  if (!summary) {
+    // Если бой затянулся (50 ходов), считаем, что игрок сбежал (или проиграл по таймауту)
+    return { ok: false, logs: logs.slice(-5), text: `Бой с ${mob.name} затянулся. Вы отступили.` };
+  }
 
-  if (victory) {
-    const gold = Math.max(1, Math.floor(mob.gold * GOLD_DROP_MULT * goldMultToday()));
-    const xp = Math.max(1, Math.floor(mob.xp * xpMultToday()));
-    state.gold += gold;
-    const up = gainXp(xp);
-    state.kills = (state.kills || 0) + 1;
-    checkQuestProgress(mob.id);
-    const loot = rollDrops(mob);
-    state.hp = hpLeft;
-    saveState();
-    
+  if (summary.victory) {
     return { 
       ok: true, 
-      loot, 
-      logs: logs, 
-      text: `Победа над ${mob.name}. +${gold} 💰, +${xp} ✦.${up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : ""}` 
+      loot: summary.loot, 
+      logs: logs.slice(-5), 
+      text: `Победа над ${mob.name}. +${summary.gold} 💰, +${summary.xp} ✦.${summary.levels.length ? ` Новый уровень: ${summary.levels.join(", ")}!` : ""}` 
     };
   } else {
-    const lost = Math.floor(state.gold * 0.15);
-    state.gold = Math.max(0, state.gold - lost);
-    state.hp = st.maxHp;
-    state.mana = st.maxMana;
-    saveState();
     return { 
       ok: false, 
-      logs: logs, 
-      text: `Вы погибли в бою с ${mob.name}. Потеряно ${lost} золота.` 
+      logs: logs.slice(-5), 
+      text: `Вы погибли в бою с ${mob.name}. Потеряно ${summary.lostGold} золота.` 
     };
   }
 }

@@ -1621,10 +1621,39 @@ function startFarm(floorId, mobIndex) {
 }
 
 function farmTick() {
-  if (!view.farm) return; const floor = FLOORS.find(f => f.id === view.farm.floorId); const mob = floor?.mobs[view.farm.mobIndex]; if (!mob) { stopFarm("Ошибка."); return; }
+  if (!view.farm) return; 
+  const floor = FLOORS.find(f => f.id === view.farm.floorId); 
+  const mob = floor?.mobs[view.farm.mobIndex]; 
+  if (!mob) { stopFarm("Ошибка."); return; }
+  
   if (state.energy < FIGHT_ENERGY_COST) { stopFarm("Энергия на исходе."); return; }
-  const result = simulateFarmBattle(mob); view.farm.log.push(`[${new Date().toLocaleTimeString()}] ${result.text}`); render();
-  if (!result.ok) { stopFarm(result.text); return; }
+  
+  const result = simulateFarmBattle(mob); 
+  view.farm.log.push(`[${new Date().toLocaleTimeString()}] ${result.text}`); 
+  render();
+  
+  if (!result.ok) { 
+    // Если проиграли или вышли по таймауту
+    if (result.text.includes("погибли")) {
+      toast("Вы погибли во время фарма! Возвращение в Йорстед...", "warn");
+      
+      // Пропускаем день и лечим (как при поражении)
+      view.screen = "hub";
+      view.currentFloor = null;
+      state.phase = TIME_PHASES.length - 1; 
+      endTrip(); 
+      const st = stats();
+      state.hp = st.maxHp;
+      state.mana = st.maxMana;
+      state.energy = st.maxEnergy;
+      
+      stopFarm(); // Останавливаем цикл
+      render();
+      return;
+    }
+    stopFarm(result.text); 
+    return; 
+  }
   view.farm.timer = setTimeout(farmTick, 1500);
 }
 
