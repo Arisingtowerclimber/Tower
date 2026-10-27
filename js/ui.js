@@ -407,7 +407,6 @@ function marketHtml() {
           <span class="loc-cta">Войти →</span>
         </div>
       </button>
-
     </div>
   `;
 }
@@ -428,7 +427,7 @@ function hotelHtml() {
     : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
     
   return `
-    <div class="screen-bg" style="background-image: ="assets/backgrounds/hotel.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
     ${subHeader("Гостиница", "Тёплый свет и чужие истории", "hub", "← В Йорстед")}
     <img src="assets/backgrounds/hotel.webp" class="shop-banner" onerror="this.style.display='none'">
     <div class="hotel-status">
@@ -734,7 +733,7 @@ function forgeHtml() {
     </div>
   `;
 
-  return `<div class="screen-bg" style="background-image: ="assets/backgrounds/forge.webp');"></div>
+  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
@@ -761,7 +760,7 @@ function jewelryHtml() {
   `;
 
   return `
-    <div class="screen-bg" style="background-image: ="assets/backgrounds/jewelry.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
@@ -792,7 +791,7 @@ function alchemyHtml() {
   `;
 
   return `
-    <div class="screen-bg" style="background-image: ="assets/backgrounds/alchemy.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
