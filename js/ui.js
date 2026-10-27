@@ -639,7 +639,7 @@ function questsModalHtml() {
 function npcQuestHtml(npcId) {
   ensureNpcQuests();
   const quests = state.npcQuests.list.filter(q => q.npc === npcId);
-  if (!quests.length) return "";
+  if (!quests.length) return `<p class="empty">У этого торговца сейчас нет заказов.</p>`;
   
   const cards = quests.map(q => {
     const res = ALL_RESOURCES.find(r => r.id === q.resId);
@@ -648,31 +648,35 @@ function npcQuestHtml(npcId) {
     const have = state.resources[q.resId] || 0;
     const pct = Math.min(100, Math.round((have / q.target) * 100));
     const canClaim = have >= q.target && !q.claimed;
+    
     return `
-      <div class="quest-card" style="margin-top:10px;">
-        <div class="quest-head">
+      <article class="quest-card quest-card-wide${q.claimed ? " claimed" : canClaim ? " done" : ""}">
+        <div class="quest-icon-wrap">
           <span class="quest-icon">${iconHtml(res.icon, 32)}</span>
-          <div class="quest-title">
-            <h3>Собрать: ${res.name}</h3>
-            <span class="hint">Нужно ${q.target} шт. (в сумке: ${have})</span>
+        </div>
+        <div class="quest-body">
+          <div class="quest-info">
+            <div class="quest-title">
+              <h3>Собрать: ${res.name}</h3>
+              <span class="hint">Нужно ${q.target} шт.</span>
+            </div>
           </div>
-          ${q.claimed ? `<span class="badge">Получено</span>` : ""}
+          <div class="quest-progress-wrap">
+            <div class="bar"><span style="width:${pct}%"></span></div>
+            <span class="quest-count">${have} / ${q.target}</span>
+          </div>
         </div>
-        <div class="quest-progress">
-          <div class="bar"><span style="width:${pct}%"></span></div>
-          <span class="quest-count">${have} / ${q.target}</span>
-        </div>
-        <div class="quest-foot">
+        <div class="quest-side">
           <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-npc-quest" data-id="${q.id}"
-            ${canClaim ? "" : "disabled"} type="button">
+          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-npc-quest" data-id="${q.id}" ${canClaim ? "" : "disabled"} type="button">
             ${q.claimed ? "Получено" : canClaim ? "Сдать" : "Не хватает"}
           </button>
         </div>
-      </div>
+      </article>
     `;
   }).join("");
-  return cards;
+  
+  return `<section class="shop-group"><div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">${cards}</div></section>`;
 }
 
 function repairPanelHtml() {
@@ -757,7 +761,13 @@ function craftPanelHtml(station) {
 function forgeHtml() {
   const activeTab = FORGE_TABS.find((t) => t.id === view.forgeTab) || FORGE_TABS[0];
   const tabs = shopTabsHtml(FORGE_TABS, activeTab.id, "forge-tab");
-  const stock = activeTab.id === "craft" ? craftPanelHtml("forge") : activeTab.id === "buyback" ? buybackPanelHtml("forge") : shopItemsHtml(FORGE_TABS, activeTab.id, "forge");
+  const stock = activeTab.id === "craft" 
+    ? craftPanelHtml("forge") 
+    : activeTab.id === "buyback" 
+      ? buybackPanelHtml("forge") 
+      : activeTab.id === "quests"
+        ? npcQuestHtml("ron")
+        : shopItemsHtml(FORGE_TABS, activeTab.id, "forge");
 
   const greeting = `
     <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
@@ -776,14 +786,19 @@ function forgeHtml() {
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
     <div class="shop-grid"><div class="shop-main">${stock}</div></div>
-    ${npcQuestHtml("ron")}
   `;
 }
 
 function jewelryHtml() {
   const activeTab = JEWELRY_TABS.find((t) => t.id === view.jewelryTab) || JEWELRY_TABS[0];
   const tabs = shopTabsHtml(JEWELRY_TABS, activeTab.id, "jewelry-tab");
-  const stock = activeTab.id === "craft" ? craftPanelHtml("jewelry") : activeTab.id === "buyback" ? buybackPanelHtml("jewelry") : shopItemsHtml(JEWELRY_TABS, activeTab.id, "jewelry");
+  const stock = activeTab.id === "craft" 
+    ? craftPanelHtml("jewelry") 
+    : activeTab.id === "buyback" 
+      ? buybackPanelHtml("jewelry") 
+      : activeTab.id === "quests"
+        ? npcQuestHtml("elize")
+        : shopItemsHtml(JEWELRY_TABS, activeTab.id, "jewelry");
 
   const greeting = `
     <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
@@ -803,18 +818,25 @@ function jewelryHtml() {
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
     <div class="shop-grid"><div class="shop-main">${stock}</div></div>
-    ${npcQuestHtml("elize")}
   `;
 }
 
 function alchemyHtml() {
-  const activeTab = view.alchemyTab === "buyback" ? "buyback" : "potions";
-  const tabs = shopTabsHtml([{ id: "potions", name: "Зелья" }, { id: "buyback", name: "Скупка" }], activeTab, "alchemy-tab");
+  const activeTab = view.alchemyTab === "buyback" ? "buyback" : view.alchemyTab === "quests" ? "quests" : "potions";
+  const tabs = shopTabsHtml([{ id: "potions", name: "Зелья" }, { id: "buyback", name: "Скупка" }, { id: "quests", name: "📦 Заказы" }], activeTab, "alchemy-tab");
+  
   const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
-    const count = state.potions[item.id] || 0; const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana; const p = priceFor(item, "alchemy");
+    const count = state.potions[item.id] || 0; 
+    const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana; 
+    const p = priceFor(item, "alchemy");
     return `<article class="item-card potion"><div class="item-icon big">${iconHtml(item.icon, 48)}</div><div class="item-main"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips"><span class="chip">В сумке: ${count}</span></div></div><div class="item-buy"><span class="price">${priceHtml(item, "alchemy")}</span><div class="stack-buttons"><button class="btn small" data-act="buy" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button><button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button></div></div></article>`;
   }).join("");
-  const body = activeTab === "buyback" ? buybackPanelHtml("alchemy") : cards;
+  
+  const body = activeTab === "buyback" 
+    ? buybackPanelHtml("alchemy") 
+    : activeTab === "quests"
+      ? npcQuestHtml("elain")
+      : cards;
 
   const greeting = `
     <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
@@ -834,7 +856,6 @@ function alchemyHtml() {
     ${greeting}
     <div class="shop-tabs">${tabs}</div>
     <div class="shop-grid single"><div class="shop-main">${body}</div></div>
-    ${npcQuestHtml("elain")}
   `;
 }
 

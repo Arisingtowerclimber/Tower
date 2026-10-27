@@ -40,12 +40,14 @@ const FORGE_TABS = [
   { id: "armor", name: "Доспехи", slots: ["head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"] },
   { id: "craft", name: "Крафт", slots: [] },
   { id: "buyback", name: "Скупка", slots: [] },
+  { id: "quests", name: "📦 Заказы", slots: [] },
 ];
 
 const JEWELRY_TABS = [
   { id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] },
   { id: "craft", name: "Крафт", slots: [] },
   { id: "buyback", name: "Скупка", slots: [] },
+  { id: "quests", name: "📦 Заказы", slots: [] },
 ];
 
 const PORTRAITS = [
