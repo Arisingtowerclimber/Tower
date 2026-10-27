@@ -1084,13 +1084,11 @@ kbd {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: 
-    linear-gradient(rgba(10, 8, 7, 0.6), rgba(10, 8, 7, 0.6)),
-    url('assets/backgrounds/create-bg2.webp');
+  background-image: url('assets/backgrounds/create-bg2.webp'); /* Убрали градиент, оставили только картинку */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  z-index: 1;
+  z-index: -1;
   pointer-events: none;
 }
 
