@@ -832,7 +832,17 @@ function dollSlotHtml(slotId) {
   const open = view.dollSlot === slotId;
   const broken = eq && isBroken(eq);
   const rarityClass = eq && eq.rarity !== "common" ? ` rarity-${eq.rarity}` : "";
-  return `<button class="doll-slot${item ? " filled" : ""}${open ? " open" : ""}${broken ? " broken" : ""}${rarityClass}" data-act="doll-slot" data-slot="${slot.id}" type="button"><span class="slot-glyph">${iconHtml(item ? item.icon : slot.icon, 24)}</span><span class="slot-caption">${slot.name}</span></button>`;
+  
+  let title = "";
+  if (item) {
+    const stats = itemStats(getInstanceStats(eq)).join(", ");
+    const affix = eq.affix ? ` (${eq.affix.name})` : "";
+    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}"`;
+  } else {
+    title = `title="${slot.name}: пусто"`;
+  }
+
+  return `<button class="doll-slot${item ? " filled" : ""}${open ? " open" : ""}${broken ? " broken" : ""}${rarityClass}" data-act="doll-slot" data-slot="${slot.id}" type="button" ${title}><span class="slot-glyph">${iconHtml(item ? item.icon : slot.icon, 24)}</span><span class="slot-caption">${slot.name}</span></button>`;
 }
 
 function paperDollHtml() {
