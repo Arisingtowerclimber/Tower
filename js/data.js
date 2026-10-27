@@ -313,7 +313,7 @@ const TRAININGS = [
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));
 
 const ITEMS = {
-  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp", atk: 4, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
+  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp?v=2", atk: 4, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
   wood_club: { id: "wood_club", name: "Дубина", slot: "mainhand", icon: "🏏", atk: 16, price: 45, shopTier: 1, desc: "Тяжёлая, но честная." },
   short_sword: { id: "short_sword", name: "Короткий меч", slot: "mainhand", icon: "🗡️", atk: 20, crit: 2, price: 75, shopTier: 1, desc: "Быстрый и точный." },
   iron_sword: { id: "iron_sword", name: "Железный меч", slot: "mainhand", icon: "⚔️", atk: 36, crit: 3, price: 190, shopTier: 2, desc: "Работа кузнеца из нижних ярусов." },
