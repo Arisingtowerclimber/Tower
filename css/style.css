@@ -21,8 +21,7 @@
 }
 
 html {
-  background: radial-gradient(circle at center, #1a1512, #0a0807) no-repeat center center fixed;
-  background-size: cover;
+  background: #0a0807; /* Просто темный цвет */
 }
 
 html, body {
@@ -1084,14 +1083,16 @@ kbd {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: url('assets/backgrounds/create-bg2.webp'); /* Убрали градиент, оставили только картинку */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  z-index: -1;
+  /* Добавляем градиент ПЕРЕД картинкой */
+  background-image: 
+    linear-gradient(rgba(10, 8, 7, 0.75), rgba(10, 8, 7, 0.75)),
+    url('../assets/backgrounds/create-bg.webp') !important; 
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  z-index: -1; 
   pointer-events: none;
 }
-
 .screen-bg {
   position: fixed;
   top: 0;
@@ -1209,6 +1210,21 @@ kbd {
     right: 10px;
     margin-left: 0;
   }
+}
+.hero-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: 
+    linear-gradient(rgba(10, 8, 7, 0.8), rgba(10, 8, 7, 0.8)),
+    url('../assets/backgrounds/hero-screen.webp') !important; /* Вот тут поменяли имя */
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  z-index: -1; 
+  pointer-events: none;
 }
 
 /* ── Медиа-запросы (адаптив) ────────────────────────────── */

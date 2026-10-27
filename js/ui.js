@@ -940,6 +940,7 @@ function heroHtml(st) {
   const counterFormatted = Math.round(st.counter * 10) / 10;
 
   return `
+    <div class="hero-bg"></div> <!-- ДОБАВЛЕНА СТРОКА С ФОНОМ -->
     ${subHeader(
       "Герой",
       `${esc(state.name)} — искатель Башни`,
