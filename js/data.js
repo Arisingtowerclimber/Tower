@@ -362,7 +362,7 @@ const ITEMS = {
   feet_iron: gearItem("feet_iron", "Железные сапоги", "feet", "🥾", 90, 2, { def: 4, hp: 30 }, "Гулкий шаг по каменным плитам."),
   feet_crystal: gearItem("feet_crystal", "Кристальные сапоги", "feet", "💠", 270, 3, { def: 6, hp: 40 }, "Ступня вмерзает в камень."),
 
-  neck_bone: gearItem("neck_bone", "Костяной амулет", "neck", "📿", 30, 1, { hp: 25 }, "Чей-то зуб на жиле."),
+  neck_bone: gearItem("neck_bone", "Грубый амулет", "neck", "📿", 30, 1, { hp: 25 }, "Грубый кусок малахита, наспех привязанный к ремешку."),
   neck_guard: gearItem("neck_guard", "Медальон караульного", "neck", "📿", 110, 2, { hp: 40, crit: 1 }, "Знак поста, который давно не сменяли."),
   neck_crystal: gearItem("neck_crystal", "Кристальный подвесок", "neck", "💠", 330, 3, { hp: 60, crit: 2 }, "Внутри что-то медленно пульсирует."),
   ring_copper: gearItem("ring_copper", "Медное кольцо", "ring", "💍", 35, 1, { crit: 1 }, "Тусклое, но своё."),
@@ -668,8 +668,8 @@ const RECIPES = [
   { id: "recipe_gambeson", station: "forge", result: "gambeson", desc: "Стёганый гамбезон", floor: 1, dropChance: 0.05, materials: { cloth: 4, malachite: 2 } },
   { id: "recipe_wood_club", station: "forge", result: "wood_club", desc: "Дубина", floor: 1, dropChance: 0.05, materials: { wood: 3, rust: 2 } },
   { id: "recipe_wood_shield", station: "forge", result: "wood_shield", desc: "Деревянный щит", floor: 1, dropChance: 0.05, materials: { wood: 5, malachite: 3 } },
-  { id: "recipe_ring_copper", station: "jewelry", result: "ring_copper", desc: "Медное кольцо", floor: 1, dropChance: 0.05, materials: { malachite: 3, rust: 1 } },
-  { id: "recipe_neck_bone", station: "jewelry", result: "neck_bone", desc: "Костяной амулет", floor: 1, dropChance: 0.05, materials: { bone: 3, mushroom: 1 } },
+  { id: "recipe_ring_copper", station: "jewelry", result: "ring_copper", desc: "Медное кольцо", floor: 1, dropChance: 0.05, materials: { malachite: 1, rust: 1 } },
+  { id: "recipe_neck_bone", station: "jewelry", result: "neck_bone", desc: "Грубый амулет", floor: 1, dropChance: 0.05, materials: { malachite: 2, rust: 2 } },
 
   // 2-й этаж
   { id: "recipe_short_sword", station: "forge", result: "short_sword", desc: "Короткий меч", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 2, leather: 1 } },

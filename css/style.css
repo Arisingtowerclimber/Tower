@@ -1101,10 +1101,9 @@ kbd {
   left: 0;
   width: 100vw;
   height: 100vh;
-  /* Добавляем градиент ПЕРЕД картинкой */
   background-image: 
     linear-gradient(rgba(10, 8, 7, 0.75), rgba(10, 8, 7, 0.75)),
-    url('../assets/backgrounds/create-bg.webp') !important; 
+    url('assets/backgrounds/create-bg.webp') !important; /* Убрали ../ */
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -1237,7 +1236,7 @@ kbd {
   height: 100vh;
   background-image: 
     linear-gradient(rgba(10, 8, 7, 0.8), rgba(10, 8, 7, 0.8)),
-    url('../assets/backgrounds/hero-screen.webp') !important; /* Вот тут поменяли имя */
+    url('assets/backgrounds/hero-screen.webp') !important; /* Убрали ../ */
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -1468,3 +1467,171 @@ kbd {
   .mob-row .btn, .boss-row .btn { grid-column: 1 / -1; }
   .npc-greeting { flex-direction: column; align-items: center; text-align: center; }
 }
+.gather-btn {
+  position: relative;
+  overflow: visible; /* Чтобы тултип не обрезался */
+}
+
+.gather-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(18, 13, 11, 0.98);
+  border: 1px solid var(--gold);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: nowrap; /* Чтобы текст не ломался некрасиво */
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+  text-align: left;
+}
+
+/* Стрелочка вниз */
+.gather-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--gold);
+}
+
+.gather-tooltip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.gather-tooltip-list span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Показ при наведении */
+.gather-btn:hover .gather-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(2px);
+}
+.quest-card-wide {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+}
+
+.quest-icon-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row; /* Изменено: выстраиваем название и прогресс в ряд */
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* Левая часть с текстом (название и NPC) */
+.quest-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.quest-info .quest-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap; /* Запрещаем перенос строк */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quest-info .quest-title h3 {
+  margin: 0;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quest-info .quest-title .hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* Правая часть с прогресс-баром */
+.quest-progress-wrap {
+  flex: 0 0 120px; /* Фиксированная ширина для бара, чтобы он не прыгал */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quest-progress-wrap .bar {
+  height: 6px;
+  width: 100%;
+}
+
+.quest-progress-wrap .quest-count {
+  font-size: 11px;
+  text-align: right;
+  color: var(--dim);
+}
+
+/* Блок с наградой и статусом справа */
+.quest-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.quest-side .price {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quest-side .badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.quest-modal {
+  width: 850px !important;       
+  max-width: 95vw !important;    
+  max-height: 85vh !important;   
+  overflow-y: auto !important;   
+  overflow-x: hidden !important; 
+  padding: 20px !important;
+}
+
+
+@media (max-width: 900px) {
+  .quest-modal {
+    width: 95vw !important;
+  }
+}
+

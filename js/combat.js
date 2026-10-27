@@ -90,7 +90,7 @@ function defeatSummary(state, battle, e) {
   const fresh = stats();
   state.hp = fresh.maxHp;
   state.mana = fresh.maxMana;
-  battleLog(battle, "Тьма смыкается. Йорстед возвращает вас к жизни.", "lose");
+  battleLog(battle, "Тьма смыкается. Йорстед возвращает вас к жизни, но вы теряете день.", "lose");
   saveState();
   return { defeat: true, enemyName: e.name, lostGold: lost };
 }

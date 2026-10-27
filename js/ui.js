@@ -3,6 +3,8 @@ const view = {
   summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry",
   questsOpen: false,
   currentFloor: null,
+  levelUp: null,
+  questsTab: "daily",
   dollSlot: null, tripActive: false, farm: null,
   trainingTab: "train",
   inventoryTab: "gear",
@@ -512,87 +514,107 @@ function trainingQuestsHtml() {
   }).join("");
 
   return `
-    ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}
+    ${subHeader("Зал Охотников", "Ежедневные контракты на убийство", "hub")}
     ${trainingTabsHtml("quests")}
+    <div class="banner" style="margin-bottom: 15px;">📋 Эти задания обновляются каждое утро. Сдавать награду нужно здесь, в Зале Охотников.</div>
     <div class="quest-grid">${cards}</div>
-    <p class="hint">Задания обновляются с началом нового дня. Цель — 3 убийства указанного моба.</p>
   `;
 }
 function questsModalHtml() {
   ensureQuests();
-  const list = state.quests.list;
+  ensureNpcQuests();
   
-  // Собираем и ежедневные, и NPC-квесты
-  const dailyCards = list.map((q) => {
+  const tab = view.questsTab || "daily";
+  const dailyList = state.quests.list || [];
+  const npcList = state.npcQuests.list || [];
+
+  const dailyCards = dailyList.map((q) => {
     const claimed = state.quests.claimed.includes(q.id);
-    const canClaim = q.done && !claimed;
     const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
+    
+    let statusHtml = `<span class="badge">В процессе</span>`;
+    if (claimed) statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
+    else if (q.done) statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (в Зал Охотников)</span>`;
+
     return `
-      <article class="quest-card${claimed ? " claimed" : q.done ? " done" : ""}">
-        <div class="quest-head">
+      <article class="quest-card quest-card-wide${claimed ? " claimed" : q.done ? " done" : ""}">
+        <div class="quest-icon-wrap">
           <span class="quest-icon">${iconHtml(q.mobIcon, 32)}</span>
-          <div class="quest-title">
-            <h3>Убить: ${q.mobName}</h3>
-            <span class="hint">Этаж ${q.floorId} · цель ${q.target}</span>
+        </div>
+        <div class="quest-body">
+          <div class="quest-info">
+            <div class="quest-title">
+              <h3>Убить: ${q.mobName}</h3>
+              <span class="hint">Этаж ${q.floorId}</span>
+            </div>
           </div>
-          ${claimed ? `<span class="badge">Получено</span>` : q.done ? `<span class="badge">Готово</span>` : ""}
+          <div class="quest-progress-wrap">
+            <div class="bar"><span style="width:${pct}%"></span></div>
+            <span class="quest-count">${q.progress} / ${q.target}</span>
+          </div>
         </div>
-        <div class="quest-progress">
-          <div class="bar"><span style="width:${pct}%"></span></div>
-          <span class="quest-count">${q.progress} / ${q.target}</span>
-        </div>
-        <div class="quest-foot">
+        <div class="quest-side">
           <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-quest" data-id="${q.id}"
-            ${canClaim ? "" : "disabled"} type="button">
-            ${claimed ? "Получено" : q.done ? "Забрать" : "В процессе"}
-          </button>
+          ${statusHtml}
         </div>
       </article>
     `;
   }).join("");
 
-  const npcCards = state.npcQuests.list.filter(q => !q.claimed).map((q) => {
+  const npcCards = npcList.map((q) => {
     const res = ALL_RESOURCES.find(r => r.id === q.resId);
     if (!res) return "";
+    
     const have = state.resources[q.resId] || 0;
     const pct = Math.min(100, Math.round((have / q.target) * 100));
-    const canClaim = have >= q.target;
+    const npcName = q.npc === "ron" ? "Рон" : q.npc === "elain" ? "Элейн" : "Элиза";
+    
+    let statusHtml = `<span class="badge">В процессе</span>`;
+    if (q.claimed) statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
+    else if (have >= q.target) statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${npcName})</span>`;
+
     return `
-      <div class="quest-card">
-        <div class="quest-head">
+      <article class="quest-card quest-card-wide${q.claimed ? " claimed" : have >= q.target ? " done" : ""}">
+        <div class="quest-icon-wrap">
           <span class="quest-icon">${iconHtml(res.icon, 32)}</span>
-          <div class="quest-title">
-            <h3>Собрать: ${res.name}</h3>
-            <span class="hint">Нужно ${q.target} шт. (в сумке: ${have})</span>
+        </div>
+        <div class="quest-body">
+          <div class="quest-info">
+            <div class="quest-title">
+              <h3>Собрать: ${res.name}</h3>
+              <span class="hint">Сдать: <b>${npcName}</b></span>
+            </div>
+          </div>
+          <div class="quest-progress-wrap">
+            <div class="bar"><span style="width:${pct}%"></span></div>
+            <span class="quest-count">${have} / ${q.target}</span>
           </div>
         </div>
-        <div class="quest-progress">
-          <div class="bar"><span style="width:${pct}%"></span></div>
-          <span class="quest-count">${have} / ${q.target}</span>
-        </div>
-        <div class="quest-foot">
+        <div class="quest-side">
           <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-npc-quest" data-id="${q.id}"
-            ${canClaim ? "" : "disabled"} type="button">
-            ${canClaim ? "Сдать" : "Не хватает"}
-          </button>
+          ${statusHtml}
         </div>
-      </div>
+      </article>
     `;
   }).join("");
 
-  const hasAny = dailyCards || npcCards;
-
   return `
     <div class="doll-menu-backdrop" data-act="quests-close"></div>
-    <div class="doll-menu" role="dialog" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+    <div class="doll-menu quest-modal" role="dialog">
       <div class="doll-menu-head">
-        <h3>Задания</h3>
+        <h3>Журнал заданий</h3>
         <button class="doll-menu-close" data-act="quests-close" type="button">✕</button>
       </div>
-      <div class="quest-grid" style="grid-template-columns: 1fr;">
-        ${hasAny ? dailyCards + npcCards : `<p class="empty">Все задания выполнены!</p>`}
+      
+      <div class="shop-tabs" style="margin-bottom: 15px;">
+        <button class="shop-tab${tab === "daily" ? " active" : ""}" data-act="quests-tab" data-tab="daily" type="button">📋 Зал Охотников (Ежедневные)</button>
+        <button class="shop-tab${tab === "weekly" ? " active" : ""}" data-act="quests-tab" data-tab="weekly" type="button">📦 Заказы горожан (Еженедельные)</button>
+      </div>
+
+      <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
+        ${tab === "daily" 
+          ? (dailyCards || `<p class="empty">Все ежедневные задания выполнены!</p>`) 
+          : (npcCards || `<p class="empty">Все заказы выполнены!</p>`)}
       </div>
     </div>
   `;
@@ -1065,7 +1087,17 @@ function towerHtml() {
     </div>
   `;
 }
-
+function floorResourcesHtml(floorId) {
+  const resources = FLOOR_RESOURCES[floorId] || [];
+  if (!resources.length) return "Здесь нечего искать.";
+  
+  const list = resources.map(res => {
+    // Используем resolveIcon, чтобы подтянуть картинку или эмодзи
+    return `<span style="display:inline-flex; align-items:center; gap:4px; margin-right:8px; white-space:nowrap;">${iconHtml(res.icon, 16)} ${res.name}</span>`;
+  }).join("");
+  
+  return `<div style="font-size:12px; line-height:1.6; text-align:left; max-width:280px;"><b>Возможная добыча:</b><br>${list}</div>`;
+}
 function floorHtml() {
   const floor = FLOORS.find((f) => f.id === view.currentFloor);
   if (!floor) return towerHtml();
@@ -1081,7 +1113,15 @@ function floorHtml() {
   const towerControls = `
     <div class="tower-controls" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--line);">
       <button class="btn primary" data-act="rest" type="button">${isNight() ? "Дождаться утра" : "Отдых · +3 энергии"}</button>
-      <button class="btn ghost" data-act="gather" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button">🔍 Искать припасы (1 ⚡)</button>
+     <button class="btn ghost gather-btn" data-act="gather" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button">
+  🔍 Искать припасы (1 ⚡)
+  <div class="gather-tooltip">
+    <b>Возможная добыча:</b>
+    <div class="gather-tooltip-list">
+      ${(FLOOR_RESOURCES[floor.id] || []).map(res => `<span>${iconHtml(res.icon, 16)} ${res.name}</span>`).join("")}
+    </div>
+  </div>
+</button>
       ${potionsHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-left: auto;">${potionsHtml}</div>` : ""}
     </div>
   `;
@@ -1366,9 +1406,21 @@ function resultHtml() {
     </div>`;
   }
 
+  // Блок поражения
+  const battle = view.battle;
+  const log = battle ? battle.log.slice(-12).map((entry) =>
+    `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`
+  ).join("") : "";
+
   return `<div class="result-overlay">
-    <div class="result-card lose">
+    <div class="result-card lose" style="max-width: 600px;">
       <h2>Поражение</h2>
+      <p style="margin-bottom: 15px; color: #d97a6c;">Вы потеряли ${summary.lostGold} 💰 и пропустили день, восстанавливая силы.</p>
+      
+      <div class="battle-log" style="text-align: left; height: 180px; margin-bottom: 20px; background: #0e0a08; border-color: #6a2a24;">
+        ${log || `<div class="log-line info">Лог боя пуст.</div>`}
+      </div>
+
       <button class="btn primary" data-act="result-continue" type="button">В Йорстед</button>
     </div>
   </div>`;
@@ -1380,6 +1432,26 @@ function subHeader(title, subtitle, backScreen, backLabel = "← Назад") {
 
 function scrollLog() { const log = document.getElementById("battle-log"); if (log) log.scrollTop = log.scrollHeight; }
 
+function levelUpModalHtml() {
+  const level = view.levelUp;
+  if (!level) return "";
+  
+  return `
+    <div class="result-overlay" data-act="levelup-close" style="z-index: 200;">
+      <div class="result-card levelup-card" onclick="event.stopPropagation()">
+        <h2 style="color: var(--gold2); font-size: 32px; text-shadow: 0 0 20px rgba(223, 184, 108, 0.5);">Новый уровень!</h2>
+        <p style="font-size: 18px; margin-bottom: 20px;">Вы достигли <b>${level}</b> уровня.</p>
+        
+        <div style="font-size: 15px; color: var(--text); margin-bottom: 25px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">
+          Получено <b style="color: var(--gold2);">+3 очка атрибутов</b>.<br>
+          <span style="color: var(--dim); font-size: 13px;">Распределите их в меню «Герой».</span>
+        </div>
+        
+        <button class="btn primary big" data-act="levelup-close" type="button" style="width: 100%;">Продолжить</button>
+      </div>
+    </div>
+  `;
+}
 function render() {
   const screen = document.getElementById("screen"); const topbar = document.getElementById("topbar");
   if (!state.created) { if (!view.create) resetCreate(); topbar.innerHTML = ""; topbar.hidden = true; screen.innerHTML = createHtml(); screen.dataset.screen = "create"; return; }
@@ -1392,6 +1464,9 @@ function render() {
   }
     if (view.questsOpen) html += questsModalHtml();
   screen.innerHTML = html; screen.dataset.screen = view.screen; if (view.screen === "battle") requestAnimationFrame(scrollLog);
+    if (view.questsOpen) html += questsModalHtml();
+    if (view.levelUp) html += levelUpModalHtml(); // <-- ДОБАВИТЬ ЭТО
+  screen.innerHTML = html;
 }
 
 function startBattle(floorId, mobKey) {
@@ -1515,6 +1590,8 @@ function onClick(event) {
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
     case "quests-close": view.questsOpen = false; render(); break;
+    case "quests-tab": view.questsTab = el.dataset.tab; render(); break;
+    case "levelup-close": view.levelUp = null; render(); break;
     case "goto":
       if (el.dataset.screen === "tower") view.currentFloor = null;
       go(el.dataset.screen);
@@ -1524,8 +1601,22 @@ function onClick(event) {
     case "alchemy-tab": view.alchemyTab = el.dataset.tab || "potions"; render(); break;
     case "training-tab": view.trainingTab = el.dataset.tab || "train"; render(); break;
     case "inventory-tab": view.inventoryTab = el.dataset.tab || "gear"; render(); break;
-    case "claim-quest": res = claimQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "claim-npc-quest": res = claimNpcQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "claim-quest": 
+      res = claimQuest(id); 
+      toast(res.text, res.ok ? "ok" : "warn"); 
+      if (res.ok && res.text.includes("Новый уровень")) {
+        view.levelUp = state.level; 
+      }
+      render(); 
+      break;
+    case "claim-npc-quest": 
+      res = claimNpcQuest(id); 
+      toast(res.text, res.ok ? "ok" : "warn"); 
+      if (res.ok && res.text.includes("Новый уровень")) {
+        view.levelUp = state.level;
+      }
+      render(); 
+      break;
     case "create-portrait": { const c = view.create; if (c && PORTRAIT_MAP[el.dataset.portrait]) { c.portrait = el.dataset.portrait; render(); } break; }
     case "create-archetype": { const c = view.create; if (c && ARCHETYPE_MAP[el.dataset.id]) { c.archetype = el.dataset.id; render(); } break; }
     case "create-attr": { const c = view.create; if (!c) break; const attr = el.dataset.attr; const delta = Number(el.dataset.delta); if (delta > 0 && c.points > 0) { c.attrs[attr]++; c.points--; } else if (delta < 0 && c.attrs[attr] > 1) { c.attrs[attr]--; c.points++; } render(); break; }
@@ -1591,15 +1682,13 @@ function onClick(event) {
       const ambush = victory ? view.ambush : null;
       view.battle = null; view.summary = null;
       if (ambush) {
-        // Второй бой засады бесплатный: энергия не тратится.
         const floor = FLOORS.find((f) => f.id === ambush.floorId);
         const def = floor ? floor.mobs[ambush.nextMobIndex] : null;
         view.ambush = null;
         if (def) { beginBattle(def, floor.id, { ambush: true }); break; }
       }
       view.ambush = null;
- if (victory) {
-        // Если мы были в подземелье, возвращаем на экран этого этажа
+      if (victory) {
         if (view.currentFloor) {
           view.screen = "floor";
         } else {
@@ -1607,8 +1696,13 @@ function onClick(event) {
         }
       } else { 
         view.screen = "hub"; 
-        view.currentFloor = null; // При смерти сбрасываем этаж
+        view.currentFloor = null;
+        state.phase = TIME_PHASES.length - 1; 
         endTrip(); 
+        const st = stats();
+        state.hp = st.maxHp;
+        state.mana = st.maxMana;
+        state.energy = st.maxEnergy;
       }
       render();
       break;
