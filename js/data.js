@@ -382,10 +382,10 @@ const MOB_ICONS = {
   hobgoblin: "assets/mobs/hobgoblin.webp",
   bugbear: "assets/mobs/bugbear.webp",
   goblin_chief: "assets/mobs/goblin_chief.webp",
-  skeleton: "🛡️",
-  hound: "🐺",
-  turnkey: "🪓",
-  jailer: "🔗",
+  skeleton_warrior: "assets/mobs/skeleton_warrior.webp",
+  unquiet_ghost: "assets/mobs/unquiet_ghost.webp",
+  crypt_ghoul: "assets/mobs/crypt_ghoul.webp",
+  dark_knight: "assets/mobs/dark_knight.webp",
   drowned: "🧟",
   crab: "🦀",
   eel: "⚡",
@@ -473,31 +473,51 @@ const FLOORS = [
       ] }),
   },
   { id: 2, name: "Древний Склеп", subtitle: "Лишенные покоя не ведают жалости", icon: "💀",
-    desc: "Даже свет факела кажется маленькой искрой и выхватывает из темноты лишь сырые каменные стены, стоящих вдоль опустевших могил. Затхлый воздух сквозит гнилью и тлением. Стоящая вокруг тишина давит на слух не хуже крика. Иногда пламя факела выхватывает из мрака бледный блеск пустых глазниц — и в следующую секунду там уже никого нет. Но они здесь. Они ждут.",
+    desc: "Даже свет факела кажется маленькой искрой и выхватывает из темноты лишь сырые каменные стены...",
     cardImg: "assets/backgrounds/crypt.webp", 
     bg: "assets/backgrounds/crypt.webp", 
     mobs: [
-      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "💀", hp: 350, atk: 36, def: 12, gold: 60, xp: 84, prefers: ["chest", "legs"], desc: "Восставший из старой могилы. Бьет размеренно и безжалостно, как при жизни.",
+      enemy({ 
+        id: "skeleton_warrior", 
+        name: "Скелет-воин", 
+        icon: "skeleton_warrior", // <-- ИЗМЕНЕНО
+        hp: 350, atk: 36, def: 12, gold: 60, xp: 84, prefers: ["chest", "legs"], desc: "Восставший из старой могилы...",
         drops: [
           { id: "bone", chance: 0.40, min: 1, max: 2 },
           { id: "rust", chance: 0.20, min: 1, max: 3 },
-        ] }),
-      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "👻", hp: 400, atk: 42, def: 6, gold: 65, xp: 90, prefers: ["head", "belly"], desc: "Полупрозрачный силуэт, парящий над могилами. Его ледяное прикосновение вытягивает жизнь.",
+        ] 
+      }),
+      enemy({ 
+        id: "unquiet_ghost", 
+        name: "Неупокоенный призрак", 
+        icon: "unquiet_ghost", // <-- ИЗМЕНЕНО
+        hp: 400, atk: 42, def: 6, gold: 65, xp: 90, prefers: ["head", "belly"], desc: "Полупрозрачный силуэт...",
         drops: [
           { id: "bone", chance: 0.30, min: 1, max: 2 },
           { id: "herb", chance: 0.20, min: 1, max: 2 },
-        ] }),
-      enemy({ id: "crypt_ghoul", name: "Свежий Упырь", icon: "🧟", hp: 480, atk: 48, def: 16, gold: 75, xp: 105, prefers: ["waist", "chest"], desc: "Пожиратель падали. Его когти покрыты трупным ядом, а движения пугают своей быстротой.",
+        ] 
+      }),
+      enemy({ 
+        id: "crypt_ghoul", 
+        name: "Свежий Упырь", 
+        icon: "crypt_ghoul", // <-- ИЗМЕНЕНО
+        hp: 480, atk: 48, def: 16, gold: 75, xp: 105, prefers: ["waist", "chest"], desc: "Пожиратель падали...",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "leather", chance: 0.20, min: 1, max: 2 },
-        ] }),
+        ] 
+      }),
     ],
-    boss: enemy({ id: "dark_knight", name: "Темный Рыцарь", icon: "⚔️", hp: 2100, atk: 64, def: 28, gold: 450, xp: 480, prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Павший паладин, чья душа навеки запечатана в проклятых доспехах. Его двуручный меч оставляет за собой лишь тьму.",
+    boss: enemy({ 
+      id: "dark_knight", 
+      name: "Темный Рыцарь", 
+      icon: "dark_knight", // <-- ИЗМЕНЕНО
+      hp: 2100, atk: 64, def: 28, gold: 450, xp: 480, prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Павший паладин...",
       drops: [
         { id: "head_iron", chance: 1.0, min: 1, max: 1 },
         { id: "steel", chance: 0.40, min: 1, max: 2 }, 
-      ] }),
+      ] 
+    }),
   },
   { id: 3, name: "Затопленный ярус", subtitle: "Вода по колено, и в ней кто-то двигается", icon: "🌊",
     desc: "Вода стоит по колено, отражая тусклый свет факелов. Из-под поверхности тянутся руки, а в тёмной глубине что-то тяжело ворочается.",
