@@ -372,7 +372,7 @@ function hubHtml(st) {
 }
 
 function marketHtml() {
-  return `<div class="screen-bg" style="background-image: ="assets/backgrounds/market.webp');"></div>
+  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/market.webp');"></div>
     ${subHeader("Торговая площадь", "Здесь торгуют, куют и варят", "hub", "← В Йорстед")}
     <div class="locations">
       <button class="loc-card" data-act="goto" data-screen="forge" type="button"><img class="loc-image" src="assets/backgrounds/forge.webp" onerror="this.style.display='none'"><div class="loc-content">
