@@ -276,7 +276,7 @@ function topbarHtml(st) {
     : "";
     
   const weeklyPill = nqTotal > 0 
-    ? `<button class="pill${nqDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="weekly" type="button" title="Заказы горожан (Еженедельные)">📦 <b>${nqDone}/${nqTotal}</b></button>` 
+    ? `<button class="pill${nqDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="weekly" type="button" title="Заказы горожан (Ежедневные)">📦 <b>${nqDone}/${nqTotal}</b></button>` 
     : "";
 
   return `
@@ -624,7 +624,7 @@ function questsModalHtml() {
       
       <div class="shop-tabs" style="margin-bottom: 15px;">
         <button class="shop-tab${tab === "daily" ? " active" : ""}" data-act="quests-tab" data-tab="daily" type="button">📋 Зал Охотников (Ежедневные)</button>
-        <button class="shop-tab${tab === "weekly" ? " active" : ""}" data-act="quests-tab" data-tab="weekly" type="button">📦 Заказы горожан (Еженедельные)</button>
+        <button class="shop-tab${tab === "weekly" ? " active" : ""}" data-act="quests-tab" data-tab="weekly" type="button">📦 Заказы горожан (Ежедневные)</button>
       </div>
 
       <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
