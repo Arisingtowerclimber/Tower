@@ -143,7 +143,8 @@ function exchange(state, battle, action) {
   if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.length) {
     const poison = battle.playerDebuffs.find((d) => d.id === "poison");
     if (poison) {
-      const damage = Math.max(2, Math.round(e.atk * POISON_ATK_MULT));
+      let damage = Math.max(2, Math.round(e.atk * POISON_ATK_MULT));
+      if (state.archetype === "guardian") damage = Math.round(damage * (st.mods?.dmgTakenMult || 1)); // Страж получает меньше урона от яда
       state.hp = Math.max(0, state.hp - damage);
       poison.turns -= 1;
       if (poison.turns <= 0) battle.playerDebuffs = battle.playerDebuffs.filter((d) => d !== poison);
@@ -254,6 +255,7 @@ function exchange(state, battle, action) {
     } else if (battle.riskyMiss) {
       let base = e.atk * rnd(1.0, 1.2);
       base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
+      if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1); // Снижение урона у Стража
       const damage = Math.max(2, Math.round(base));
       state.hp = Math.max(0, state.hp - damage);
       battleLog(battle, `${e.name} ловит ваш промах: ${damage} урона.`, "enemy");
@@ -290,6 +292,7 @@ function exchange(state, battle, action) {
         let base = e.atk * rnd(0.85, 1.15);
         base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
+        if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1); // Снижение урона у Стража
         const damage = Math.max(2, Math.round(base));
         state.hp = Math.max(0, state.hp - damage);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}»: ${damage} урона.`, "enemy");

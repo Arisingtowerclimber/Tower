@@ -139,12 +139,12 @@ const ARCHETYPES = [
     mods: { atk: 1, maxHp: 0.85, dodgeCap: 35, blockZones: 2, ragePerHit: 2, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
-  {
+   {
     id: "guardian",
     name: "Страж",
     icon: "🛡️",
-    desc: "Успешный блок наносит ответный удар — 10% атаки врага. +1 зона блока. −10% к урону.",
-    mods: { atk: 0.9, maxHp: 1, dodgeCap: 35, blockZones: 3, ragePerHit: 1, blockCounter: 0.1 },
+    desc: "Успешный блок наносит ответный удар — 10% атаки врага. −10% к наносимому и получаемому урону.",
+    mods: { atk: 0.9, maxHp: 1, dodgeCap: 35, blockZones: 2, ragePerHit: 1, blockCounter: 0.1, dmgTakenMult: 0.9 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots", "wood_shield"]
   },
   {
