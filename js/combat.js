@@ -55,6 +55,8 @@ function variationLabel(enemy) {
 
 function createBattle(enemyDef, floorId) {
   const enemy = applyMobVariation(enemyDef);
+  const floor = FLOORS.find(f => f.id === floorId);
+  
   const battle = {
     enemy,
     hp: enemy.hp,
@@ -64,6 +66,7 @@ function createBattle(enemyDef, floorId) {
     log: [],
     over: false,
     floorId,
+    floorBg: floor ? floor.bg : "assets/backgrounds/floor1.webp",
     boss: Boolean(enemyDef.boss),
     lastPlayerAttack: null,
     staggered: false,
@@ -73,6 +76,7 @@ function createBattle(enemyDef, floorId) {
     enemyAttackHistory: [],
     playerDebuffs: [],
   };
+  
   const label = variationLabel(enemy);
   if (label) battleLog(battle, `${enemy.name} — ${label}`, "info");
   return battle;

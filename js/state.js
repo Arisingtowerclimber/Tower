@@ -961,36 +961,70 @@ function simulateFarmBattle(mob, isBoss = false) {
   let playerHp = state.hp;
   let turns = 0;
   const maxTurns = 50;
+  
+  const logs = [];
 
   let dmgTakenMult = 1;
   let dmgDealtMult = 1;
   if (state.archetype === "assassin") dmgTakenMult = 0.6;
-  if (state.archetype === "guardian") { dmgTakenMult = 0.7; dmgDealtMult = 1.1; }
+  if (state.archetype === "guardian") { dmgTakenMult = 0.9; dmgDealtMult = 0.9; }
   if (state.archetype === "berserker") dmgDealtMult = 1.2;
 
   while (turns < maxTurns && enemyHp > 0 && playerHp > 0) {
+    turns++;
+    
+    // Ход игрока
     let playerDmg = Math.max(1, st.atk - Math.floor(mob.def * 0.5));
     playerDmg = Math.round(playerDmg * dmgDealtMult * (0.9 + Math.random() * 0.2));
-    if (Math.random() * 100 < st.crit) playerDmg = Math.round(playerDmg * 1.7);
+    let isCrit = false;
+    if (Math.random() * 100 < st.crit) { 
+      playerDmg = Math.round(playerDmg * 1.7); 
+      isCrit = true; 
+    }
     enemyHp -= playerDmg;
+    logs.push(`⚔ Вы бьёте ${mob.name} на ${playerDmg}${isCrit ? " (КРИТ!)" : ""}.`);
 
     if (enemyHp <= 0) break;
 
+    // Ход врага
     if (Math.random() * 100 < st.dodge) {
+      logs.push(`💨 Вы уклоняетесь от атаки ${mob.name}.`);
       if (Math.random() * 100 < st.counter) {
         let counterDmg = Math.max(1, Math.round(st.atk * 0.5 - mob.def * 0.3));
         enemyHp -= counterDmg;
+        logs.push(`⚡ Контратака! ${mob.name} теряет ${counterDmg} HP.`);
       }
     } else {
       let enemyDmg = Math.max(1, mob.atk - Math.floor(st.def * 0.5));
       enemyDmg = Math.round(enemyDmg * dmgTakenMult * (0.85 + Math.random() * 0.3));
       playerHp -= enemyDmg;
+      logs.push(`🩸 ${mob.name} бьёт вас на ${enemyDmg} урона.`);
+
+      if (state.archetype === "guardian" && Math.random() < 0.3) {
+        const retaliation = Math.max(1, Math.round(mob.atk * (st.mods?.blockCounter || 0.1)));
+        enemyHp -= retaliation;
+        logs.push(`🛡 Страж блокирует и отвечает: ${mob.name} теряет ${retaliation} HP.`);
+      }
     }
 
-    turns++;
+    // Авто-питье зелий (ниже 40% HP)
+    if (playerHp > 0 && playerHp < st.maxHp * 0.4) {
+      if ((state.potions["hp_small"] || 0) > 0) {
+        const heal = Math.min(100, st.maxHp - playerHp);
+        playerHp += heal;
+        state.potions["hp_small"] -= 1;
+        logs.push(`🧪 Вы выпили Малое зелье лечения (+${heal} HP).`);
+      } else if ((state.potions["hp_big"] || 0) > 0) {
+        const heal = Math.min(225, st.maxHp - playerHp);
+        playerHp += heal;
+        state.potions["hp_big"] -= 1;
+        logs.push(`⚗️ Вы выпили Большое зелье лечения (+${heal} HP).`);
+      }
+    }
   }
 
   const victory = enemyHp <= 0;
+  const hpLeft = Math.max(1, playerHp);
 
   if (victory) {
     const gold = Math.max(1, Math.floor(mob.gold * GOLD_DROP_MULT * goldMultToday()));
@@ -1000,18 +1034,29 @@ function simulateFarmBattle(mob, isBoss = false) {
     state.kills = (state.kills || 0) + 1;
     checkQuestProgress(mob.id);
     const loot = rollDrops(mob);
-    state.hp = Math.max(1, playerHp);
+    state.hp = hpLeft;
     saveState();
-    return { ok: true, loot, text: `Победа над ${mob.name}. +${gold} 💰, +${xp} ✦.${up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : ""}` };
+    
+    return { 
+      ok: true, 
+      loot, 
+      logs: logs, 
+      text: `Победа над ${mob.name}. +${gold} 💰, +${xp} ✦.${up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : ""}` 
+    };
   } else {
     const lost = Math.floor(state.gold * 0.15);
     state.gold = Math.max(0, state.gold - lost);
     state.hp = st.maxHp;
     state.mana = st.maxMana;
     saveState();
-    return { ok: false, text: `Вы погибли в бою с ${mob.name}. Потеряно ${lost} золота.` };
+    return { 
+      ok: false, 
+      logs: logs, 
+      text: `Вы погибли в бою с ${mob.name}. Потеряно ${lost} золота.` 
+    };
   }
 }
+
 
 
 function makeCombatSandbox() {

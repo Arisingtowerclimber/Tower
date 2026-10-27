@@ -272,7 +272,7 @@ function topbarHtml(st) {
       ${state.points > 0 ? `<button class="pill gold points" data-act="goto" data-screen="hero" type="button">+<b>${state.points}</b></button>` : ""}
       <div class="pill">ЭТАЖ <b>${state.maxFloor}/5</b></div>
       <div class="pill time${phase.towerOpen ? "" : " night"}">${phase.icon} <b>${phase.name}</b> · ${calendarLabel()}</div>
-            <div class="pill event" ${event ? `title="${esc(event.desc)}"` : ""}>
+                  <div class="pill event event-pill" data-tip="${event ? esc(event.desc) : 'Нет события'}">
         ${event ? event.icon : "·"} <b>${event ? event.name : "—"}</b>
       </div>
       ${questPill}
@@ -319,18 +319,18 @@ function hubHtml(st) {
         ` : ""}
       </div>
 
-      ${isNight() ? `<div class="banner night-banner">🌙 Ночь. Башня закрыта до утра.</div>` : ""}
+     
 
-      <div class="locations">
-        <button class="loc-card" data-act="goto" data-screen="market" type="button">
+            <div class="locations">
+        <button class="loc-card${isNight() ? " locked" : ""}" data-act="goto" data-screen="market" type="button">
           <img class="loc-image" src="assets/backgrounds/market.webp" onerror="this.style.display='none'" alt="">
           <div class="loc-content">
             <span class="loc-body">
-              <span class="loc-kicker">Снаряжение и зелья</span>
+              <span class="loc-kicker">${isNight() ? "Закрыто до утра" : "Снаряжение и зелья"}</span>
               <span class="loc-title">Торговая площадь</span>
               <span class="loc-desc">Кузница, Лавка Алхимика и Ювелир.</span>
             </span>
-            <span class="loc-cta">Войти →</span>
+            <span class="loc-cta">${isNight() ? "Спит" : "Войти →"}</span>
           </div>
         </button>
 
@@ -345,14 +345,14 @@ function hubHtml(st) {
           </div>
         </button>
 
-        <button class="loc-card" data-act="goto" data-screen="training" type="button">
+        <button class="loc-card${isNight() ? " locked" : ""}" data-act="goto" data-screen="training" type="button">
           <img class="loc-image" src="assets/backgrounds/training.webp" onerror="this.style.display='none'" alt="">
           <div class="loc-content">
             <span class="loc-body">
-              <span class="loc-kicker">Тренировки и Задания</span>
+              <span class="loc-kicker">${isNight() ? "Закрыто до утра" : "Тренировки и Задания"}</span>
               <span class="loc-title">Зал Охотников</span>
             </span>
-            <span class="loc-cta">Войти →</span>
+            <span class="loc-cta">${isNight() ? "Спит" : "Войти →"}</span>
           </div>
         </button>
 
@@ -361,7 +361,7 @@ function hubHtml(st) {
           <div class="loc-content">
             <span class="loc-body">
               <span class="loc-kicker">${closed ? "Проход закрыт" : `Боссов повержено: ${bossDead}/5`}</span>
-              <span class="loc-title">${closed ? "Башня спит" : "Башня"}</span>
+              <span class="loc-title">${closed ? "Дорога до Башни слишком опасна" : "Башня"}</span>
             </span>
             <span class="loc-cta">${closed ? "До утра" : "Войти →"}</span>
           </div>
@@ -878,6 +878,35 @@ function buybackPanelHtml(shop) {
 }
 
 function heroInventoryHtml() {
+   if (view.inventoryTab === "potions") {
+    // Находим все зелья из базы предметов
+    const potions = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
+    
+    if (!potions.length) return `<p class="empty">В сумке нет зелий.</p>`;
+    
+    const rows = potions.map((item) => {
+      const count = state.potions[item.id] || 0;
+      const st = stats();
+      // Проверяем, можно ли выпить (не полное ли HP/мана)
+      const isFull = item.effect === "hp" ? state.hp >= st.maxHp : state.mana >= st.maxMana;
+      
+      return `
+        <div class="resource-row" style="padding: 12px; margin-bottom: 8px; align-items: center;">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            ${iconHtml(item.icon, 24)} 
+            <b>${item.name}</b> 
+            <span class="chip">×${count}</span>
+            <span class="hint" style="margin-left: 10px;">${item.desc}</span>
+          </span>
+          <button class="btn small${isFull ? " ghost" : " primary"}" data-act="drink" data-id="${item.id}" ${isFull ? "disabled" : ""} type="button">
+            ${isFull ? "Полон" : "Выпить"}
+          </button>
+        </div>
+      `;
+    }).join("");
+    
+    return `<div class="resource-list">${rows}</div>`;
+  }
   if (view.inventoryTab === "gear") {
     const bag = state.owned.filter((inst) => !isEquipped(inst.uid));
     if (!bag.length) return `<p class="empty">Инвентарь пуст.</p>`;
@@ -976,10 +1005,11 @@ function heroHtml(st) {
         ${invMenuHtml()}
         
         <div style="margin-top: 20px;">
-          <div class="shop-tabs" style="margin-bottom:10px;">
+                    <div class="shop-tabs" style="margin-bottom:10px;">
             <button class="shop-tab${view.inventoryTab === "gear" ? " active" : ""}" data-act="inventory-tab" data-tab="gear" type="button">Снаряжение</button>
             <button class="shop-tab${view.inventoryTab === "resources" ? " active" : ""}" data-act="inventory-tab" data-tab="resources" type="button">Материалы</button>
             <button class="shop-tab${view.inventoryTab === "recipes" ? " active" : ""}" data-act="inventory-tab" data-tab="recipes" type="button">Рецепты</button>
+            <button class="shop-tab${view.inventoryTab === "potions" ? " active" : ""}" data-act="inventory-tab" data-tab="potions" type="button">Зелья</button>
           </div>
 
           ${heroInventoryHtml()}
@@ -992,33 +1022,51 @@ function heroHtml(st) {
 
 function towerHtml() {
   const reason = towerClosedReason();
+  
   const floors = FLOORS.map((floor) => {
     const locked = floor.id > state.maxFloor;
     const cleared = Boolean(state.cleared[floor.id]);
+    
     return `
-      <article class="floor-card${locked ? " locked" : ""}${cleared ? " cleared" : ""}">
-        <div class="floor-head">
-          <span class="floor-icon">${locked ? "🔒" : floor.icon}</span>
+      <article class="floor-card${locked ? " locked" : ""}${cleared ? " cleared" : ""}" 
+               style="position: relative; overflow: hidden; min-height: 220px; border: 1px solid var(--line); border-radius: 16px; padding: 0;">
+        
+         <div style="position: absolute; inset: 0; background-image: url('${floor.cardImg || floor.bg || "assets/backgrounds/tower.webp"}'); background-size: cover; background-position: center; z-index: 0; ${locked ? 'filter: grayscale(1) brightness(0.3);' : 'filter: brightness(0.3);'}"></div>
+        
+        <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.35) 0%, rgba(10, 8, 7, 0.15) 100%); height: 100%; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+          
+          <span class="loc-kicker" style="color: var(--gold); font-size: 11px; letter-spacing: 0.1em;">
+            ЭТАЖ ${floor.id} ${locked ? "· ЗАПЕЧАТАН" : cleared ? "· ПРОЙДЕН" : ""}
+          </span>
+          
+          <h2 style="font-size: 28px; margin: 6px 0 10px 0; color: var(--gold2); text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${floor.name}</h2>
+          
+          <p class="item-desc" style="color: #d1c0aa; font-size: 14px; line-height: 1.5; max-width: 600px; margin: 0 0 20px 0; font-style: italic;">
+            ${floor.desc}
+          </p>
+
           <div>
-            <h2>Этаж ${floor.id}: ${floor.name}</h2>
-            <p class="muted">${floor.subtitle}</p>
+            ${locked 
+              ? `<span class="badge" style="border-color: var(--blood); color: var(--blood);">🔒 Запечатан</span>` 
+              : `<button class="btn primary" data-act="floor-open" data-floor="${floor.id}" type="button">Войти на этаж →</button>`}
           </div>
-          ${cleared ? `<span class="badge">Пройден</span>` : ""}
+          
         </div>
-        ${locked 
-          ? `<p class="locked-note">Запечатан. Победите босса предыдущего этажа.</p>` 
-          : `<button class="btn primary" data-act="floor-open" data-floor="${floor.id}" type="button">Войти на этаж</button>`}
       </article>
     `;
   }).join("");
 
   return `
-    <div class="screen-bg" style="background-image: ="assets/backgrounds/tower.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/tower.webp');"></div>
     ${subHeader("Башня", "Поход в неизвестность", "hub", "← В Йорстед")}
     ${reason ? `<div class="banner warn-banner">${reason}</div>` : ""}
-    <div class="floors">${floors}</div>
+    
+    <div class="floors" style="display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 0 auto;">
+      ${floors}
+    </div>
   `;
 }
+
 function floorHtml() {
   const floor = FLOORS.find((f) => f.id === view.currentFloor);
   if (!floor) return towerHtml();
@@ -1034,6 +1082,7 @@ function floorHtml() {
   const towerControls = `
     <div class="tower-controls" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--line);">
       <button class="btn primary" data-act="rest" type="button">${isNight() ? "Дождаться утра" : "Отдых · +3 энергии"}</button>
+      <button class="btn ghost" data-act="gather" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button">🔍 Искать припасы (1 ⚡)</button>
       ${potionsHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-left: auto;">${potionsHtml}</div>` : ""}
     </div>
   `;
@@ -1041,32 +1090,43 @@ function floorHtml() {
   const mobs = floor.mobs.map((mob, index) => {
     const isFarming = view.farm && view.farm.floorId === floor.id && view.farm.mobIndex === index;
     const farmBtn = isFarming 
-      ? `<button class="btn small danger" data-act="farm-stop" type="button">⏹ Стоп</button>` 
-      : `<button class="btn small ghost" data-act="farm" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button">⏩ Фарм</button>`;
+      ? `<button class="btn small danger" data-act="farm-stop" type="button" style="width:100%;">⏹ Стоп</button>` 
+      : `<button class="btn small ghost" data-act="farm" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button" style="width:100%; margin-top: 5px;">⏩ Фарм</button>`;
+      
     return `
-      <div class="mob-row">
-        <span class="mob-icon">${iconHtml(mob.icon, 32)}</span>
-        <div class="mob-info"><b>${mob.name}</b><span class="muted">${mob.hp} HP · ⚔ ${mob.atk} · 🛡 ${mob.def}</span></div>
-        <div class="mob-actions">
-          <button class="btn small" data-act="fight" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button">Бой</button>
+      <div class="mob-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: row; gap: 20px; align-items: center;">
+        
+        <div style="display: flex; align-items: flex-start; gap: 15px; flex: 1;">
+          <div class="mob-icon" style="width: 60px; height: 60px; flex: 0 0 60px; font-size: 32px; background: #1c1511; border-radius: 12px; border: 1px solid var(--line2); display: grid; place-items: center;">
+            ${iconHtml(mob.icon, 48)}
+          </div>
+          <div>
+            <b style="font-size: 18px; color: var(--gold2);">${mob.name}</b>
+            <div style="font-size: 13px; color: var(--dim); margin-top: 4px; line-height: 1.4; max-width: 500px;">${mob.desc}</div>
+            
+            <div class="mob-stats-container" style="margin-top: 12px;">
+              <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${mob.hp} HP</span>
+              <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${mob.atk}</span>
+              <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${mob.def}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 140px;">
+          <button class="btn small primary" data-act="fight" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button" style="width:100%;">⚔ В бой</button>
           ${farmBtn}
         </div>
+
       </div>
     `;
   }).join("");
-
-  const gatherBtn = `
-    <div style="margin-top:10px; padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-      <span>Поиск припасов (1–3 шт.)</span>
-      <button class="btn small ghost" data-act="gather" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button">Искать · 1 ⚡</button>
-    </div>
-  `;
 
   return `
     <div class="screen-bg" style="background-image: url('${floor.bg || "assets/backgrounds/tower.webp"}');"></div>
     ${subHeader(`Этаж ${floor.id}: ${floor.name}`, floor.subtitle, "tower", "← Назад к этажам")}
     <p class="lead" style="margin-bottom: 20px;">${floor.desc || ""}</p>
     ${towerControls}
+    
     ${view.farm ? `
       <div class="banner farm-banner" style="display:flex; flex-direction:column; gap:10px; align-items:stretch;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1078,17 +1138,28 @@ function floorHtml() {
         </div>
       </div>
     ` : ""}
+    
     ${reason ? `<div class="banner warn-banner">${reason}</div>` : ""}
+    
     <div class="floors">
       <article class="floor-card${state.cleared[floor.id] ? " cleared" : ""}">
-        <div class="floor-head"><span class="floor-icon">${floor.icon}</span><div><h2>Противники</h2></div></div>
-        <div class="mobs">${mobs}</div>
-        <div class="boss-row">
-          <span class="mob-icon boss-icon">${iconHtml(floor.boss.icon, 48)}</span>
-          <div class="mob-info"><b>${floor.boss.name}</b><span class="muted">${floor.boss.hp} HP · ⚔ ${floor.boss.atk} · 🛡 ${floor.boss.def}</span></div>
-          <button class="btn small primary" data-act="fight" data-floor="${floor.id}" data-mob="boss" ${canFight ? "" : "disabled"} type="button">Босс</button>
+        <div class="floor-head"><div><h2>Противники</h2></div></div>
+        <div class="mobs" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">${mobs}</div>
+        
+        <div class="boss-row" style="margin-top: 20px; padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--blood); display: flex; align-items: center; gap: 20px;">
+          <span class="mob-icon boss-icon" style="width: 80px; height: 80px; flex: 0 0 80px; font-size: 40px; background: #1c1511; border-radius: 12px; border: 1px solid var(--blood); display: grid; place-items: center;">
+            ${iconHtml(floor.boss.icon, 64)}
+          </span>
+          <div class="mob-info" style="flex: 1;">
+            <b style="font-size: 20px; color: #ff6b6b;">${floor.boss.name}</b>
+            <div class="mob-stats-container" style="margin-top: 8px;">
+              <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${floor.boss.hp} HP</span>
+              <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${floor.boss.atk}</span>
+              <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${floor.boss.def}</span>
+            </div>
+          </div>
+          <button class="btn primary" data-act="fight" data-floor="${floor.id}" data-mob="boss" ${canFight ? "" : "disabled"} type="button" style="font-size: 16px; padding: 12px 24px;">⚔ Атаковать Босса</button>
         </div>
-        ${gatherBtn}
       </article>
     </div>
   `;
@@ -1129,6 +1200,10 @@ function enemyStatusHtml(enemy) {
 function battleHtml(st) {
   const battle = view.battle; 
   const enemy = battle.enemy; 
+  
+  const currentFloorData = FLOORS.find(f => f.id === battle.floorId);
+  const bgImage = currentFloorData && currentFloorData.bg ? currentFloorData.bg : "assets/backgrounds/tower.webp";
+
   const zones = zoneButtons(); 
   const counterFormatted = Math.round(st.counter * 10) / 10;
   
@@ -1166,39 +1241,85 @@ function battleHtml(st) {
   `;
 
   return `
-    <section class="battle">
-      <div class="battle-top">
-        <span class="eyebrow">Этаж ${battle.floorId} · размен ${battle.turn + 1} · ⚡ ${state.energy}/${st.maxEnergy}</span>
-        <h1>${battle.boss ? "Босс" : "Схватка"} · ${enemy.name}</h1>
-        ${enemyStatusHtml(enemy)}
-      </div>
-
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: linear-gradient(rgba(10, 8, 7, 0.6), rgba(10, 8, 7, 0.6)), url('${bgImage}'); background-size: cover; background-position: center; z-index: 0; pointer-events: none;"></div>
+    
+    <section class="battle" style="position: relative; z-index: 1; padding-top: 10px;">
+      
       ${battle.ambush ? `<div class="banner warn-banner">🔪 ${AMBUSH_TEXT}</div>` : ""}
 
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="font-size: 36px; letter-spacing: 0.2em; color: ${battle.boss ? "#ff6b6b" : "var(--gold2)"}; text-shadow: 0 0 20px rgba(${battle.boss ? "255, 107, 107" : "217, 169, 75"}, 0.4); margin: 0;">
+          ${battle.boss ? "БОСС" : "БОЙ"}
+        </h1>
+      </div>
+
       <div class="fighters">
+        <!-- ГЕРОЙ -->
         <article class="fighter hero-fighter">
-          <div class="fighter-avatar portrait">
-            <img src="${portraitSrc(state.portrait)}" alt="${esc(state.name)}">
+          <div class="fighter-avatar portrait" style="width: 120px; height: 120px; flex: 0 0 120px; border-radius: 12px; overflow: hidden; padding: 0;">
+            <img src="${portraitSrc(state.portrait)}" alt="${esc(state.name)}" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
-          <div class="fighter-body">
-            <div class="fighter-name">${esc(state.name)} <span class="muted">УР ${state.level}</span></div>
-            ${bar("hp", state.hp, st.maxHp)}
-            ${bar("mana", state.mana, st.maxMana)}
-            <div class="fighter-numbers"><span>${state.hp} / ${st.maxHp} HP</span><span>${state.mana} / ${st.maxMana} маны</span></div>
-            <div class="rage"><span class="rage-label">Кураж</span>${ragePips}</div>
-            <div class="fighter-sub">⚔ ${st.atk} · 🛡 ${st.def} · 🎯 ${st.crit}% · 💨 ${st.dodge}% · ⚡ ${counterFormatted}% контр</div>
+          <div class="fighter-body" style="display: flex; flex-direction: column; height: 100%;">
+            
+            <div style="margin-bottom: 8px;">
+              <div class="fighter-name" style="margin: 0;">${esc(state.name)} <span class="muted">УР ${state.level}</span></div>
+            </div>
+
+            <div>
+              ${bar("hp", state.hp, st.maxHp)}
+              ${bar("mana", state.mana, st.maxMana)}
+              <div class="fighter-numbers"><span>${state.hp} / ${st.maxHp} HP</span><span>${state.mana} / ${st.maxMana} маны</span></div>
+            </div>
+
+            <div class="rage" style="margin-top: auto; padding-top: 10px; margin-bottom: 10px;">
+              <span class="rage-label">Кураж</span>${ragePips}
+            </div>
+            
+            <div class="mob-stats-container" style="margin: 0;">
+              <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${st.atk}</span>
+              <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${st.def}</span>
+              <span class="mob-stat-chip" style="font-size: 13px; padding: 5px 12px; color: var(--dim); border-color: var(--line);">🎯 ${st.crit}%</span>
+              <span class="mob-stat-chip" style="font-size: 13px; padding: 5px 12px; color: var(--dim); border-color: var(--line);">💨 ${st.dodge}%</span>
+            </div>
+
           </div>
         </article>
 
-        <div class="vs">VS</div>
+        <div class="vs" style="align-self: center;">VS</div>
 
+        <!-- ВРАГ -->
         <article class="fighter enemy-fighter${battle.hp <= 0 ? " dead" : ""}">
-          <div class="fighter-avatar">${iconHtml(enemy.icon, 64)}</div>
-          <div class="fighter-body">
-            <div class="fighter-name">${enemy.name} ${battle.boss ? `<span class="badge boss">Босс</span>` : ""}</div>
-            ${bar("hp enemy", battle.hp, battle.maxHp)}
-            <div class="fighter-numbers"><span>${battle.hp} / ${battle.maxHp} HP</span></div>
-            <div class="fighter-sub">${enemy.desc}</div>
+          <div class="fighter-avatar" style="width: 120px; height: 120px; flex: 0 0 120px; border-radius: 12px; background: #1c1511; border: 1px solid var(--line2); overflow: hidden; padding: 0;">
+            <img src="${resolveIcon(enemy.icon)}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div class="fighter-body" style="display: flex; flex-direction: column; height: 100%;">
+            
+            <div style="margin-bottom: 8px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                <div class="fighter-name" style="margin: 0;">${enemy.name} ${battle.boss ? `<span class="badge boss">Босс</span>` : ""}</div>
+                
+                <div class="enemy-status" style="display: flex; gap: 4px; margin: 0;">
+                  ${enemy.rarity === "rare" ? `<span class="chip rare" style="border-color: var(--gold); color: var(--gold); font-size: 10px; padding: 2px 6px;" title="Редкий враг">Редкий</span>` : ""}
+                  ${enemy.rarity === "elite" ? `<span class="chip elite" style="border-color: #c2483c; color: #c2483c; font-size: 10px; padding: 2px 6px;" title="Элитный враг">Элитный</span>` : ""}
+                  ${enemy.modifier ? `<span class="chip" style="font-size: 10px; padding: 2px 6px;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : ""}
+                  ${enemy.ability ? `<span class="chip" style="font-size: 10px; padding: 2px 6px;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : ""}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              ${bar("hp enemy", battle.hp, battle.maxHp)}
+              <div class="fighter-numbers"><span>${battle.hp} / ${battle.maxHp} HP</span></div>
+            </div>
+            
+            <div style="margin-top: auto; padding-top: 10px; margin-bottom: 10px;"></div>
+
+            <div class="mob-stats-container" style="margin: 0;">
+              <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${battle.maxHp} HP</span>
+              <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${enemy.atk}</span>
+              <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${enemy.def}</span>
+            </div>
+
           </div>
         </article>
       </div>
@@ -1311,6 +1432,20 @@ function doExchange(type, potionId) {
 function endTrip() { if (!view.tripActive) return; view.tripActive = false; advancePhase(); }
 
 function go(screen) {
+  if (!state.created) return;
+  if (view.farm) stopFarm("Фарм остановлен.");
+  if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
+  
+  // --- ДОБАВЛЯЕМ ПРОВЕРКУ НА НОЧЬ ---
+  if (isNight() && ["market", "forge", "alchemy", "jewelry", "training"].includes(screen)) {
+    toast("Ночью эта локация закрыта. Дождитесь утра.", "warn");
+    return;
+  }
+  // ---------------------------------
+
+  if (screen === "hero" && view.screen !== "hero") {
+    view.heroBackScreen = view.screen;
+  }
   if (!state.created) return;
   if (view.farm) stopFarm("Фарм остановлен.");
   if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
