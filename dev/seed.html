@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; padding: 0; background: #0a0807; }
+    iframe { display: block; border: 0; height: 1000px; }
+  </style>
+</head>
+<body>
+  <!--
+    Служебная страница для скриншотов: подкладывает сохранение и открывает нужный экран.
+    Примеры: seed.html?screen=hero&w=1280&points=2  ·  seed.html?screen=battle&floor=2&mob=boss
+    seed.html?screen=hotel&companion=mira  ·  seed.html?screen=tower&phase=2&energy=4
+  -->
+  <iframe id="game" title="game"></iframe>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const screen = params.get("screen") || "hub";
+    const width = Number(params.get("w")) || 1280;
+    const height = Number(params.get("h")) || 1000;
+    const floor = params.get("floor") || "2";
+    const mob = params.get("mob") || "boss";
+    const exchanges = Number(params.get("exchanges") || 3);
+    const tab = params.get("tab") || "held";
+    const portrait = params.get("portrait") || "m1";
+    const slot = params.get("slot") || "";
+    const phase = Number(params.get("phase") || 0);
+    const day = Number(params.get("day") || 1);
+    const energy = Number(params.get("energy") || 10);
+    const companion = params.get("companion") || null;
+    const archetype = params.get("archetype") || null;
+
+    // Служебный сейв в актуальном формате: каждый предмет — экземпляр с uid и своей прочностью.
+    const DUR_MAX = 100;
+    const ownedItems = [
+      "rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots",
+      "short_sword", "leather", "wood_shield", "gambeson", "parrying_dagger",
+      "head_iron", "neck_guard", "shoulder_leather", "back_cloak",
+      "wrist_leather", "hands_gloves", "waist_rope", "legs_leather",
+      "feet_leather", "ring_copper", "trinket_coin",
+    ];
+    const owned = ownedItems.map((id, i) => ({ uid: `item_${i + 1}`, id, durability: DUR_MAX }));
+    const uidOf = (id) => owned.find((x) => x.id === id).uid;
+
+    const save = {
+      version: 7,
+      created: true,
+      name: "Ворон",
+      portrait,
+      archetype,
+      level: 4,
+      xp: 22,
+      points: Number(params.get("points") || 0),
+      attrs: { str: 6, agi: 5, end: 6, int: 3 },
+      gold: 340,
+      hp: 47,
+      mana: 14,
+      energy,
+      phase,
+      day,
+      companion,
+      companionDay: companion ? day : 0,
+      potions: { hp_small: 2, hp_big: 1, mana_small: 1 },
+      equipped: {
+        head: uidOf("head_iron"),
+        neck: uidOf("neck_guard"),
+        shoulder: uidOf("shoulder_leather"),
+        back: uidOf("back_cloak"),
+        chest: uidOf("leather"),
+        wrist: uidOf("wrist_leather"),
+        hands: uidOf("hands_gloves"),
+        waist: uidOf("waist_rope"),
+        legs: uidOf("legs_leather"),
+        feet: uidOf("feet_leather"),
+        ring1: uidOf("ring_copper"),
+        ring2: null,
+        trinket1: uidOf("trinket_coin"),
+        trinket2: null,
+        mainhand: uidOf("short_sword"),
+        offhand: archetype === "assassin" ? null : uidOf("wood_shield"),
+      },
+      owned,
+      nextUid: ownedItems.length + 1,
+      maxFloor: 3,
+      cleared: { 1: true, 2: true },
+      kills: 12,
+      resources: {
+        rust: 12, mushroom: 8, malachite: 14, wood: 20, cloth: 16,
+        bone: 10, herb: 6, silver: 8, leather: 18, iron_ore: 12,
+        iron: 6, algae: 5, topaz: 4, coral: 3, scale: 4,
+      },
+      knownRecipes: [
+        "recipe_gambeson", "recipe_wood_club", "recipe_wood_shield",
+        "recipe_ring_copper", "recipe_neck_bone", "recipe_short_sword",
+        "recipe_leather", "recipe_ring_silver", "recipe_neck_guard",
+      ],
+    };
+
+    const frame = document.getElementById("game");
+    frame.style.width = width + "px";
+    frame.style.height = height + "px";
+
+    if (screen === "create") {
+      localStorage.removeItem("safe-zone-tower-v2");
+    } else {
+      localStorage.setItem("safe-zone-tower-v2", JSON.stringify(save));
+    }
+
+    frame.addEventListener("load", () => {
+      const doc = frame.contentDocument;
+      if (screen === "forge") {
+        doc.querySelector(`[data-act="forge-tab"][data-tab="${tab}"]`)?.click();
+      }
+      if (screen === "jewelry") {
+        doc.querySelector(`[data-act="jewelry-tab"][data-tab="${tab}"]`)?.click();
+      }
+      if (screen === "hero" && slot) {
+        doc.querySelector(`[data-act="doll-slot"][data-slot="${slot}"]`)?.click();
+      }
+      if (screen === "battle") {
+        doc.querySelector(`[data-act="fight"][data-floor="${floor}"][data-mob="${mob}"]`)?.click();
+        for (let i = 0; i < exchanges; i++) {
+          doc.querySelector('[data-act="exchange"]')?.click();
+        }
+      }
+    });
+
+    frame.src = "/tower/?screen=" + (screen === "create" || screen === "battle" ? "tower" : screen);
+  </script>
+</body>
+</html>
