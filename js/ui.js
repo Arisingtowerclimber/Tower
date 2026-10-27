@@ -1464,8 +1464,18 @@ function onClick(event) {
         if (def) { beginBattle(def, floor.id, { ambush: true }); break; }
       }
       view.ambush = null;
-      if (victory) view.screen = "tower";
-      else { view.screen = "hub"; endTrip(); }
+ if (victory) {
+        // Если мы были в подземелье, возвращаем на экран этого этажа
+        if (view.currentFloor) {
+          view.screen = "floor";
+        } else {
+          view.screen = "tower"; 
+        }
+      } else { 
+        view.screen = "hub"; 
+        view.currentFloor = null; // При смерти сбрасываем этаж
+        endTrip(); 
+      }
       render();
       break;
     }
