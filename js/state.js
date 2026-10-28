@@ -250,29 +250,6 @@ function wearEquipment(amount = DURABILITY_LOSS_PER_FIGHT) {
   return [];
 }
 
-function repairCost(inst) { const missing = DURABILITY_MAX - durabilityOf(inst); if (missing <= 0) return 0; return Math.max(1, Math.ceil(missing * REPAIR_COST_PER_POINT)); }
-
-function repairItem(uid) {
-  const inst = getInstance(uid);
-  if (!inst) return { ok: false, text: "Предмета нет в инвентаре." };
-  const item = ITEMS[inst.id];
-  if (!item || item.price <= 0) return { ok: false, text: "Это нельзя починить." };
-  const cost = repairCost(inst);
-  if (cost <= 0) return { ok: false, text: "Предмет и так в порядке." };
-  if (state.gold < cost) return { ok: false, text: `Нужно ${cost} 💰.` };
-  state.gold -= cost; inst.durability = DURABILITY_MAX; saveState();
-  return { ok: true, text: `Починено: ${item.name} (−${cost} 💰).` };
-}
-
-function repairAll() {
-  const damaged = state.owned.filter((inst) => ITEMS[inst.id]?.price > 0 && durabilityOf(inst) < DURABILITY_MAX);
-  const total = damaged.reduce((sum, inst) => sum + repairCost(inst), 0);
-  if (!damaged.length) return { ok: false, text: "Нечего чинить." };
-  if (state.gold < total) return { ok: false, text: `Нужно ${total} 💰.` };
-  state.gold -= total; for (const inst of damaged) inst.durability = DURABILITY_MAX; saveState();
-  return { ok: true, text: `Всё починено (−${total} 💰).` };
-}
-
 function gearBonuses() {
   const total = { atk: 0, def: 0, hp: 0, mana: 0, crit: 0, dodge: 0, block: 0, str: 0, end: 0, agi: 0, int: 0 };
   for (const [slotId, uid] of Object.entries(state.equipped)) {

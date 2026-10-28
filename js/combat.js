@@ -56,7 +56,7 @@ function variationLabel(enemy) {
 function createBattle(enemyDef, floorId) {
   const enemy = applyMobVariation(enemyDef);
   const floor = FLOORS.find(f => f.id === floorId);
-  // Случайное оружие моба (Блок 5): имя сохраняется, atk растёт от мощи оружия.
+  
   if (Array.isArray(enemyDef.weapons) && enemyDef.weapons.length) {
     const weaponId = pick(enemyDef.weapons);
     const w = ITEMS[weaponId];
@@ -84,6 +84,7 @@ function createBattle(enemyDef, floorId) {
     secondWindUsed: false,
     enemyBlockHistory: [],
     enemyAttackHistory: [],
+    playerBlocksHistory: [], // <--- ДОБАВЛЕНО
     playerDebuffs: [],
   };
   
@@ -98,24 +99,68 @@ function defeatSummary(state, battle, e) {
   battle.over = true;
   const lost = Math.floor(state.gold * 0.15);
   state.gold = Math.max(0, state.gold - lost);
+  
+  let lostItemsText = "";
+
+  const equippedUids = Object.values(state.equipped).filter(Boolean);
+  const bagItems = state.owned.filter(inst => !equippedUids.includes(inst.uid));
+  
+  if (bagItems.length > 0) {
+    state.owned = state.owned.filter(inst => equippedUids.includes(inst.uid));
+    lostItemsText += ` Вы потеряли сумку со снаряжением (${bagItems.length} шт.).`;
+  }
+  
+  const safeSlots = ["mainhand", "chest"];
+  const vulnerableSlots = Object.keys(state.equipped).filter(slot => 
+    state.equipped[slot] && !safeSlots.includes(slot)
+  );
+  
+  if (vulnerableSlots.length > 0) {
+    const randomSlot = vulnerableSlots[Math.floor(Math.random() * vulnerableSlots.length)];
+    const lostUid = state.equipped[randomSlot];
+    const lostInst = state.owned.find(i => i.uid === lostUid);
+    
+    if (lostInst) {
+      const itemName = getItemDisplayName(lostInst);
+      state.owned = state.owned.filter(i => i.uid !== lostUid);
+      state.equipped[randomSlot] = null;
+      lostItemsText += ` Вы потеряли надетый предмет: ${itemName}.`;
+    }
+  }
+
   const fresh = stats();
   state.hp = fresh.maxHp;
   state.mana = fresh.maxMana;
-  battleLog(battle, "Тьма смыкается. Йорстед возвращает вас к жизни, но вы теряете день.", "lose");
+  
+  battleLog(battle, `Тьма смыкается. Йорстед возвращает вас к жизни, но вы теряете день.${lostItemsText}`, "lose");
   saveState();
-  return { defeat: true, enemyName: e.name, lostGold: lost };
+  return { defeat: true, enemyName: e.name, lostGold: lost, lostItemsText };
 }
 
 function chooseEnemyAction(battle, lastPlayerAttack) {
   const prefers = battle.enemy.prefers || [];
-  const attack = prefers.length && Math.random() < 0.65
-    ? pick(prefers)
-    : pick(ZONES).id;
+  let attack = "";
+  
+  const playerBlocksHistory = battle.playerBlocksHistory || [];
+  const lastBlocks = playerBlocksHistory.slice(-2);
+  
+  // Если игрок блокирует одну и ту же зону 2 раза подряд, моб бьет в другую
+  if (lastBlocks.length === 2 && lastBlocks[0].length === 1 && lastBlocks[1].length === 1 && lastBlocks[0][0] === lastBlocks[1][0]) {
+    const blockedZone = lastBlocks[0][0];
+    const availableZones = ZONES.filter(z => z.id !== blockedZone).map(z => z.id);
+    attack = pick(availableZones);
+    battleLog(battle, `${battle.enemy.name} замечает вашу привычку блокировать «${ZONE_NAME[blockedZone]}».`, "warn");
+  } else {
+    attack = prefers.length && Math.random() < 0.65 ? pick(prefers) : pick(ZONES).id;
+  }
 
   const blocks = [];
   const blockCount = battle.boss ? 2 : 1;
-  const adaptChance = (battle.boss ? 0.3 : 0.25) * (battle.enemy.ability === "adaptive" ? ADAPTIVE_MULT : 1);
-  if (lastPlayerAttack && Math.random() < adaptChance) blocks.push(lastPlayerAttack);
+  const adaptChance = (battle.boss ? 0.5 : 0.35) * (battle.enemy.ability === "adaptive" ? ADAPTIVE_MULT : 1);
+  
+  if (lastPlayerAttack && Math.random() < adaptChance) {
+    blocks.push(lastPlayerAttack);
+  }
 
   let guard = 0;
   while (blocks.length < blockCount && guard < 200) {
@@ -123,6 +168,7 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
     const zone = pick(ZONES).id;
     if (!blocks.includes(zone)) blocks.push(zone);
   }
+  
   return { attack, blocks };
 }
 
@@ -180,6 +226,12 @@ function exchange(state, battle, action) {
   if (!Array.isArray(battle.enemyAttackHistory)) battle.enemyAttackHistory = [];
   battle.enemyAttackHistory.push(enemyAction.attack);
   if (battle.enemyAttackHistory.length > 8) battle.enemyAttackHistory.shift();
+
+  // --- ДОБАВЛЕНО: история блоков игрока ---
+  if (!Array.isArray(battle.playerBlocksHistory)) battle.playerBlocksHistory = [];
+  battle.playerBlocksHistory.push([...blocks]);
+  if (battle.playerBlocksHistory.length > 8) battle.playerBlocksHistory.shift();
+  // -----------------------------------------
 
   if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.length) {
     const poison = battle.playerDebuffs.find((d) => d.id === "poison");

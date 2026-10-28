@@ -914,9 +914,12 @@ function jewelryHtml() {
 function alchemyHtml() {
   const tab = view.shopTab;
   let content = "";
-  if (tab === "sell") content = sellPanelHtml("alchemy");
-  else if (tab === "quests") content = npcQuestHtml("elain");
-  else if (tab === "buy" || tab === null) {
+  
+  if (tab === "sell") {
+    content = sellPanelHtml("alchemy");
+  } else if (tab === "quests") {
+    content = npcQuestHtml("elain");
+  } else if (tab === "buy") {
     const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
       const count = state.potions[item.id] || 0;
       const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana;
@@ -924,6 +927,8 @@ function alchemyHtml() {
       return `<article class="item-card potion"><div class="item-icon big">${iconHtml(item.icon, 48)}</div><div class="item-main"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips"><span class="chip">В сумке: ${count}</span></div></div><div class="item-buy"><span class="price">${priceHtml(item, "alchemy")}</span><div class="stack-buttons"><button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button><button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button></div></div></article>`;
     }).join("");
     content = `<section class="shop-group"><div class="item-grid">${cards || `<p class="empty">Зелий нет.</p>`}</div></section>`;
+  } else {
+    content = `<div class="empty" style="padding: 40px 20px; text-align: center; font-style: italic;">Выберите действие в диалоге с Элейн.</div>`;
   }
 
   return `
@@ -1008,15 +1013,21 @@ function buybackPanelHtml(shop) {
   if (shop === "alchemy") {
     const potionItems = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
     const instanced = state.owned.filter((inst) => !isEquipped(inst.uid) && ITEMS[inst.id]?.slot === "potion");
-    const rows = [
-      ...potionItems.map((item) => `<div class="resource-row"><span>${iconHtml(item.icon, 24)} <b>${item.name}</b> <span class="chip">×${state.potions[item.id]}</span></span><button class="btn small ghost" data-act="sell-potion" data-id="${item.id}" type="button">Продать 1 (+${sellPrice(item, inst)} 💰)</button></div>`),
-      ...instanced.map((inst) => {
-        const item = ITEMS[inst.id];
-        return `<div class="resource-row${rarityClass(inst)}"><span>${iconHtml(item.icon, 24)} <b>${getItemDisplayName(inst)}</b> ${durabilityChip(inst)}</span><button class="btn small ghost" data-act="sell" data-uid="${inst.uid}" type="button">Продать (+${sellPrice(item, inst)} 💰)</button></div>`;
-      }),
-    ];
+
+    const potionRows = potionItems.map((item) =>
+      `<div class="resource-row"><span>${iconHtml(item.icon, 24)} <b>${item.name}</b> <span class="chip">×${state.potions[item.id]}</span></span><button class="btn small ghost" data-act="sell-potion" data-id="${item.id}" type="button">Продать 1 (+${sellPrice(item)} 💰)</button></div>`
+    );
+
+    const instancedRows = instanced.map((inst) => {
+      const item = ITEMS[inst.id];
+      return `<div class="resource-row${rarityClass(inst)}"><span>${iconHtml(item.icon, 24)} <b>${getItemDisplayName(inst)}</b> ${durabilityChip(inst)}</span><button class="btn small ghost" data-act="sell" data-uid="${inst.uid}" type="button">Продать (+${sellPrice(item, inst)} 💰)</button></div>`;
+    });
+
+    const rows = [...potionRows, ...instancedRows];
+
     return `<section class="shop-group"><h2 class="group-title">🧪 Скупка зелий</h2>${rows.length ? `<div class="resource-list">${rows.join("")}</div>` : `<p class="empty">Нечего продавать.</p>`}</section>`;
   }
+
   const slots = shop === "jewelry" ? ["neck", "ring", "trinket"] : ["mainhand", "offhand", "head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"];
   const rows = state.owned
     .filter((inst) => !isEquipped(inst.uid) && slots.includes(ITEMS[inst.id]?.slot))
@@ -1024,6 +1035,7 @@ function buybackPanelHtml(shop) {
       const item = ITEMS[inst.id];
       return `<div class="resource-row${rarityClass(inst)}"><span>${iconHtml(item.icon, 24)} <b>${getItemDisplayName(inst)}</b> ${durabilityChip(inst)}</span><button class="btn small ghost" data-act="sell" data-uid="${inst.uid}" type="button">Продать (+${sellPrice(item, inst)} 💰)</button></div>`;
     });
+
   return `<section class="shop-group"><h2 class="group-title">${shop === "jewelry" ? "💍" : "⚔"} Скупка снаряжения</h2>${rows.length ? `<div class="resource-list">${rows.join("")}</div>` : `<p class="empty">Нечего продавать.</p>`}</section>`;
 }
 
@@ -1749,6 +1761,7 @@ function resultHtml() {
     <div class="result-card lose" style="max-width: 600px;">
       <h2>Поражение</h2>
       <p style="margin-bottom: 15px; color: #d97a6c;">Вы потеряли ${summary.lostGold} 💰 и пропустили день, восстанавливая силы.</p>
+      ${summary.lostItemsText ? `<p style="margin-bottom: 15px; color: #d97a6c; font-weight: 600; background: rgba(194, 72, 60, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed #6a2a24; text-align: left;">${summary.lostItemsText}</p>` : ""}
       
       <div class="battle-log" style="text-align: left; height: 180px; margin-bottom: 20px; background: #0e0a08; border-color: #6a2a24;">
         ${log || `<div class="log-line info">Лог боя пуст.</div>`}
@@ -1770,8 +1783,8 @@ function levelUpModalHtml() {
   if (!level) return "";
 
   return `
-    <div class="result-overlay" data-act="levelup-close" style="z-index: 200;">
-      <div class="result-card levelup-card">
+    <div class="result-overlay" style="z-index: 200;">
+      <div class="result-card levelup-card" data-act="levelup-close" style="cursor: pointer;">
         <h2 style="color: var(--gold2); font-size: 32px; text-shadow: 0 0 20px rgba(223, 184, 108, 0.5);">Новый уровень!</h2>
         <p style="font-size: 18px; margin-bottom: 20px;">Вы достигли <b>${level}</b> уровня.</p>
         
@@ -1943,7 +1956,7 @@ function startAutoExplore(floorId, avoidDanger) {
   const reason = towerClosedReason();
   if (reason) { toast(reason, "warn"); render(); return; }
   if (state.activeSceneId) { toast("Сначала разберитесь с активной сценой.", "warn"); render(); return; }
-  if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; } // <-- Эта строка уже есть, проверь
+  if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; }
   view.autoExplore = { floorId, avoidDanger, timer: null, log: [] };
   toast(avoidDanger ? "⏩ Авто-исследование: безопасный режим." : "⏩ Авто-исследование: боевой режим.", "info");
   render();
@@ -1955,11 +1968,15 @@ function autoExploreLoop() {
   if (battleActive()) return;
   if (view.exploreResult) return;
   if (isNight()) { stopAutoExplore("Наступила ночь. Авто-исследование остановлено."); return; }
+  
   if (state.activeSceneId) resolveSceneAction("leave");
   if (!view.autoExplore) return;
+  
   if (state.activeNpcId) applyNpcAction("leave", state.activeNpcId);
   if (!view.autoExplore) return;
+  
   if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
+  
   autoExploreTick(ae.floorId, ae.avoidDanger);
   if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
 }
@@ -2301,6 +2318,20 @@ function onClick(event) {
   
   const act = el.dataset.act; const id = el.dataset.id; let res;
   switch (act) {
+     case "rest":
+      res = freeRest();
+      if (isNight()) {
+        view.screen = "hub";
+        view.tripActive = false;
+        toast("Ночь. Вы покидаете Башню.", "warn");
+      } else {
+        toast(res.text, res.ok ? "ok" : "warn");
+      }
+      view.ambush = null;
+      view.sceneGroup = null;
+      view.sceneGroupFloorId = null;
+      render();
+      break;
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
     case "quests-close": view.questsOpen = false; render(); break;
@@ -2477,8 +2508,6 @@ function onClick(event) {
       break;
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "repair": res = repairItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "repair-all": res = repairAll(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "train": res = trainAttr(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "buy": res = buyItem(id, el.dataset.shop || "forge"); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
