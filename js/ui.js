@@ -599,25 +599,22 @@ function questsModalHtml() {
   const list = state.weekQuests.list || [];
 
   const npcName = (id) => NPC_NAMES[id] || id;
+  
   const cards = list.map((q) => {
     const title = q.type === "kill" ? `Убить: ${q.mobName}` : `Собрать: ${q.resName}`;
-    const icon = q.type === "kill" ? q.mobIcon : q.resIcon;
 
     let statusHtml = `<span class="badge">Предложение недели</span>`;
     if (q.status === "active") statusHtml = `<span class="badge">В работе</span>`;
-    else if (q.status === "done") statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(npcName(q.npc))})</span>`;
+    else if (q.status === "done") statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(npcName(q.npc).split(",")[0])})</span>`;
     else if (q.status === "claimed") statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
 
     return `
       <article class="quest-card quest-card-wide${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}">
-        <div class="quest-icon-wrap">
-          <span class="quest-icon">${iconHtml(icon, 32)}</span>
-        </div>
         <div class="quest-body">
           <div class="quest-info">
-            <div class="quest-title">
-              <h3>${title}</h3>
-              <span class="hint">Дал: <b>${esc(npcName(q.npc))}</b> · до конца недели</span>
+            <div class="quest-title" style="display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline;">
+              <h3 style="margin: 0;">${title}</h3>
+              <span class="hint" style="white-space: nowrap;">Наниматель: <b>${esc(npcName(q.npc))}</b></span>
             </div>
           </div>
           <div class="quest-progress-wrap">
@@ -625,7 +622,7 @@ function questsModalHtml() {
             <span class="quest-count">${q.progress} / ${q.target}</span>
           </div>
         </div>
-        <div class="quest-side">
+        <div class="quest-side" style="min-width: 160px;">
           <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
           ${statusHtml}
         </div>
@@ -1933,7 +1930,7 @@ const NPC_TALK_TARGETS = {
   ivan:    { screen: "training", tabField: "trainingTab", shopLabel: "Тренировки", shopTab: "train" },
 };
 
-const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, хозяйка лавки", elize: "Элиза, ювелир", barmaid: "Стелла, хозяйка гостиницы", ivan: "Иван, инструктор Зала Охотников" };
+const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхимик", elize: "Элиза, ювелир", barmaid: "Стелла, хозяйка гостиницы", ivan: "Иван, капитан" };
 
 function getRandomPhrase(npcId, phraseType) {
   const set = DIALOGS[npcId];

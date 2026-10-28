@@ -1025,9 +1025,13 @@ kbd {
   border-radius: 12px; padding: 16px 20px; margin-bottom: 18px;
 }
 .npc-dialogue-bar .npc-portrait {
-  width: 120px; height: 120px; flex-shrink: 0;
-  object-fit: cover; border-radius: 12px;
-  border: 2px solid var(--gold); background-color: #1e1b2e;
+  width: 120px; 
+  height: 120px; 
+  flex-shrink: 0;
+  object-fit: cover; 
+  border-radius: 12px;
+  border: 2px solid var(--gold); 
+  background-color: #1e1b2e; /
 }
 .npc-dialogue-text { flex: 1; min-width: 0; }
 .npc-dialogue-text .npc-name {
@@ -1602,14 +1606,13 @@ kbd {
   color: var(--dim);
 }
 
-/* Блок с наградой и статусом справа */
 .quest-side {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-  min-width: 100px;
+  min-width: 140px; /
 }
 
 .quest-side .price {
@@ -1623,6 +1626,9 @@ kbd {
   padding: 4px 8px;
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }
 .quest-modal {
   width: 850px !important;       
