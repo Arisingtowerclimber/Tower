@@ -716,10 +716,10 @@ function npcQuestHtml(npcId) {
   }
 
   let button;
-  if (q.status === "offered") button = `<button class="btn small primary" data-act="accept-week-quest" data-npc="${npcId}" type="button">Взять задание</button>`;
-  else if (q.status === "active") button = `<button class="btn small" disabled type="button">В работе</button>`;
-  else if (q.status === "done") button = `<button class="btn small primary" data-act="claim-npc-quest" data-id="${q.id}" type="button">Сдать</button>`;
-  else button = `<button class="btn small" disabled type="button">Получено</button>`;
+  if (q.status === "offered") button = `<button class="btn small primary" data-act="accept-week-quest" data-npc="${npcId}" type="button" style="white-space: nowrap;">Взять задание</button>`;
+  else if (q.status === "active") button = `<button class="btn small" disabled type="button" style="white-space: nowrap;">В работе</button>`;
+  else if (q.status === "done") button = `<button class="btn small primary" data-act="claim-npc-quest" data-id="${q.id}" type="button" style="white-space: nowrap;">Сдать</button>`;
+  else button = `<button class="btn small" disabled type="button" style="white-space: nowrap;">Получено</button>`;
 
   const statusBadge = q.status === "claimed"
     ? `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`
@@ -730,30 +730,34 @@ function npcQuestHtml(npcId) {
         : `<span class="badge">Предложение недели</span>`;
 
   return `
-    <section class="shop-group"><div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">
-      <article class="quest-card quest-card-wide${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}">
-        <div class="quest-icon-wrap">
+    <section class="shop-group" style="width: 100%; max-width: 100%;">
+      <article class="quest-card quest-card-wide${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}" style="display: flex; flex-wrap: wrap; width: 100%; align-items: center; gap: 16px;">
+        
+        <div class="quest-icon-wrap" style="flex-shrink: 0;">
           <span class="quest-icon">${iconHtml(subjectIcon, 32)}</span>
         </div>
-        <div class="quest-body">
-          <div class="quest-info">
-            <div class="quest-title">
-              <h3>${title}</h3>
-              <span class="hint">Дал: ${esc(npcName)} · до конца недели</span>
-            </div>
+        
+        <div style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          <div class="quest-title" style="display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;">
+            <h3 style="margin: 0; font-size: 15px;">${title}</h3>
+            <span class="hint" style="white-space: nowrap; font-size: 12px;">Дал: <b>${esc(npcName)}</b></span>
           </div>
-          <div class="quest-progress-wrap">
-            <div class="bar"><span style="width:${pct}%"></span></div>
-            <span class="quest-count">${countText}</span>
+          <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+            <div class="bar" style="flex: 1; height: 8px; margin: 0;">
+              <span style="width:${pct}%"></span>
+            </div>
+            <span class="quest-count" style="font-size: 11px; white-space: nowrap;">${countText}</span>
           </div>
         </div>
-        <div class="quest-side">
-          <span class="price">💰 ${q.gold} · ✦ ${q.xp}${q.potions > 0 ? ` · 🧪 +${q.potions}` : ""}</span>
+
+        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto;">
+          <span class="price" style="font-size: 13px; white-space: nowrap;">💰 ${q.gold} · ✦ ${q.xp}${q.potions > 0 ? ` · 🧪 +${q.potions}` : ""}</span>
           ${statusBadge}
           ${button}
         </div>
+
       </article>
-    </div></section>
+    </section>
   `;
 }
 
