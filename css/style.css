@@ -659,7 +659,7 @@ kbd {
   object-fit: cover;
   flex-shrink: 0;
   border: 2px solid rgba(245, 158, 11, 0.4);
-  background: #1e1b2e;
+  background: #171210;
 }
 
 .companion-card.active .companion-portrait { border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3); }
@@ -1031,7 +1031,7 @@ kbd {
   object-fit: cover; 
   border-radius: 12px;
   border: 2px solid var(--gold); 
-  background-color: #1e1b2e; /
+  background-color: #171210; /
 }
 .npc-dialogue-text { flex: 1; min-width: 0; }
 .npc-dialogue-text .npc-name {
@@ -1153,7 +1153,7 @@ kbd {
 /* ── Приветствие NPC в магазинах ────────────────────────── */
 
 .npc-greeting { display: flex; flex-direction: row; align-items: center; gap: 1.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(255, 255, 255, 0.1); }
-.npc-portrait { width: 150px !important; height: 150px !important; object-fit: cover; border-radius: 8px; border: 2px solid #8b5cf6; flex-shrink: 0; background-color: #1e1b2e; }
+.npc-portrait { width: 150px !important; height: 150px !important; object-fit: cover; border-radius: 8px; border: 2px solid #171210; flex-shrink: 0; background-color: #171210; }
 .npc-text { display: flex; flex-direction: column; justify-content: center; flex: 1; }
 .npc-name { font-weight: bold; color: #a78bfa; margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .npc-dialogue { margin: 0; line-height: 1.6; font-style: italic; color: #e2e8f0; font-size: 1.05rem; }

@@ -78,11 +78,6 @@ function npcPortraitSrc(id) {
   return NPC_PORTRAITS[id] || "assets/portraits/placeholder.webp";
 }
 
-// Портрет Барменши пока отсутствует — временно используем портрет Миры.
-NPC_PORTRAITS.barmaid = "assets/portraits/mira.webp";
-NPC_PORTRAITS.stella = NPC_PORTRAITS.barmaid; // Стелла — это Барменша
-
-// Реплики NPC (глобальное обновление диалогов).
 const DIALOGS = {
   ron: {
     greetings: [
@@ -236,7 +231,7 @@ const ARCHETYPES = [
     id: "duelist",
     name: "Дуэлянт",
     icon: "🤺", // иконка останется в данных, но отображаться не будет
-    desc: "+30% к урону, +10% к шансу крита при наличии исключительно одноручного оружия. Повышенный предел уворота (до 45%). −10% к максимуму HP.",
+    desc: "+30% к урону, +10% к шансу крита если в правой руке есть одноручное оружие, а левая свободна. Повышенный предел уворота (до 45%). −10% к максимуму HP.",
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 45, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
