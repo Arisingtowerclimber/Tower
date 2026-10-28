@@ -396,7 +396,7 @@ function hubHtml(st) {
   `;
 }
 
-const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "barmaid", training: "ivan" };
+const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "stella", training: "ivan" };
 
 function npcDialogueBar(npcId, buyLabel, sellLabel) {
   const tab = view.shopTab || "buy";
@@ -407,7 +407,6 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
   return `
     <div class="npc-dialogue-bar">
       <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}"
-        onerror="this.src='assets/portraits/placeholder.webp'">
       <div class="npc-dialogue-text">
         <p class="npc-name">${esc(npcName)}</p>
         <p class="npc-dialogue">«${esc(phrase)}»</p>
@@ -540,7 +539,7 @@ function hotelHtml() {
   const tab = view.shopTab || "buy";
   const content =
     tab === "quests"
-      ? npcQuestHtml("barmaid")
+      ? npcQuestHtml("stella")
       : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
          <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
          <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
@@ -548,7 +547,7 @@ function hotelHtml() {
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
     ${subHeader("Гостиница", "Тёплый свет и чужие истории", "hub", "← В Йорстед")}
-    ${npcDialogueBar("barmaid", "Снять номер", "")}
+    ${npcDialogueBar("stella", "Снять номер", "")}
     ${content}
   `;
 }
@@ -1928,11 +1927,11 @@ const NPC_TALK_TARGETS = {
   ron:     { screen: "forge",    tabField: "forgeTab",    shopLabel: "Показать товары" },
   elain:   { screen: "alchemy",  tabField: "alchemyTab",  shopLabel: "Показать товары" },
   elize:   { screen: "jewelry",  tabField: "jewelryTab",  shopLabel: "Показать товары" },
-  barmaid: { screen: "hotel",    tabField: null,          shopLabel: "Снять номер" },
+  stella:  { screen: "hotel",    tabField: null,          shopLabel: "Снять номер" },
   ivan:    { screen: "training", tabField: "trainingTab", shopLabel: "Тренировки", shopTab: "train" },
 };
 
-const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхимик", elize: "Элиза, ювелир", barmaid: "Стелла, хозяйка гостиницы", ivan: "Иван, капитан" };
+const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхимик", elize: "Элиза, ювелир", stella: "Стелла, хозяйка гостиницы", ivan: "Иван, капитан" };
 
 function getRandomPhrase(npcId, phraseType) {
   const set = DIALOGS[npcId];
@@ -1941,7 +1940,7 @@ function getRandomPhrase(npcId, phraseType) {
   return phrase || "";
 }
 
-const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", barmaid: "Гостиница «Усталый путник»", ivan: "Зал Охотников" };
+const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", stella: "Гостиница «Усталый путник»", ivan: "Зал Охотников" };
 
 function npcDialogHtml(npcId) {
   const target = NPC_TALK_TARGETS[npcId];
