@@ -346,7 +346,7 @@ function stats() {
   const maxMana = Math.round((BASE_STATS.mana + a.int * 10 + gear.mana) * mult.mana);
   let atkMult = mult.damage * mods.atk * (state.debuff && Number.isFinite(state.debuff.mult) ? state.debuff.mult : 1);
   if (state.archetype === "duelist" && mainWeapon?.handed === "1h") atkMult *= 1.3;
-  const atk = Math.ceil((BASE_STATS.damage + a.str * 2 + gear.atk + tal.atk) * atkMult);
+  const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + gear.atk + tal.atk) * atkMult);
 
   let def = gear.def + tal.def;
   if (state.archetype === "guardian" && chestArmorType === "cloth") def = Math.round(def * 0.9);
@@ -659,11 +659,19 @@ function getTraderInventory() {
     { kind: "potion", id: "hp_small", name: ITEMS.hp_small.name, icon: ITEMS.hp_small.icon, price: Math.round(ITEMS.hp_small.price * TRADER_PRICE_MULT) },
     { kind: "potion", id: "mana_small", name: ITEMS.mana_small.name, icon: ITEMS.mana_small.icon, price: Math.round(ITEMS.mana_small.price * TRADER_PRICE_MULT) },
   ];
-  const gearPool = Object.values(ITEMS).filter((i) => i.slot && i.slot !== "potion" && Number.isFinite(i.price));
-  const pick = gearPool[Math.floor(Math.random() * gearPool.length)];
-  if (pick) {
-    const inst = addItemInstance(pick.id);
-    stock.push({ kind: "gear", uid: inst.uid, inst, price: Math.round(pick.price * TRADER_PRICE_MULT) });
+  
+  // Берем только оружие и броню, доступные на текущем максимальном этаже
+  const gearPool = Object.values(ITEMS).filter((i) => 
+    i.slot && i.slot !== "potion" && Number.isFinite(i.price) && shopFloorFor(i) <= state.maxFloor
+  );
+  
+  if (gearPool.length) {
+    const pick = gearPool[Math.floor(Math.random() * gearPool.length)];
+    // Создаем экземпляр с обычной редкостью (чтобы в магазине не было видно аффиксов)
+    const inst = addItemInstance(pick.id, DURABILITY_MAX, "common");
+    // Цена х3 от базовой
+    const price = Math.round(pick.price * 3);
+    stock.push({ kind: "gear", uid: inst.uid, inst, price });
   }
   return stock;
 }
@@ -673,14 +681,27 @@ function buyFromTrader(entryId) {
   const entry = stock.find((e) => (e.kind === "gear" ? e.uid : e.id) === entryId);
   if (!entry) return { ok: false, text: "Товар уже продан." };
   if (state.gold < entry.price) return { ok: false, text: "Не хватает золота." };
+  
   state.gold -= entry.price;
   let name;
+
   if (entry.kind === "potion") {
     state.potions[entry.id] = (state.potions[entry.id] || 0) + 1;
     name = ITEMS[entry.id].name;
   } else {
-    const item = ITEMS[entry.inst.id];
-    name = entry.inst.affix?.name ? `${item.name} ${entry.inst.affix.name}` : item.name;
+    const inst = getInstance(entry.inst.uid);
+    if (inst) {
+      // Роллим редкость при покупке
+      const newRarity = rollRarity();
+      inst.rarity = newRarity;
+      inst.affix = generateAffix(newRarity);
+      if (newRarity === "legendary" && UNIQUE_EFFECTS.length) {
+        inst.unique = UNIQUE_EFFECTS[Math.floor(Math.random() * UNIQUE_EFFECTS.length)].id;
+      }
+      name = getItemDisplayName(inst);
+    } else {
+      name = ITEMS[entry.inst.id].name;
+    }
   }
   saveState();
   return { ok: true, text: `Куплено: ${name} (−${entry.price} 💰).`, entryId };

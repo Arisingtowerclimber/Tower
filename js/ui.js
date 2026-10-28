@@ -161,7 +161,7 @@ function previewStats(attrs, archetypeId = null) {
   return {
     maxHp: Math.round((BASE_STATS.hp + a.end * 10 + gear.hp) * mods.maxHp),
     maxMana: BASE_STATS.mana + a.int * 10 + gear.mana,
-    atk: Math.ceil((BASE_STATS.damage + a.str * 2 + gear.atk) * mods.atk),
+    atk: Math.ceil((BASE_STATS.damage + a.str * 1 + gear.atk) * mods.atk),
     def: gear.def,
     crit: Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit),
     dodge: Math.min(mods.dodgeCap, a.agi * AGILITY_DODGE_PERCENT + gear.dodge),
@@ -1456,6 +1456,49 @@ function battleHtml(st) {
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
   setActiveWeaponInstance(mainInst);
   const playerWeapon = mainInst ? ITEMS[mainInst.id] : null;
+  
+  const chestInst = state.equipped.chest ? getInstance(state.equipped.chest) : null;
+  const playerArmorType = chestInst ? ITEMS[chestInst.id]?.armorType : null;
+
+  let playerWeaponTitle = "Без оружия";
+  if (playerWeapon) {
+    const styles = [];
+    if (playerWeapon.damage?.slashing > 0) styles.push(`рубящий ${playerWeapon.damage.slashing}`);
+    if (playerWeapon.damage?.piercing > 0) styles.push(`колющий ${playerWeapon.damage.piercing}`);
+    if (playerWeapon.damage?.bludgeoning > 0) styles.push(`дробящий ${playerWeapon.damage.bludgeoning}`);
+    playerWeaponTitle = styles.length ? `Урон: ${styles.join(", ")}` : "Нет урона";
+  }
+
+  let playerArmorTitle = "Без брони";
+  if (playerArmorType) {
+    const mults = ARMOR_STYLE_MULT;
+    const mods = [];
+    mods.push(`Колющий: ${Math.round(mults.piercing[playerArmorType] * 100)}%`);
+    mods.push(`Рубящий: ${Math.round(mults.slashing[playerArmorType] * 100)}%`);
+    mods.push(`Дробящий: ${Math.round(mults.bludgeoning[playerArmorType] * 100)}%`);
+    playerArmorTitle = `Получаемый урон: ${mods.join(", ")}`;
+  }
+
+  const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
+  let enemyWeaponTitle = "Без оружия";
+  if (enemyWeapon) {
+    const styles = [];
+    if (enemyWeapon.damage?.slashing > 0) styles.push(`рубящий ${enemyWeapon.damage.slashing}`);
+    if (enemyWeapon.damage?.piercing > 0) styles.push(`колющий ${enemyWeapon.damage.piercing}`);
+    if (enemyWeapon.damage?.bludgeoning > 0) styles.push(`дробящий ${enemyWeapon.damage.bludgeoning}`);
+    enemyWeaponTitle = styles.length ? `Урон: ${styles.join(", ")}` : "Нет урона";
+  }
+
+  let enemyArmorTitle = "Без брони";
+  if (enemy.armorType) {
+    const mults = ARMOR_STYLE_MULT;
+    const mods = [];
+    mods.push(`Колющий: ${Math.round(mults.piercing[enemy.armorType] * 100)}%`);
+    mods.push(`Рубящий: ${Math.round(mults.slashing[enemy.armorType] * 100)}%`);
+    mods.push(`Дробящий: ${Math.round(mults.bludgeoning[enemy.armorType] * 100)}%`);
+    enemyArmorTitle = `Получаемый урон: ${mods.join(", ")}`;
+  }
+
   const activeStyle = (weaponStyleValue(playerWeapon, view.attackStyle) || 0) > 0
     ? view.attackStyle
     : weaponBestStyle(playerWeapon);
@@ -1466,8 +1509,6 @@ function battleHtml(st) {
     const tip = disabled ? "Это оружие так не бьёт" : `Множитель стиля x${weaponStyleMult(playerWeapon, s).toFixed(2)}`;
     return `<button class="zone attack${sel}" data-act="attack-style" data-style="${s}" ${disabled ? "disabled" : ""} type="button" title="${tip}">${STYLE_ICONS[s]} ${STYLE_NAMES[s]}</button>`;
   }).join("");
-
-  const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
 
   const log = battle.log.slice(-18).map((entry) =>
     `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`
@@ -1489,6 +1530,10 @@ function battleHtml(st) {
         <div class="zones">${zones.block}</div>
       </div>
       <div class="battle-actions">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; background: var(--panel2); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);">
+          <span class="rage-label" style="font-size: 11px; margin: 0; color: var(--dim);">Кураж</span>
+          <div class="rage" style="margin: 0;">${ragePips}</div>
+        </div>
         <button class="btn primary big" data-act="exchange" type="button">Размен</button>
         <button class="btn tech" data-act="tech" type="button" ${battle.rage < 3 || state.mana < TECH_COST ? "disabled" : ""}>Приём</button>
         ${Object.values(ITEMS).filter(i => i.slot === "potion" && (state.potions[i.id] || 0) > 0).map(i => {
@@ -1531,11 +1576,12 @@ function battleHtml(st) {
               <div class="fighter-numbers"><span>${state.hp} / ${st.maxHp} HP</span><span>${state.mana} / ${st.maxMana} маны</span></div>
             </div>
 
-            <div class="rage" style="margin-top: auto; padding-top: 10px; margin-bottom: 10px;">
-              <span class="rage-label">Кураж</span>${ragePips}
+            <div style="margin-top: 8px; font-size: 12px; color: var(--dim);">
+              Оружие: <span title="${esc(playerWeaponTitle)}" style="cursor: help; border-bottom: 1px dotted var(--dim); color: #d1c0aa;">${playerWeapon ? playerWeapon.name : "Кулаки"}</span><br>
+              Броня: <span title="${esc(playerArmorTitle)}" style="cursor: help; border-bottom: 1px dotted var(--dim); color: #d1c0aa;">${ARMOR_TYPE_NAMES[playerArmorType] || "Нет"}</span>
             </div>
-            
-            <div class="mob-stats-container" style="margin: 0;">
+
+            <div class="mob-stats-container" style="margin-top: auto; padding-top: 10px;">
               <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${st.atk}</span>
               <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${st.def}</span>
               <span class="mob-stat-chip" style="font-size: 13px; padding: 5px 12px; color: var(--dim); border-color: var(--line);">🎯 ${st.crit}%</span>
@@ -1571,16 +1617,16 @@ function battleHtml(st) {
               ${bar("hp enemy", battle.hp, battle.maxHp)}
               <div class="fighter-numbers"><span>${battle.hp} / ${battle.maxHp} HP</span></div>
             </div>
-            
-            <div style="margin-top: auto; padding-top: 10px; margin-bottom: 10px;"></div>
 
-            <div class="mob-stats-container" style="margin: 0;">
-              <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${battle.maxHp} HP</span>
+            <div style="margin-top: 8px; font-size: 12px; color: var(--dim);">
+              Оружие: <span title="${esc(enemyWeaponTitle)}" style="cursor: help; border-bottom: 1px dotted var(--dim); color: #d1c0aa;">${enemyWeapon ? enemyWeapon.name : "Кулаки"}</span><br>
+              Броня: <span title="${esc(enemyArmorTitle)}" style="cursor: help; border-bottom: 1px dotted var(--dim); color: #d1c0aa;">${ARMOR_TYPE_NAMES[enemy.armorType] || "Нет"}</span>
+            </div>
+            
+            <div class="mob-stats-container" style="margin-top: auto; padding-top: 10px;">
               <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${enemy.atk}</span>
               <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${enemy.def}</span>
             </div>
-            ${enemyWeapon ? `<div style="margin-top: 8px; font-size: 12px; color: var(--dim);">Вооружен: ${enemyWeapon.name} (${STYLE_NAMES[weaponBestStyle(enemyWeapon)]})</div>` : ""}
-             ${enemy.armorType ? `<div style="margin-top: 4px; font-size: 12px; color: var(--dim);">Броня: <b style="color: #d1c0aa;">${ARMOR_TYPE_NAMES[enemy.armorType] || "Без брони"}</b></div>` : ""}
 
           </div>
         </article>
@@ -2086,17 +2132,48 @@ function npcDialogHtml(npcId) {
 }
 
 function traderDialogHtml() {
-
   const npc = NPCS[state.activeNpcId];
   if (!npc) return "";
 
+  const storyIndex = state.npcDialogueIndex[npc.id] || 0;
+  const storyArr = DIALOGS[npc.id]?.story;
+  const currentSlide = (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
+
   const portrait = `<img src="${npcPortraitSrc(npc.portrait)}" alt="${npc.name}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">`;
+
+  if (currentSlide) {
+    const optionsHtml = currentSlide.options.map((opt, idx) => 
+      `<button class="btn primary" data-act="story-choice-trader" data-npc="${npc.id}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(opt.text)}</button>`
+    ).join("");
+
+    return `
+      <div class="result-overlay" style="z-index: 185;">
+        <div class="result-card" style="max-width: 550px; text-align: left;">
+          <div style="display:flex; gap:15px; align-items:center; margin-bottom: 15px;">
+            ${portrait}
+            <div>
+              <h2 style="color:var(--gold2); font-size:22px; margin:0;">${npc.name}</h2>
+            </div>
+          </div>
+          
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+            <p style="color: #e2e8f0; font-style: italic; line-height: 1.5;">«${esc(currentSlide.npc)}»</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${optionsHtml}
+            <button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button" style="align-self: flex-start; margin-top: 8px;">Уйти</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   let shopHtml = "";
   if (view.npcShopOpen) {
     const rows = (view.traderStock || []).map((entry) => {
       const label = entry.kind === "gear"
-        ? `${getItemDisplayName(entry.inst)} · <span style="color:${RARITY_TIERS[entry.inst.rarity]?.color || "var(--dim)"};">${RARITY_TIERS[entry.inst.rarity]?.name || ""}</span>`
+        ? `${ITEMS[entry.inst.id].name}` 
         : `${entry.icon} ${entry.name}`;
       const afford = state.gold >= entry.price;
       return `<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.2);">
@@ -2107,12 +2184,8 @@ function traderDialogHtml() {
     }).join("");
     shopHtml = `
       <div style="display:flex; flex-direction:column; gap:8px; margin:15px 0 8px;">${rows}</div>
-      <p style="color:var(--dim); font-size:12px; margin:0 0 15px;">Цены странствующего: лавочная ×${TRADER_PRICE_MULT}. У вас: <b style="color:var(--gold2);">${state.gold} 💰</b></p>`;
+      <p style="color:var(--dim); font-size:12px; margin:0 0 15px;">Цены странствующего: базовая ×3. У вас: <b style="color:var(--gold2);">${state.gold} 💰</b></p>`;
   }
-
-  const options = npc.options.map((o) =>
-    `<button class="btn ${o.id === "leave" ? "ghost" : "primary"}" data-act="npc-action" data-npc-action="${o.id}" type="button" style="flex:1; min-width:160px;">${o.label}</button>`
-  ).join("");
 
   return `
     <div class="result-overlay" data-act="npc-backdrop" style="z-index: 185;">
@@ -2120,15 +2193,36 @@ function traderDialogHtml() {
         <div style="display:flex; gap:15px; align-items:center; text-align:left;">
           ${portrait}
           <div>
-            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 8px;">🧙 ${npc.name}</h2>
+            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 8px;">${npc.name}</h2>
             <p style="color:var(--dim); font-size:14px; margin:0; line-height:1.5;">${npc.text}</p>
           </div>
         </div>
         ${shopHtml}
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">${options}</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 15px;">
+          <button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button" style="flex:1;">Уйти</button>
+        </div>
       </div>
     </div>
   `;
+}
+function setAttackZone(zone) { 
+  if (!ZONE_NAME[zone]) return; 
+  view.attackZone = zone; 
+  render(); 
+}
+
+function toggleBlock(zone) { 
+  if (!ZONE_NAME[zone]) return; 
+  const limit = stats().blockZones; 
+  if (view.blocks.includes(zone)) {
+    view.blocks = view.blocks.filter((z) => z !== zone); 
+  } else if (view.blocks.length >= limit) { 
+    toast(`Максимум ${limit} зон.`, "warn"); 
+    return; 
+  } else { 
+    view.blocks = [...view.blocks, zone]; 
+  } 
+  render(); 
 }
 
 function onClick(event) {
@@ -2188,6 +2282,18 @@ function onClick(event) {
         state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
         saveState();
         view.storyJustPlayed = true;
+        render();
+      }
+      break;
+    }
+    case "story-choice-trader": {
+      const npcId = el.dataset.npc;
+      if (npcId) {
+        state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
+        saveState();
+        view.storyJustPlayed = true;
+        view.npcShopOpen = true; 
+        if (!view.traderStock) view.traderStock = getTraderInventory(); 
         render();
       }
       break;
@@ -2368,11 +2474,13 @@ function onClick(event) {
       break;
     }
     case "npc-backdrop": closeNpcDialog(); break;
+    
     case "attack-zone": setAttackZone(el.dataset.zone); break;
     case "attack-style": if (STYLE_ORDER.includes(el.dataset.style)) { view.attackStyle = el.dataset.style; render(); } break;
     case "block-zone": toggleBlock(el.dataset.zone); break;
     case "exchange": doExchange("attack"); break;
     case "tech": doExchange("tech"); break;
+    
     case "flee": view.battle = null; view.summary = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); if (state.debuff) consumeBattleDebuff(); saveState(); render(); break;
     case "result-continue": {
       const victory = view.summary?.victory;
