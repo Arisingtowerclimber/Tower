@@ -969,35 +969,60 @@ const EVENTS = [
 ];
 
 const RECIPES = [
-  // 1-й этаж
+  // ── 1-Й ЭТАЖ (Тир 0 и Железо/Тир 1) ──
   { id: "recipe_gambeson", station: "forge", result: "gambeson", desc: "Стёганый гамбезон", floor: 1, dropChance: 0.05, materials: { cloth: 4, malachite: 2 } },
   { id: "recipe_wood_club", station: "forge", result: "wood_club", desc: "Дубина", floor: 1, dropChance: 0.05, materials: { wood: 3, rust: 2 } },
   { id: "recipe_wood_shield", station: "forge", result: "wood_shield", desc: "Деревянный щит", floor: 1, dropChance: 0.05, materials: { wood: 5, malachite: 3 } },
+  { id: "recipe_leather_shield", station: "forge", result: "leather_shield", desc: "Кожаный щит", floor: 1, dropChance: 0.05, materials: { leather: 4, wood: 4 } },
+  { id: "recipe_head_cloth", station: "forge", result: "head_cloth", desc: "Тканевый капюшон", floor: 1, dropChance: 0.05, materials: { cloth: 3, rust: 1 } },
+  { id: "recipe_back_cloak", station: "forge", result: "back_cloak", desc: "Рваный плащ", floor: 1, dropChance: 0.05, materials: { cloth: 4, wood: 1 } },
+  { id: "recipe_hands_gloves", station: "forge", result: "hands_gloves", desc: "Рабочие перчатки", floor: 1, dropChance: 0.05, materials: { leather: 2, cloth: 2 } },
+  { id: "recipe_waist_rope", station: "forge", result: "waist_rope", desc: "Верёвочный пояс", floor: 1, dropChance: 0.05, materials: { cloth: 3, wood: 2 } },
+  { id: "recipe_student_robe", station: "forge", result: "student_robe", desc: "Ученическая роба", floor: 1, dropChance: 0.05, materials: { cloth: 5, malachite: 2 } },
+  { id: "recipe_iron_hatchet", station: "forge", result: "iron_hatchet", desc: "Железный топорик", floor: 1, dropChance: 0.05, materials: { iron_ore: 2, wood: 4, rust: 2 } },
+  { id: "recipe_iron_battleaxe", station: "forge", result: "iron_battleaxe", desc: "Железная секира", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, wood: 4 } },
   { id: "recipe_ring_copper", station: "jewelry", result: "ring_copper", desc: "Медное кольцо", floor: 1, dropChance: 0.05, materials: { malachite: 1, rust: 1 } },
   { id: "recipe_neck_bone", station: "jewelry", result: "neck_bone", desc: "Грубый амулет", floor: 1, dropChance: 0.05, materials: { malachite: 2, rust: 2 } },
+  { id: "recipe_trinket_coin", station: "jewelry", result: "trinket_coin", desc: "Счастливая монета", floor: 1, dropChance: 0.05, materials: { malachite: 2, rust: 2 } },
 
-  // 2-й этаж
+  // ── 2-Й ЭТАЖ (Железо высшего тира и Сталь/Тир 2) ──
   { id: "recipe_short_sword", station: "forge", result: "short_sword", desc: "Короткий меч", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 2, leather: 1 } },
+  { id: "recipe_iron_longsword", station: "forge", result: "iron_longsword", desc: "Железный длинный меч", floor: 2, dropChance: 0.05, materials: { iron_ore: 6, wood: 2, leather: 1 } },
+  { id: "recipe_iron_mace", station: "forge", result: "iron_mace", desc: "Железная булава", floor: 2, dropChance: 0.05, materials: { iron_ore: 5, wood: 2 } },
+  { id: "recipe_iron_maul", station: "forge", result: "iron_maul", desc: "Железный молот", floor: 2, dropChance: 0.05, materials: { iron_ore: 8, wood: 4 } },
+  { id: "recipe_iron_spear", station: "forge", result: "iron_spear", desc: "Железное копьё", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 5 } },
+  { id: "recipe_parrying_dagger", station: "forge", result: "parrying_dagger", desc: "Кинжал парирования", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, leather: 2, silver: 1 } },
+  
   { id: "recipe_leather", station: "forge", result: "leather", desc: "Кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 6, cloth: 3, bone: 1 } },
+  { id: "recipe_wanderer_coat", station: "forge", result: "wanderer_coat", desc: "Плащ странника", floor: 2, dropChance: 0.05, materials: { cloth: 5, leather: 2, bone: 1 } },
+  { id: "recipe_rough_leather", station: "forge", result: "rough_leather", desc: "Грубый кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 8, iron_ore: 2 } },
+  { id: "recipe_head_iron", station: "forge", result: "head_iron", desc: "Железный шлем", floor: 2, dropChance: 0.05, materials: { iron_ore: 5, leather: 2 } },
+  { id: "recipe_shoulder_leather", station: "forge", result: "shoulder_leather", desc: "Кожаные наплечники", floor: 2, dropChance: 0.05, materials: { leather: 4, iron_ore: 1 } },
+  { id: "recipe_wrist_leather", station: "forge", result: "wrist_leather", desc: "Кожаные наручи", floor: 2, dropChance: 0.05, materials: { leather: 3, cloth: 1 } },
+  { id: "recipe_legs_leather", station: "forge", result: "legs_leather", desc: "Кожаные штаны", floor: 2, dropChance: 0.05, materials: { leather: 5, cloth: 2 } },
+  { id: "recipe_feet_leather", station: "forge", result: "feet_leather", desc: "Кожаные сапоги", floor: 2, dropChance: 0.05, materials: { leather: 4, cloth: 2 } },
+  
+  // Сталь (Тир 2)
+  { id: "recipe_dense_cloth", station: "forge", result: "dense_cloth", desc: "Плотная ткань", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 5, bone: 2 } },
+  { id: "recipe_shadow_leather", station: "forge", result: "shadow_leather", desc: "Кожа ловца дорожек", floor: 2, dropChance: 0.05, materials: { steel: 2, leather: 6, bone: 2 } },
+  { id: "recipe_steel_chain", station: "forge", result: "steel_chain", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 4, leather: 2 } },
+  { id: "recipe_steel_plate", station: "forge", result: "steel_plate", desc: "Стальные латы", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 5, leather: 2 } },
+  { id: "recipe_steel_short_sword", station: "forge", result: "steel_short_sword", desc: "Стальной короткий меч", floor: 2, dropChance: 0.05, materials: { steel: 4, iron_ore: 2, leather: 1 } },
+  { id: "recipe_steel_great_sword", station: "forge", result: "steel_great_sword", desc: "Стальной двуручный меч", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 4, leather: 2 } },
+  { id: "recipe_steel_rapier", station: "forge", result: "steel_rapier", desc: "Стальная рапира", floor: 2, dropChance: 0.05, materials: { steel: 5, silver: 2, leather: 1 } },
+  { id: "recipe_steel_axe", station: "forge", result: "steel_axe", desc: "Стальной топор", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 3 } },
+  { id: "recipe_steel_mace", station: "forge", result: "steel_mace", desc: "Стальная булава", floor: 2, dropChance: 0.05, materials: { steel: 6, iron_ore: 3 } },
+  { id: "recipe_steel_maul", station: "forge", result: "steel_maul", desc: "Стальной молот", floor: 2, dropChance: 0.05, materials: { steel: 10, wood: 2 } },
+  { id: "recipe_steel_spear", station: "forge", result: "steel_spear", desc: "Стальное копьё", floor: 2, dropChance: 0.05, materials: { steel: 6, wood: 5 } },
+  { id: "recipe_tower_shield", station: "forge", result: "tower_shield", desc: "Укрепленный башенный щит", floor: 2, dropChance: 0.05, materials: { steel: 6, iron_ore: 4, leather: 2 } },
+  { id: "recipe_hood_mage", station: "forge", result: "hood_mage", desc: "Капюшон чародея", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 4, bone: 2 } },
+  { id: "recipe_scout_gloves", station: "forge", result: "scout_gloves", desc: "Разведческие перчатки", floor: 2, dropChance: 0.05, materials: { steel: 2, leather: 5 } },
+  { id: "recipe_scout_boots", station: "forge", result: "scout_boots", desc: "Сапоги разведчика", floor: 2, dropChance: 0.05, materials: { steel: 3, leather: 6 } },
+  
+  // Ювелирка 2-го этажа
   { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Серебряное кольцо", floor: 2, dropChance: 0.05, materials: { silver: 4, malachite: 2 } },
   { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { silver: 5, bone: 3 } },
-
-  // 3-й этаж
-  { id: "recipe_iron_sword", station: "forge", result: "iron_sword", desc: "Железный меч", floor: 3, dropChance: 0.05, materials: { iron: 6, iron_ore: 3, leather: 2 } },
-  { id: "recipe_chain", station: "forge", result: "chain", desc: "Кольчуга", floor: 3, dropChance: 0.05, materials: { iron: 8, iron_ore: 4, leather: 2 } },
-  { id: "recipe_kite_shield", station: "forge", result: "kite_shield", desc: "Каплевидный щит", floor: 3, dropChance: 0.05, materials: { iron: 6, scale: 3, leather: 2 } },
-  { id: "recipe_dagger", station: "forge", result: "dagger", desc: "Гранёный кинжал", floor: 3, dropChance: 0.05, materials: { iron: 4, coral: 2, leather: 1 } },
-
-  // 4-й этаж
-  { id: "recipe_battle_axe", station: "forge", result: "battle_axe", desc: "Боевой топор", floor: 4, dropChance: 0.05, materials: { steel: 6, crystal_shard: 3, leather: 2 } },
-  { id: "recipe_plate", station: "forge", result: "plate", desc: "Латный доспех", floor: 4, dropChance: 0.05, materials: { steel: 10, iron: 5, crystal_shard: 2, leather: 2 } },
-  { id: "recipe_ring_crystal", station: "jewelry", result: "ring_crystal", desc: "Кристальное кольцо", floor: 4, dropChance: 0.05, materials: { ruby: 5, crystal_shard: 3, essence: 1 } },
-  { id: "recipe_neck_crystal", station: "jewelry", result: "neck_crystal", desc: "Кристальный подвесок", floor: 4, dropChance: 0.05, materials: { essence: 4, crystal_herb: 3, ruby: 2 } },
-
-  // 5-й этаж
-  { id: "recipe_rune_blade", station: "forge", result: "rune_blade", desc: "Рунный клинок", floor: 5, dropChance: 0.05, materials: { steel: 8, void_dust: 3, diamond: 2, dragon_scale: 1 } },
-  { id: "recipe_great_axe", station: "forge", result: "great_axe", desc: "Секира палача", floor: 5, dropChance: 0.05, materials: { steel: 12, void_dust: 4, dragon_scale: 2, ruby: 3 } },
-  { id: "recipe_trinket_shard", station: "jewelry", result: "trinket_shard", desc: "Кристальный осколок", floor: 5, dropChance: 0.05, materials: { void_dust: 5, crystal_herb: 3, shadow_herb: 2 } },
+  { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { silver: 3, steel: 4, leather: 2 } },
 ];
 
 const RECIPE_MAP = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
