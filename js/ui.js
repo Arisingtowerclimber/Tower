@@ -19,6 +19,7 @@ const view = {
   heroBackScreen: "hub",
   ambush: null,
   storyJustPlayed: false,
+  exploreResult: null,
 };
 
 let toastTimer = null;
@@ -405,8 +406,6 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
   
   const storyIndex = state.npcDialogueIndex[npcId] || 0;
   const storyArr = DIALOGS[npcId]?.story;
-  
-  // Показываем слайд ТОЛЬКО если мы не только что его проиграли
   const currentSlide = (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
 
   if (currentSlide) {
@@ -431,7 +430,6 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
     `;
   }
 
-  // Если сюжета нет — обычные кнопки магазина
   const phrase = view.shopNpcPhrase || getRandomPhrase(npcId, "greetings");
   
   const btn = (tabId, label) =>
@@ -558,7 +556,6 @@ function hotelHtml() {
   const companion = activeCompanion(); const daysLeft = companionDaysLeft();
   const canHotel = state.gold >= HOTEL_PRICE; const discount = companionDiscountToday();
   const companionPrice = Math.max(1, Math.round(COMPANION_PRICE * (1 - discount)));
-  
   const cards = COMPANIONS.map((c) => {
     const active = companion?.id === c.id; const price = Math.max(1, Math.round(c.price * (1 - discount))); const canPay = state.gold >= price;
     const action = active
@@ -566,14 +563,11 @@ function hotelHtml() {
       : `<button class="btn small" data-act="companion" data-id="${c.id}" ${canPay ? "" : "disabled"} type="button">${companion ? "Сменить" : "Нанять"} на ${COMPANION_BUFF_DAYS} дня</button>`;
     return `<article class="companion-card${active ? " active" : ""}"><div class="companion-head"><img class="companion-portrait" src="${c.src || npcPortraitSrc(c.id)}" alt=""><div class="companion-name"><h3>${c.name}</h3><span class="companion-role">${c.role}</span><span class="companion-buff">${c.buffText}</span></div></div>${active ? `<span class="badge">Сейчас с вами</span>` : ""}<p class="item-desc">${c.desc}</p><div class="companion-foot"><span class="price">${price} 💰</span>${action}</div></article>`;
   }).join("");
-  
   const companionNote = companion
     ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${daysLeft} дн. Найм не сдвигает время.</span></div>`
     : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
 
-  // ИСПРАВЛЕНИЕ: Если вкладка не "quests" — всегда показываем "buy" (номер и спутниц)
   const tab = view.shopTab === "quests" ? "quests" : "buy";
-  
   const content =
     tab === "quests"
       ? npcQuestHtml("stella")
@@ -587,7 +581,7 @@ function hotelHtml() {
     ${npcDialogueBar("stella", "Снять номер", "")}
     ${content}
   `;
-} 
+}
 
 function trainingAvailability(training) {
   if (state.phase !== 0) return { ok: false, reason: "Только утром" };
@@ -597,7 +591,7 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
-  const tab = view.shopTab;
+  const tab = view.shopTab === "quests" ? "quests" : "buy";
   const cap = trainingCap(state.level);
   const warning = state.phase === 0
     ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
@@ -605,7 +599,6 @@ function trainingHtml() {
 
   let content = "";
   if (tab === "quests") content = trainingQuestsListHtml();
-  else if (tab === "sell") content = sellPanelHtml("training");
   else if (tab === "buy") content = `${warning}<div class="training-grid">${TRAININGS.map((t) => {
     const avail = trainingAvailability(t); const current = state.attrs[t.attr]; const atCap = current >= cap;
     return `<article class="training-card${avail.ok ? "" : " disabled"}"><div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-attr">${ATTR_INFO.find((a) => a.id === t.attr).name}: ${current} / ${cap}</span></div></div><p class="item-desc">${t.desc}</p><div class="training-foot"><button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? `Тренироваться` : avail.reason}</button></div></article>`;
@@ -907,7 +900,7 @@ function alchemyHtml() {
   let content = "";
   if (tab === "sell") content = sellPanelHtml("alchemy");
   else if (tab === "quests") content = npcQuestHtml("elain");
-  else if (tab === "buy") {
+  else if (tab === "buy" || tab === null) {
     const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
       const count = state.potions[item.id] || 0;
       const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana;
@@ -1380,6 +1373,41 @@ function floorHtml() {
   `;
 }
 
+function exploreResultModalHtml() {
+  const res = view.exploreResult;
+  if (!res) return "";
+
+  let title = "Событие";
+  let icon = "❓";
+  let color = "var(--gold2)";
+
+  if (res.type === "event") {
+    title = res.ev.debuff.name;
+    icon = res.ev.debuff.icon;
+    color = "#e8b09a";
+  } else if (res.type === "loot") {
+    title = "Находка";
+    icon = "📦";
+    color = "#a9d3b1";
+  } else if (res.type === "nothing") {
+    title = "Тишина";
+    icon = "🌲";
+    color = "var(--dim)";
+  }
+
+  return `
+    <div class="result-overlay" style="z-index: 190;">
+      <div class="result-card" style="max-width: 500px;">
+        <h2 style="color: ${color}; font-size: 24px;">${icon} ${title}</h2>
+        <p style="font-size: 15px; line-height: 1.55; margin: 15px 0 25px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">
+          ${esc(res.text)}
+        </p>
+        <button class="btn primary" data-act="explore-result-continue" type="button" style="width: 100%;">Продолжить</button>
+      </div>
+    </div>
+  `;
+}
+
 function zoneButtons() {
   const st = stats();
   return {
@@ -1673,8 +1701,20 @@ function render() {
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
   if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
   
-  // Модалки для кастомных разговоров (npс-talk), бестиария и т.д.
-
+  if (view.exploreResult) html += exploreResultModalHtml();
+  
+  if (view.talkNpc) {
+    if (!state.npcDialogueIndex) state.npcDialogueIndex = {};
+    const index = state.npcDialogueIndex[view.talkNpc] || 0;
+    const hasStory = DIALOGS[view.talkNpc]?.story?.[index];
+    
+    if (hasStory) {
+      html += firstMeetModalHtml(view.talkNpc);
+    } else {
+      html += npcDialogHtml(view.talkNpc);
+    }
+  }
+  
   if (view.bestiaryOpen) html += bestiaryModalHtml();
   
   screen.innerHTML = html;
@@ -1735,7 +1775,7 @@ function go(screen) {
     }
     view.shopNpcPhrase = getRandomPhrase(shopNpc, "greetings");
     view.talkNpcPhase = 0;
-    view.storyJustPlayed = false; // <--- СБРАСЫВАЕМ ФЛАГ ПРИ ВХОДЕ
+    view.storyJustPlayed = false;
   } else {
     view.activeShopNpc = null; 
     view.sellSelection = []; 
@@ -1789,16 +1829,17 @@ function startAutoExplore(floorId, avoidDanger) {
   const reason = towerClosedReason();
   if (reason) { toast(reason, "warn"); render(); return; }
   if (state.activeSceneId) { toast("Сначала разберитесь с активной сценой.", "warn"); render(); return; }
-  if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; }
+  if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; } // <-- Эта строка уже есть, проверь
   view.autoExplore = { floorId, avoidDanger, timer: null, log: [] };
   toast(avoidDanger ? "⏩ Авто-исследование: безопасный режим." : "⏩ Авто-исследование: боевой режим.", "info");
   render();
-  view.autoExplore.timer = setTimeout(autoExploreLoop, 400);
+  view.autoExplore.timer = setTimeout(autoExploreLoop, 1200);
 }
 
 function autoExploreLoop() {
   const ae = view.autoExplore; if (!ae) return;
   if (battleActive()) return;
+  if (view.exploreResult) return;
   if (isNight()) { stopAutoExplore("Наступила ночь. Авто-исследование остановлено."); return; }
   if (state.activeSceneId) resolveSceneAction("leave");
   if (!view.autoExplore) return;
@@ -1806,7 +1847,7 @@ function autoExploreLoop() {
   if (!view.autoExplore) return;
   if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
   autoExploreTick(ae.floorId, ae.avoidDanger);
-  if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 700);
+  if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
 }
 
 function autoExploreTick(floorId, avoidDanger) {
@@ -1830,15 +1871,35 @@ function autoExploreTick(floorId, avoidDanger) {
   toast(res.text, res.ok ? "ok" : "warn");
   if (!res.ok) { stopAutoExplore(); return; }
 
-  if (res.encounter) {
-    const encFloor = FLOORS.find((f) => f.id === res.encounter.floorId);
-    const def = encFloor ? encFloor.mobs[res.encounter.mobIndex] : null;
-    if (def && !avoidDanger) {
-      view.ambush = null;
-      beginBattle(def, encFloor.id);
+  // Если выпал NPC (Артур) — останавливаем авто-исследование, чтобы игрок мог поговорить
+  if (res.npc) {
+    stopAutoExplore("Появился странствующий торговец. Авто-исследование остановлено.");
+    render();
+    return;
+  }
+
+  if (res.encounter || res.scene || res.eventData) {
+    if (res.encounter && !avoidDanger) {
+      view.exploreResult = { 
+        type: res.eventData ? "event" : "loot", 
+        ev: res.eventData, 
+        encounter: res.encounter, 
+        scene: res.scene, 
+        text: res.text 
+      };
+      render();
+      return;
+    } else if (res.eventData) {
+      view.exploreResult = { type: "event", ev: res.eventData, text: res.text };
+      render();
+      return;
+    } else if (res.scene) {
+      // Если это сцена, мы должны остановить авто-режим, чтобы игрок её прошел
+      stopAutoExplore("Наткнулись на сцену. Авто-исследование остановлено.");
+      render();
       return;
     }
-    ae.log.push(`${stamp} ⏭ Бой пропущен: ${def ? def.name : "противник"}.`);
+    ae.log.push(`${stamp} ⏭ Пропущено (безопасный режим).`);
   }
   render();
 }
@@ -1975,7 +2036,7 @@ function firstMeetModalHtml(npcId) {
           <img src="${npcPortraitSrc(npcId)}" alt="" style="width:64px; height:64px; border-radius:10px; border:1px solid var(--gold); object-fit:cover;" onerror="this.outerHTML='<b style=font-size:40px>🧙</b>'">
           <div>
             <h3 style="margin:0; color:var(--gold2); font-size: 18px;">${NPC_NAMES[npcId].split(",")[0]}</h3>
-            <span class="hint">Знакомство</span>
+            <span class="hint">Диалог</span>
           </div>
         </div>
         
@@ -1984,7 +2045,7 @@ function firstMeetModalHtml(npcId) {
           <p style="color: var(--gold2); font-weight: bold; line-height: 1.5;">Вы: «${met.player}»</p>
         </div>
 
-        <button class="btn primary" data-act="finish-meet" data-npc="${npcId}" type="button" style="width: 100%;">Продолжить</button>
+        <button class="btn primary" data-act="story-choice" data-npc="${npcId}" type="button" style="width: 100%;">Продолжить</button>
       </div>
     </div>
   `;
@@ -2069,23 +2130,6 @@ function traderDialogHtml() {
   `;
 }
 
-function handleKey(event) {
-  if (!state) return;
-  if (!state.created) { if (event.key === "Enter" && view.create) tryStartGame(); return; }
-  if (event.target?.closest?.("input, textarea, select")) return;
-  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; render(); return; }
-  if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
-  if (view.screen !== "battle" || !view.battle || view.battle.over) return;
-  const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); 
-  if (match) { 
-    const zone = ZONES[Number(match[1]) - 1].id; 
-    if (event.shiftKey) toggleBlock(zone); 
-    else setAttackZone(zone); 
-    return; 
-  }
-  if (event.key === "Enter") doExchange("attack");
-}
-
 function onClick(event) {
   const el = event.target.closest("[data-act]"); 
   if (!el || el.disabled) return; 
@@ -2142,7 +2186,7 @@ function onClick(event) {
       if (npcId) {
         state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
         saveState();
-        view.storyJustPlayed = true; // <--- ГОВОРИМ, ЧТО СЛАЙД ПРОИГРАН
+        view.storyJustPlayed = true;
         render();
       }
       break;
@@ -2150,6 +2194,33 @@ function onClick(event) {
     case "story-leave": {
       view.storyJustPlayed = false;
       go("hub");
+      break;
+    }
+    case "explore-result-continue": {
+      const res = view.exploreResult;
+      view.exploreResult = null;
+
+      if (res.type === "event") {
+        const ev = res.ev;
+        state.debuff = { id: ev.debuff.id, name: ev.debuff.name, icon: ev.debuff.icon, mult: ev.debuff.mult, battles: ev.debuff.battles, desc: ev.debuff.desc };
+        saveState();
+      }
+
+      if (res.encounter) {
+        const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
+        const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
+        if (def) { beginBattle(def, floor.id); break; }
+      }
+
+      if (res.scene) {
+        render(); 
+        break;
+      }
+
+      if (view.autoExplore) {
+        view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
+      }
+      render();
       break;
     }
     case "shop-tab": {
@@ -2243,13 +2314,21 @@ function onClick(event) {
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "explore": {
       const res = exploreFloor(Number(el.dataset.floor) || state.maxFloor);
-      toast(res.text, res.ok ? "ok" : "warn");
-      if (res.encounter) {
-        const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
-        const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
-        view.ambush = null;
-        if (def) { beginBattle(def, floor.id); break; }
+      if (!res.ok) { toast(res.text, "warn"); break; }
+
+      if (res.encounter || res.scene || res.eventData) {
+        view.exploreResult = { 
+          type: res.eventData ? "event" : "loot", 
+          ev: res.eventData, 
+          encounter: res.encounter?.mobIndex !== undefined ? res.encounter : null, 
+          scene: res.scene, 
+          text: res.text 
+        };
+        render();
+        break;
       }
+
+      view.exploreResult = { type: "loot", text: res.text };
       render();
       break;
     }
@@ -2313,7 +2392,7 @@ function onClick(event) {
           if (def) { beginBattle(def, gFloor.id); break; }
           view.sceneGroup = null; view.sceneGroupFloorId = null;
         }
-        if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 700);
+        if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
         if (view.currentFloor) {
           view.screen = "floor";
         } else {
@@ -2338,4 +2417,21 @@ function onClick(event) {
     case "reset": if (confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
     default: break;
   }
+}
+
+function handleKey(event) {
+  if (!state) return;
+  if (!state.created) { if (event.key === "Enter" && view.create) tryStartGame(); return; }
+  if (event.target?.closest?.("input, textarea, select")) return;
+  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; render(); return; }
+  if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
+  if (view.screen !== "battle" || !view.battle || view.battle.over) return;
+  const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); 
+  if (match) { 
+    const zone = ZONES[Number(match[1]) - 1].id; 
+    if (event.shiftKey) toggleBlock(zone); 
+    else setAttackZone(zone); 
+    return; 
+  }
+  if (event.key === "Enter") doExchange("attack");
 }

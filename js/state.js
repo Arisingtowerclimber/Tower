@@ -578,6 +578,7 @@ function exploreFloor(floorId) {
     state.floorProgress[floor.id] = Math.min(100, state.floorProgress[floor.id] + amount);
   };
   const progressText = () => ` Прогресс этажа: ${state.floorProgress[floor.id]}%.`;
+  
   const rollChestLoot = () => {
     const pool = FLOOR_RESOURCES[floor.id] || [];
     if (!pool.length) return null;
@@ -593,6 +594,7 @@ function exploreFloor(floorId) {
   let text = "";
   let encounter = null;
   let scene = false;
+  let eventData = null; // Для ивентов с дебаффами
   let npc = false;
 
   if (roll < 0.20) {
@@ -619,11 +621,14 @@ function exploreFloor(floorId) {
       npc = true;
       text = `Из тени вышел ${NPCS.arthur.name} и поманил вас пальцем.`;
     } else if (EVENTS.length) {
-      const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-      state.debuff = { id: ev.debuff.id, name: ev.debuff.name, icon: ev.debuff.icon, mult: ev.debuff.mult, battles: ev.debuff.battles, desc: ev.debuff.desc };
-      text = `${ev.text} ${ev.debuff.icon} ${ev.debuff.name}: ${ev.debuff.desc}.`;
-    } else {
-      text = "Вы нашли странный алтарь. Он молчит… пока что.";
+      const floorEvents = EVENTS.filter(e => e.floor === floor.id);
+      if (floorEvents.length) {
+        const ev = floorEvents[Math.floor(Math.random() * floorEvents.length)];
+        eventData = ev; // Возвращаем ивент, но НЕ применяем дебафф сразу
+        text = `${ev.text} ${ev.debuff.icon} ${ev.debuff.name}: ${ev.debuff.desc}.`;
+      } else {
+        text = "Вы нашли странный алтарь. Он молчит… пока что.";
+      }
     }
   } else if (roll < 0.90) {
     const pool = FLOOR_SCENES[floor.id] || [];
@@ -646,7 +651,7 @@ function exploreFloor(floorId) {
   }
 
   saveState();
-  return { ok: true, text, encounter, scene, npc };
+  return { ok: true, text, encounter, scene, npc, eventData };
 }
 
 function getTraderInventory() {
