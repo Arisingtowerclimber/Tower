@@ -632,8 +632,8 @@ const ITEMS = {
   steel_chain: gearItem("steel_chain", "Стальная кольчуга", "chest", "🥋", 300, 2, { def: 14, hp: 60, armorType: "chain" }, "Каждое кольцо — углеродистая сталь."),
   steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "🛡️", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
 
-  hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 100, price: 20, shopTier: 1, desc: "Восстанавливает 100 HP." },
-  hp_big: { id: "hp_big", name: "Большое зелье лечения", slot: "potion", icon: "⚗️", type: "potion", effect: "hp", amount: 225, price: 45, shopTier: 1, desc: "Восстанавливает 225 HP." },
+  hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 60, price: 20, shopTier: 1, desc: "Восстанавливает 60 HP." },
+  hp_big:   { id: "hp_big",   name: "Большое зелье лечения", slot: "potion", icon: "⚗️", type: "potion", effect: "hp", amount: 120, price: 45, shopTier: 1, desc: "Восстанавливает 120 HP." },
   mana_small: { id: "mana_small", name: "Зелье маны", slot: "potion", icon: "🔷", type: "potion", effect: "mana", amount: 20, price: 20, shopTier: 1, desc: "Восстанавливает 20 маны." },
 };
 

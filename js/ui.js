@@ -1538,7 +1538,7 @@ function battleHtml(st) {
         <button class="btn tech" data-act="tech" type="button" ${battle.rage < 3 || state.mana < TECH_COST ? "disabled" : ""}>Приём</button>
         ${Object.values(ITEMS).filter(i => i.slot === "potion" && (state.potions[i.id] || 0) > 0).map(i => {
           const canDrink = canDrinkPotion(i.id);
-          return `<button class="btn small ghost" data-act="drink" data-id="${i.id}" ${!canDrink ? "disabled" : ""} type="button">${iconHtml(i.icon, 16)} ${i.name} ×${state.potions[i.id]}</button>`;
+          return `<button class="btn small ghost" data-act="drink-battle" data-id="${i.id}" ${!canDrink ? "disabled" : ""} type="button">${iconHtml(i.icon, 16)} ${i.name} ×${state.potions[i.id]}</button>`;
         }).join("")}
         <button class="btn ghost" data-act="flee" type="button">Сбежать</button>
       </div>
@@ -1802,7 +1802,9 @@ function doExchange(type, potionId) {
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
   setActiveWeaponInstance(mainInst);
   const result = exchange(state, view.battle, { type, zone: view.attackZone, blocks: view.blocks, style: view.attackStyle, id: potionId });
-  if (result.error) { toast(result.error, "warn"); return; } if (result.summary) view.summary = result.summary; render();
+  if (result.error) { toast(result.error, "warn"); return; } 
+  if (result.summary) view.summary = result.summary; 
+  render();
 }
 
 function endTrip() { if (!view.tripActive) return; view.tripActive = false; advancePhase(); }
@@ -2234,6 +2236,8 @@ function onClick(event) {
   
   const act = el.dataset.act; const id = el.dataset.id; let res;
   switch (act) {
+    case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "drink-battle": doExchange("heal", id); break;
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
     case "quests-close": view.questsOpen = false; render(); break;
