@@ -175,6 +175,7 @@ function resetCreate(name = "", portrait = "m1", archetype = null) {
 function createHtml() {
   const c = view.create; const portrait = PORTRAIT_MAP[c.portrait] || PORTRAITS[0]; const archetype = ARCHETYPE_MAP[c.archetype] || null;
   const preview = previewStats(c.attrs, c.archetype); const canStart = c.points === 0 && Boolean(archetype);
+  
   const rows = ATTR_INFO.map((attr) => `
     <div class="attr-row">
       <div class="attr-info"><b>${attr.name}</b><span class="hint">${attr.effect}</span></div>
@@ -185,31 +186,32 @@ function createHtml() {
       </div>
     </div>
   `).join("");
-  const archetypeCards = ARCHETYPES.map((a) => {
-  const equipStats = (a.startEquipment || []).map(id => {
-    const item = ITEMS[id];
-    if (!item) return "";
-    const stats = [];
-    if (item.atk) stats.push(`⚔ +${item.atk}`);
-    if (item.def) stats.push(`🛡 +${item.def}`);
-    if (item.hp) stats.push(`❤ +${item.hp}`);
-    if (item.block) stats.push(`🧱 +${item.block}`);
-    return `${item.name}${stats.length ? ` (${stats.join(", ")})` : ""}`;
-  }).filter(Boolean).join(", ");
 
-  return `
-    <button class="archetype-card${c.archetype === a.id ? " selected" : ""}" data-act="create-archetype" data-id="${a.id}" type="button" title="${esc(equipStats)}">
-      <span class="archetype-icon">${a.icon}</span>
-      <span class="archetype-body"><b>${a.name}</b><span>${a.desc}</span></span>
-    </button>
-  `;
-}).join("");
+  const archetypeCards = ARCHETYPES.map((a) => {
+    const equipStats = (a.startEquipment || []).map(id => {
+      const item = ITEMS[id];
+      if (!item) return "";
+      const stats = [];
+      if (item.atk) stats.push(`⚔ +${item.atk}`);
+      if (item.def) stats.push(`🛡 +${item.def}`);
+      if (item.hp) stats.push(`❤ +${item.hp}`);
+      if (item.block) stats.push(`🧱 +${item.block}`);
+      return `${item.name}${stats.length ? ` (${stats.join(", ")})` : ""}`;
+    }).filter(Boolean).join(", ");
+
+    return `
+      <button class="archetype-card${c.archetype === a.id ? " selected" : ""}" data-act="create-archetype" data-id="${a.id}" type="button" title="${esc(equipStats)}">
+        <span class="archetype-body"><b>${a.name}</b><span>${a.desc}</span></span>
+      </button>
+    `;
+  }).join("");
+
   const startLabel = c.points > 0 ? `Распределите ещё ${c.points}` : !archetype ? "Выберите архетип" : "Начать путь";
 
-  const startEquipmentIds = (archetype && Array.isArray(archetype.startEquipment))
-    ? archetype.startEquipment
+  const startEquipmentIds = (archetype && Array.isArray(archetype.startEquipment)) 
+    ? archetype.startEquipment 
     : ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"];
-
+    
   const startEquipmentChips = startEquipmentIds.map(id => {
     const item = ITEMS[id];
     if (!item) return "";
@@ -246,7 +248,7 @@ function createHtml() {
         </section>
         <section class="panel preview-panel">
           <div class="preview-portrait"><img src="${portrait.src}" alt="${esc(portrait.name)}"><div class="preview-portrait-caption"><b>${esc(c.name || "Странник")}</b></div></div>
-          <div class="preview-archetype${archetype ? "" : " empty"}">${archetype ? `<span class="preview-archetype-head">${archetype.icon} <b>${archetype.name}</b></span><span>${archetype.desc}</span>` : `<span>Архетип не выбран</span>`}</div>
+          <div class="preview-archetype${archetype ? "" : " empty"}">${archetype ? `<span class="preview-archetype-head"><b>${archetype.name}</b></span><span>${archetype.desc}</span>` : `<span>Архетип не выбран</span>`}</div>
           <h2 class="group-title">Что получится</h2>
           <div class="stat-grid">
             <div class="stat-box"><span>HP</span><b>${preview.maxHp}</b></div><div class="stat-box"><span>Мана</span><b>${preview.maxMana}</b></div>

@@ -235,8 +235,8 @@ const ARCHETYPES = [
   {
     id: "duelist",
     name: "Дуэлянт",
-    icon: "🤺",
-    desc: "+30% к урону и +10% к шансу крита, пока в правой руке одноручное оружие (1h). Средний уворот. −10% к максимуму HP.",
+    icon: "🤺", // иконка останется в данных, но отображаться не будет
+    desc: "+30% к урону, +10% к шансу крита при наличии исключительно одноручного оружия. Повышенный предел уворота (до 45%). −10% к максимуму HP.",
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 45, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
@@ -244,7 +244,7 @@ const ARCHETYPES = [
     id: "guardian",
     name: "Страж",
     icon: "🛡️",
-    desc: "Успешный блок наносит ответный удар — 10% атаки врага. −10% к наносимому и получаемому урону.",
+    desc: "Успешный блок наносит ответный удар (10% атаки врага). Получаемый и наносимый урон снижен на 10%. Надежная защита.",
     mods: { atk: 0.9, maxHp: 1, dodgeCap: 35, blockZones: 2, ragePerHit: 1, blockCounter: 0.1, dmgTakenMult: 0.9 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots", "wood_shield"]
   },
@@ -252,8 +252,8 @@ const ARCHETYPES = [
     id: "assassin",
     name: "Убийца",
     icon: "🗡️",
-    desc: "Держит оружие в обеих руках: левая рука даёт 50% урона. Уворот до 50%. −10% к максимуму HP, щиты недоступны.",
-    mods: { atk: 1, maxHp: 0.9, dodgeCap: 50, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
+    desc: "Сражается двумя клинками: оружие в левой руке дает 50% урона. Повышенный предел уворота (до 45%). −10% к максимуму HP, щиты недоступны.",
+    mods: { atk: 1, maxHp: 0.9, dodgeCap: 60, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
 ];
