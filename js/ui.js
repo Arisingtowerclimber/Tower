@@ -18,6 +18,7 @@ const view = {
   alchemyTab: "potions",
   heroBackScreen: "hub",
   ambush: null,
+  storyJustPlayed: false,
 };
 
 let toastTimer = null;
@@ -401,6 +402,36 @@ const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "st
 function npcDialogueBar(npcId, buyLabel, sellLabel) {
   const tab = view.shopTab;
   const npcName = NPC_NAMES[npcId] || npcId;
+  
+  const storyIndex = state.npcDialogueIndex[npcId] || 0;
+  const storyArr = DIALOGS[npcId]?.story;
+  
+  // Показываем слайд ТОЛЬКО если мы не только что его проиграли
+  const currentSlide = (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
+
+  if (currentSlide) {
+    const optionsHtml = currentSlide.options.map((opt, idx) => 
+      `<button class="btn primary" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(opt.text)}</button>`
+    ).join("");
+
+    return `
+      <div class="npc-dialogue-bar" style="display: flex; flex-direction: row; align-items: stretch; gap: 20px; background: rgba(20, 16, 14, 0.95); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="width: 150px; height: 150px; flex-shrink: 0; object-fit: cover; border-radius: 12px; border: 2px solid var(--gold);">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <p class="npc-name" style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--gold2); text-transform: uppercase; letter-spacing: 0.05em;">${esc(npcName)}</p>
+            <p class="npc-dialogue" style="margin: 0; font-style: italic; font-size: 1.05rem; line-height: 1.5; color: #e2e8f0;">«${esc(currentSlide.npc)}»</p>
+          </div>
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+            ${optionsHtml}
+            <button class="btn ghost" data-act="story-leave" data-npc="${npcId}" type="button" style="align-self: flex-start; margin-top: 8px;">Уйти</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Если сюжета нет — обычные кнопки магазина
   const phrase = view.shopNpcPhrase || getRandomPhrase(npcId, "greetings");
   
   const btn = (tabId, label) =>
@@ -527,6 +558,7 @@ function hotelHtml() {
   const companion = activeCompanion(); const daysLeft = companionDaysLeft();
   const canHotel = state.gold >= HOTEL_PRICE; const discount = companionDiscountToday();
   const companionPrice = Math.max(1, Math.round(COMPANION_PRICE * (1 - discount)));
+  
   const cards = COMPANIONS.map((c) => {
     const active = companion?.id === c.id; const price = Math.max(1, Math.round(c.price * (1 - discount))); const canPay = state.gold >= price;
     const action = active
@@ -534,19 +566,20 @@ function hotelHtml() {
       : `<button class="btn small" data-act="companion" data-id="${c.id}" ${canPay ? "" : "disabled"} type="button">${companion ? "Сменить" : "Нанять"} на ${COMPANION_BUFF_DAYS} дня</button>`;
     return `<article class="companion-card${active ? " active" : ""}"><div class="companion-head"><img class="companion-portrait" src="${c.src || npcPortraitSrc(c.id)}" alt=""><div class="companion-name"><h3>${c.name}</h3><span class="companion-role">${c.role}</span><span class="companion-buff">${c.buffText}</span></div></div>${active ? `<span class="badge">Сейчас с вами</span>` : ""}<p class="item-desc">${c.desc}</p><div class="companion-foot"><span class="price">${price} 💰</span>${action}</div></article>`;
   }).join("");
+  
   const companionNote = companion
     ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${daysLeft} дн. Найм не сдвигает время.</span></div>`
     : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
 
-  const tab = view.shopTab;
+  // ИСПРАВЛЕНИЕ: Если вкладка не "quests" — всегда показываем "buy" (номер и спутниц)
+  const tab = view.shopTab === "quests" ? "quests" : "buy";
+  
   const content =
     tab === "quests"
       ? npcQuestHtml("stella")
-      : tab === "buy"
-      ? `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
+      : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
          <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
-         <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`
-      : "";
+         <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
@@ -554,7 +587,7 @@ function hotelHtml() {
     ${npcDialogueBar("stella", "Снять номер", "")}
     ${content}
   `;
-}
+} 
 
 function trainingAvailability(training) {
   if (state.phase !== 0) return { ok: false, reason: "Только утром" };
@@ -1616,30 +1649,38 @@ function levelUpModalHtml() {
 
 function render() {
   const screen = document.getElementById("screen"); const topbar = document.getElementById("topbar");
-  if (!state.created) { if (!view.create) resetCreate(); topbar.innerHTML = ""; topbar.hidden = true; screen.innerHTML = createHtml(); screen.dataset.screen = "create"; return; }
-  topbar.hidden = false; const st = stats(); topbar.innerHTML = topbarHtml(st); let html = "";
+  if (!state.created) { 
+    if (!view.create) resetCreate(); 
+    topbar.innerHTML = ""; topbar.hidden = true; 
+    screen.innerHTML = createHtml(); screen.dataset.screen = "create"; 
+    return; 
+  }
+  
+  topbar.hidden = false; 
+  const st = stats(); 
+  topbar.innerHTML = topbarHtml(st); 
+  let html = "";
+  
   switch (view.screen) {
     case "floor": html = floorHtml(); break;
     case "hub": html = hubHtml(st); break; case "market": html = marketHtml(); break; case "forge": html = forgeHtml(); break; case "alchemy": html = alchemyHtml(); break;
     case "jewelry": html = jewelryHtml(); break; case "hotel": html = hotelHtml(); break; case "training": html = trainingHtml(); break; case "hero": html = heroHtml(st); break;
     case "tower": html = towerHtml(); break; case "battle": html = battleHtml(st); break; default: html = hubHtml(st);
   }
-    if (view.questsOpen) html += questsModalHtml();
-  screen.innerHTML = html; screen.dataset.screen = view.screen; if (view.screen === "battle") requestAnimationFrame(scrollLog);
-    if (view.questsOpen) html += questsModalHtml();
-    if (view.levelUp) html += levelUpModalHtml();
-    if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
-    if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
-    
-    // Проверка на первое знакомство
-    if (view.talkNpc && !state.metNpcs[view.talkNpc] && DIALOGS[view.talkNpc]?.firstMeet) {
-      html += firstMeetModalHtml(view.talkNpc);
-    } else if (view.talkNpc) {
-      html += npcDialogHtml(view.talkNpc);
-    }
-    
-    if (view.bestiaryOpen) html += bestiaryModalHtml();
+  
+  if (view.questsOpen) html += questsModalHtml();
+  if (view.levelUp) html += levelUpModalHtml();
+  if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
+  if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
+  
+  // Модалки для кастомных разговоров (npс-talk), бестиария и т.д.
+
+  if (view.bestiaryOpen) html += bestiaryModalHtml();
+  
   screen.innerHTML = html;
+  screen.dataset.screen = view.screen; 
+  
+  if (view.screen === "battle") requestAnimationFrame(scrollLog);
 }
 
 function startBattle(floorId, mobKey) {
@@ -1682,19 +1723,10 @@ function endTrip() { if (!view.tripActive) return; view.tripActive = false; adva
 function go(screen) {
   if (!state.created) return;
   
+  if (!state.npcDialogueIndex) state.npcDialogueIndex = {};
+
   const shopNpc = SHOP_NPCS[screen];
   
-  if (shopNpc) {
-    const index = state.npcDialogueIndex[shopNpc] || 0;
-    // Если есть новый диалог, который игрок еще не видел — показываем его
-    if (DIALOGS[shopNpc]?.story?.[index]) {
-      view.talkNpc = shopNpc;
-      view.talkNpcText = null;
-      render();
-      return; 
-    }
-  }
-
   if (shopNpc) {
     if (view.activeShopNpc !== shopNpc) { 
       view.activeShopNpc = shopNpc; 
@@ -1702,9 +1734,14 @@ function go(screen) {
       view.shopTab = null; 
     }
     view.shopNpcPhrase = getRandomPhrase(shopNpc, "greetings");
+    view.talkNpcPhase = 0;
+    view.storyJustPlayed = false; // <--- СБРАСЫВАЕМ ФЛАГ ПРИ ВХОДЕ
   } else {
-    view.activeShopNpc = null; view.sellSelection = []; view.shopTab = null;
+    view.activeShopNpc = null; 
+    view.sellSelection = []; 
+    view.shopTab = null;
   }
+  
   if (view.autoExplore) stopAutoExplore("Авто-исследование остановлено.");
   if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
 
@@ -1716,37 +1753,23 @@ function go(screen) {
   if (screen === "hero" && view.screen !== "hero") {
     view.heroBackScreen = view.screen;
   }
-  if (!state.created) return;
-  if (view.autoExplore) stopAutoExplore("Авто-исследование остановлено.");
-  if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
-  if (screen === "hero" && view.screen !== "hero") {
-    view.heroBackScreen = view.screen;
+
+  if (screen === "tower") { 
+    const reason = towerClosedReason(); 
+    if (reason) { toast(reason, "warn"); return; } 
   }
-  if (screen === "tower") { const reason = towerClosedReason(); if (reason) { toast(reason, "warn"); return; } }
 
   const leavingTower = view.tripActive && (view.screen === "tower" || view.screen === "battle") && screen !== "tower" && screen !== "battle" && screen !== "hero";
-
   if (leavingTower) endTrip();
+
   view.ambush = null;
   view.screen = screen;
   view.dollSlot = null;
   view.invItemUid = null;
   if (screen === "tower") view.tripActive = true;
   if (screen !== "battle") view.summary = null;
+  
   render();
-}
-
-function setAttackZone(zone) { if (!ZONE_NAME[zone]) return; view.attackZone = zone; render(); }
-function toggleBlock(zone) { if (!ZONE_NAME[zone]) return; const limit = stats().blockZones; if (view.blocks.includes(zone)) view.blocks = view.blocks.filter((z) => z !== zone); else if (view.blocks.length >= limit) { toast(`Максимум ${limit} зон.`, "warn"); return; } else { view.blocks = [...view.blocks, zone]; } render(); }
-
-function handleKey(event) {
-  if (!state) return; if (!state.created) { if (event.key === "Enter" && view.create) tryStartGame(); return; }
-  if (event.target?.closest?.("input, textarea, select")) return;
-  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; render(); return; }
-  if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
-  if (view.screen !== "battle" || !view.battle || view.battle.over) return;
-  const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); if (match) { const zone = ZONES[Number(match[1]) - 1].id; if (event.shiftKey) toggleBlock(zone); else setAttackZone(zone); return; }
-  if (event.key === "Enter") doExchange("attack");
 }
 
 function onInput(event) {
@@ -1939,8 +1962,11 @@ function getRandomPhrase(npcId, phraseType) {
 const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", stella: "Гостиница «Усталый путник»", ivan: "Зал Охотников" };
 function firstMeetModalHtml(npcId) {
   const set = DIALOGS[npcId];
-  if (!set || !set.firstMeet) return "";
-  const met = set.firstMeet;
+  if (!set || !set.story) return "";
+  
+  const index = state.npcDialogueIndex[npcId] || 0;
+  const met = set.story[index];
+  if (!met) return "";
   
   return `
     <div class="result-overlay" style="z-index: 195;">
@@ -2043,8 +2069,28 @@ function traderDialogHtml() {
   `;
 }
 
+function handleKey(event) {
+  if (!state) return;
+  if (!state.created) { if (event.key === "Enter" && view.create) tryStartGame(); return; }
+  if (event.target?.closest?.("input, textarea, select")) return;
+  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; render(); return; }
+  if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
+  if (view.screen !== "battle" || !view.battle || view.battle.over) return;
+  const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); 
+  if (match) { 
+    const zone = ZONES[Number(match[1]) - 1].id; 
+    if (event.shiftKey) toggleBlock(zone); 
+    else setAttackZone(zone); 
+    return; 
+  }
+  if (event.key === "Enter") doExchange("attack");
+}
+
 function onClick(event) {
-  const el = event.target.closest("[data-act]"); if (!el || el.disabled) return; event.preventDefault();
+  const el = event.target.closest("[data-act]"); 
+  if (!el || el.disabled) return; 
+  event.preventDefault();
+  
   const act = el.dataset.act; const id = el.dataset.id; let res;
   switch (act) {
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
@@ -2091,22 +2137,19 @@ function onClick(event) {
       render();
       break;
     }
-    case "finish-meet": {
+    case "story-choice": {
       const npcId = el.dataset.npc;
       if (npcId) {
         state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
         saveState();
-        
-        const targetScreen = Object.keys(SHOP_NPCS).find(k => SHOP_NPCS[k] === npcId);
-        view.talkNpc = null;
-        view.talkNpcText = null;
-        
-        if (targetScreen) {
-          go(targetScreen); 
-        } else {
-          render(); 
-        }
+        view.storyJustPlayed = true; // <--- ГОВОРИМ, ЧТО СЛАЙД ПРОИГРАН
+        render();
       }
+      break;
+    }
+    case "story-leave": {
+      view.storyJustPlayed = false;
+      go("hub");
       break;
     }
     case "shop-tab": {

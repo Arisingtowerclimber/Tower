@@ -10,25 +10,26 @@ function defaultState() {
   const inst = (id) => ({ uid: `item_${++uid}`, id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null });
   const owned = [inst("rusty_knife"), inst("rags"), inst("worn_hood"), inst("patched_pants"), inst("worn_boots")];
   const uidOf = (id) => owned.find((x) => x.id === id).uid;
-
+  
   return {
     version: SAVE_VERSION, created: false, name: "Странник", portrait: "m1", archetype: null,
     level: 1, xp: 0, points: 0, attrs: { str: 1, agi: 1, end: 1, int: 1 },
     gold: 60, hp: BASE_STATS.hp + 2, mana: BASE_STATS.mana + 2, energy: EXPLORATION_MAX,
     phase: 0, day: 1, companion: null, companionDay: 0,
     potions: { hp_small: 2, hp_big: 0, mana_small: 1 },
-    equipped: {
-      head: uidOf("worn_hood"), neck: null, shoulder: null, back: null,
-      chest: uidOf("rags"), wrist: null, hands: null, waist: null,
-      legs: uidOf("patched_pants"), feet: uidOf("worn_boots"),
-      ring1: null, ring2: null, trinket1: null, trinket2: null,
-      mainhand: uidOf("rusty_knife"), offhand: null
+    equipped: { 
+      head: uidOf("worn_hood"), neck: null, shoulder: null, back: null, 
+      chest: uidOf("rags"), wrist: null, hands: null, waist: null, 
+      legs: uidOf("patched_pants"), feet: uidOf("worn_boots"), 
+      ring1: null, ring2: null, trinket1: null, trinket2: null, 
+      mainhand: uidOf("rusty_knife"), offhand: null 
     },
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, debuff: null, kills: 0, bestiary: {},
     killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
     resources: {},
     knownRecipes: [],
-    talentPoints: 0, talents: {},      npcDialogueIndex: {},
+    talentPoints: 0, talents: {},
+    npcDialogueIndex: {},
   };
 }
 
@@ -61,6 +62,7 @@ function loadState() {
     if (potions.energy_small) { potions.mana_small = (potions.mana_small || 0) + potions.energy_small; delete potions.energy_small; }
 
     state = { ...defaults, ...saved, version: SAVE_VERSION, attrs: { ...defaults.attrs, ...(saved.attrs || {}) }, potions, equipped, cleared: saved.cleared || {}, floorProgress: saved.floorProgress || {}, resources: saved.resources || {} };
+    
     const sceneFloor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
     const sceneOk = sceneFloor && (FLOOR_SCENES[sceneFloor.id] || []).some((s) => s.id === state.activeSceneId);
     if (!sceneOk) { state.activeSceneId = null; state.activeSceneFloorId = null; }
@@ -79,13 +81,14 @@ function loadState() {
 
     state.talentPoints = Number.isFinite(state.talentPoints) ? Math.max(0, state.talentPoints) : 0;
     state.talents = {};
-    state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
     const savedTalents = saved.talents && typeof saved.talents === "object" ? saved.talents : {};
     for (const [id, rank] of Object.entries(savedTalents)) {
       const t = TALENT_MAP[id];
       if (!t) continue;
       state.talents[id] = Math.max(0, Math.min(t.maxRank, Number(rank) || 0));
     }
+
+    state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
 
     if (!Array.isArray(state.owned)) state.owned = [];
     if (state.owned.some((x) => typeof x === "string")) {
@@ -102,6 +105,7 @@ function loadState() {
         state.equipped[slot] = inst ? inst.uid : null;
       }
     }
+
     const seenUids = new Set();
     state.owned = state.owned
       .filter((inst) => inst && typeof inst === "object" && ITEMS[inst.id])
@@ -119,18 +123,20 @@ function loadState() {
         const unique = rarity === "legendary" && UNIQUE_EFFECTS.some((u) => u.id === inst.unique) ? inst.unique : null;
         return { uid: inst.uid, id: inst.id, durability: Number.isFinite(inst.durability) ? inst.durability : DURABILITY_MAX, rarity, affix, unique };
       });
+      
     for (const slot of Object.keys(state.equipped)) {
       const uid = state.equipped[slot];
       if (uid && !getInstance(uid)) state.equipped[slot] = null;
     }
+    
     delete state.durability;
+    
     state.nextUid = state.owned.reduce((max, inst) => {
       const n = Number(String(inst.uid).replace(/^item_/, ""));
       return Number.isFinite(n) && n + 1 > max ? n + 1 : max;
     }, Number.isFinite(state.nextUid) ? state.nextUid : 1);
 
     state.knownRecipes = Array.isArray(state.knownRecipes) ? [...new Set(state.knownRecipes.filter((id) => RECIPE_MAP[id]))] : [];
-
     state.killCount = state.killCount || {};
     state.bestiary = state.bestiary && typeof state.bestiary === "object" ? state.bestiary : {};
 
@@ -141,6 +147,7 @@ function loadState() {
     delete state.quests;
     delete state.npcQuests;
     ensureWeekQuests();
+    
   } catch (err) { state = defaultState(); }
 }
 
