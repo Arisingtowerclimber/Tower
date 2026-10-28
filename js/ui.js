@@ -20,6 +20,7 @@ const view = {
   ambush: null,
   storyJustPlayed: false,
   exploreResult: null,
+  weaponSwap: false,
 };
 
 let toastTimer = null;
@@ -89,17 +90,32 @@ function durabilityChip() { return ""; }
 
 function statsChips(item, inst = null) {
   const chips = itemStats(item, inst);
-  let html = chips.length ? chips.map((c) => `<span class="chip">${c}</span>`).join("") : `<span class="chip dim">без бонусов</span>`;
+  let html = chips.length ? chips.map((c) => `<span class="chip">${c}</span>`).join("") : "";
+  
+  // Добавляем стили урона для оружия
+  const s = inst ? getInstanceStats(inst) : item;
+  if (s.damage) {
+    const dmgParts = [];
+    if (s.damage.slashing > 0) dmgParts.push(`рубящий ${s.damage.slashing}`);
+    if (s.damage.piercing > 0) dmgParts.push(`колющий ${s.damage.piercing}`);
+    if (s.damage.bludgeoning > 0) dmgParts.push(`дробящий ${s.damage.bludgeoning}`);
+    if (dmgParts.length) {
+      html += `<span class="chip" style="border-color: #d1c0aa; color: #d1c0aa;">🩸 ${dmgParts.join(", ")}</span>`;
+    }
+  }
+
   if (inst && inst.affix) {
     for (const b of inst.affix.bonuses || []) {
       if (ATTR_LABEL[b.id]) html += `<span class="chip affix">${ATTR_LABEL[b.id]} +${b.value}</span>`;
     }
   }
+  
   if (inst && inst.unique) {
     const eff = UNIQUE_EFFECTS.find((u) => u.id === inst.unique);
     if (eff) html += `<span class="chip unique">✨ ${eff.name}</span>`;
   }
-  return html;
+  
+  return html || `<span class="chip dim">без бонусов</span>`;
 }
 
 function copiesOf(id) { return state.owned.filter((inst) => inst.id === id); }
@@ -933,14 +949,24 @@ function dollSlotHtml(slotId) {
   if (item) {
     const stats = itemStats(eq.item, eq).join(", ");
     const affix = eq.affix ? ` (${eq.affix.name})` : "";
-    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}"`;
+    
+    // Добавляем стили урона в подсказку
+    let dmgText = "";
+    if (eq.item.damage) {
+      const parts = [];
+      if (eq.item.damage.slashing > 0) parts.push(`рубящий ${eq.item.damage.slashing}`);
+      if (eq.item.damage.piercing > 0) parts.push(`колющий ${eq.item.damage.piercing}`);
+      if (eq.item.damage.bludgeoning > 0) parts.push(`дробящий ${eq.item.damage.bludgeoning}`);
+      if (parts.length) dmgText = ` | Урон: ${parts.join(", ")}`;
+    }
+    
+    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}${dmgText}"`;
   } else {
     title = `title="${slot.name}: пусто"`;
   }
 
   return `<button class="doll-slot${item ? " filled" : ""}${open ? " open" : ""}${broken ? " broken" : ""}${rarityClass}" data-act="doll-slot" data-slot="${slot.id}" type="button" ${title}><span class="slot-glyph">${iconHtml(item ? item.icon : slot.icon, 24)}</span><span class="slot-caption">${slot.name}</span></button>`;
 }
-
 function paperDollHtml() {
   const left = DOLL_LEFT.map(dollSlotHtml).join(""); const right = DOLL_RIGHT.map(dollSlotHtml).join(""); const count = Object.values(state.equipped).filter(Boolean).length;
   return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b><span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span></div></div><div class="doll-col">${right}</div></div>`;
@@ -1438,6 +1464,38 @@ function enemyStatusHtml(enemy) {
   if (!badges.length && !chips.length) return "";
   return `<div class="enemy-status">${badges.join("")}${chips.join("")}</div>`;
 }
+function weaponSwapHtml() {
+  if (!view.weaponSwap) return "";
+  
+  const weapons = state.owned.filter(inst => {
+    const item = ITEMS[inst.id];
+    return item && item.slot === "mainhand";
+  });
+  
+  const rows = weapons.map(inst => {
+    const item = ITEMS[inst.id];
+    const isEquipped = state.equipped.mainhand === inst.uid;
+    return `<button class="doll-item${isEquipped ? " equipped" : ""}" data-act="equip-in-battle" data-uid="${inst.uid}" type="button" ${isEquipped ? "disabled" : ""}>
+      <span class="item-icon">${iconHtml(item.icon, 32)}</span>
+      <span class="doll-item-body">
+        <span class="doll-item-name">${getItemDisplayName(inst)}</span>
+        <span class="chips">${statsChips(item, inst)}</span>
+      </span>
+    </button>`;
+  }).join("");
+  
+  return `
+    <div class="doll-menu-backdrop" data-act="weapon-swap-close"></div>
+    <div class="doll-menu" role="dialog">
+      <div class="doll-menu-head">
+        <h3>Сменить оружие</h3>
+        <button class="doll-menu-close" data-act="weapon-swap-close" type="button">✕</button>
+      </div>
+      <p class="hint" style="margin-bottom: 10px;">Смена оружия потратит ход: вы не будете атаковать, а враг ударит.</p>
+      <div class="doll-menu-list">${rows || `<p class="empty">Нет другого оружия в сумке.</p>`}</div>
+    </div>
+  `;
+}
 
 function battleHtml(st) {
   const battle = view.battle; 
@@ -1515,6 +1573,7 @@ function battleHtml(st) {
   ).join("");
 
   const activeZoneTip = ZONE_MAP[view.attackZone]?.tip || "";
+  const estimatedDmg = estimateDamage(state, battle, view.attackZone, view.attackStyle);
 
   const controls = battle.over ? "" : `
     <div class="controls">
@@ -1530,12 +1589,17 @@ function battleHtml(st) {
         <div class="zones">${zones.block}</div>
       </div>
       <div class="battle-actions">
+        <div style="text-align: center; margin-bottom: 8px; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 8px;">
+          <span style="font-size: 12px; color: var(--dim);">Прогноз урона:</span>
+          <b style="font-size: 18px; color: var(--gold2); display: block;">⚔ ~${estimatedDmg}</b>
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; background: var(--panel2); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);">
           <span class="rage-label" style="font-size: 11px; margin: 0; color: var(--dim);">Кураж</span>
           <div class="rage" style="margin: 0;">${ragePips}</div>
         </div>
         <button class="btn primary big" data-act="exchange" type="button">Размен</button>
         <button class="btn tech" data-act="tech" type="button" ${battle.rage < 3 || state.mana < TECH_COST ? "disabled" : ""}>Приём</button>
+        <button class="btn tech" data-act="switch-weapon" type="button" style="border-color: #5f92cc; color: #b6d2ef;">Сменить оружие</button>
         ${Object.values(ITEMS).filter(i => i.slot === "potion" && (state.potions[i.id] || 0) > 0).map(i => {
           const canDrink = canDrinkPotion(i.id);
           return `<button class="btn small ghost" data-act="drink-battle" data-id="${i.id}" ${!canDrink ? "disabled" : ""} type="button">${iconHtml(i.icon, 16)} ${i.name} ×${state.potions[i.id]}</button>`;
@@ -1744,6 +1808,7 @@ function render() {
   }
   
   if (view.questsOpen) html += questsModalHtml();
+  if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
   if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
@@ -2236,8 +2301,6 @@ function onClick(event) {
   
   const act = el.dataset.act; const id = el.dataset.id; let res;
   switch (act) {
-    case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "drink-battle": doExchange("heal", id); break;
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
     case "quests-close": view.questsOpen = false; render(); break;
@@ -2422,6 +2485,7 @@ function onClick(event) {
     case "sell": res = sellItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell-potion": res = sellPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "drink-battle": doExchange("heal", id); break;
     case "sell-resource": res = sellResource(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "explore": {
@@ -2492,6 +2556,22 @@ function onClick(event) {
     case "exchange": doExchange("attack"); break;
     case "tech": doExchange("tech"); break;
     
+    case "switch-weapon": view.weaponSwap = true; render(); break;
+    case "weapon-swap-close": view.weaponSwap = false; render(); break;
+    case "equip-in-battle": {
+      const inst = getInstance(el.dataset.uid);
+      if (inst) {
+        const result = equipItemToSlot(inst.uid, "mainhand");
+        if (result.ok) {
+          view.weaponSwap = false;
+          doExchange("pass");
+        } else {
+          toast(result.text, "warn");
+        }
+      }
+      break;
+    }
+    
     case "flee": view.battle = null; view.summary = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); if (state.debuff) consumeBattleDebuff(); saveState(); render(); break;
     case "result-continue": {
       const victory = view.summary?.victory;
@@ -2538,6 +2618,7 @@ function onClick(event) {
     default: break;
   }
 }
+
 
 function handleKey(event) {
   if (!state) return;

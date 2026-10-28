@@ -137,6 +137,32 @@ function reflectThorns(battle, uniques, damage) {
   battle.hp = Math.max(0, battle.hp - reflected);
   battleLog(battle, `Шипы отражают ${reflected} урона.`, "hit");
 }
+function estimateDamage(state, battle, zoneId, style) {
+  if (!battle || battle.over) return 0;
+  const st = stats();
+  const e = battle.enemy;
+  const zone = ZONE_MAP[zoneId];
+  if (!zone) return 0;
+
+  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  const weapon = mainInst ? ITEMS[mainInst.id] : null;
+  
+  // Проверяем, бьет ли оружие этим стилем, иначе берем лучший
+  const actualStyle = weaponStyleValue(weapon, style) > 0 ? style : weaponBestStyle(weapon);
+  const styleMult = weaponStyleMult(weapon, actualStyle);
+  
+  const armorType = e.armorType || "leather";
+  const armorMult = ARMOR_STYLE_MULT[actualStyle][armorType] || 1;
+  const zoneMult = zone.damageMult || 1;
+  
+  // Считаем средний урон (без учета крита и случайного разброса)
+  let base = st.atk * 1 * zoneMult * styleMult * armorMult;
+  
+  const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
+  const effectiveDef = e.def * (1 - pierce);
+  
+  return Math.max(1, Math.round(base - effectiveDef * 0.6));
+}
 
 function exchange(state, battle, action) {
   if (!battle || battle.over) return { error: "Бой уже закончился." };
@@ -159,7 +185,7 @@ function exchange(state, battle, action) {
     const poison = battle.playerDebuffs.find((d) => d.id === "poison");
     if (poison) {
       let damage = Math.max(2, Math.round(e.atk * POISON_ATK_MULT));
-      if (state.archetype === "guardian") damage = Math.round(damage * (st.mods?.dmgTakenMult || 1)); // Страж получает меньше урона от яда
+      if (state.archetype === "guardian") damage = Math.round(damage * (st.mods?.dmgTakenMult || 1));
       state.hp = Math.max(0, state.hp - damage);
       poison.turns -= 1;
       if (poison.turns <= 0) battle.playerDebuffs = battle.playerDebuffs.filter((d) => d !== poison);
@@ -167,7 +193,6 @@ function exchange(state, battle, action) {
     }
   }
 
-  // Талант «Второе дыхание»: +5 HP за ход в бою за ранг.
   if ((st.hpRegen || 0) > 0 && state.hp > 0) {
     const regen = Math.min(st.hpRegen, st.maxHp - state.hp);
     if (regen > 0) {
@@ -201,6 +226,8 @@ function exchange(state, battle, action) {
       `Вы выпиваете «${potion.name}» и восстанавливаете ${healed} ${potion.effect === "hp" ? "HP" : "маны"}.`,
       "heal"
     );
+  } else if (action.type === "pass") {
+    battleLog(battle, "Вы меняете оружие.", "info");
   } else {
     const tech = action.type === "tech";
     if (!action.zone || !ZONE_NAME[action.zone]) return { error: "Выберите зону удара." };
@@ -226,8 +253,6 @@ function exchange(state, battle, action) {
     } else {
       const power = tech ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
-      // Стиль удара (Блок 3-4): урон оружия по стилю + броня врага.
-      // Выбранный стиль проверяется на доступность оружию; недоступный → лучший стиль оружия.
       const wanted = STYLE_ORDER.includes(action.style) ? action.style : "slashing";
       const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
       const weapon = mainInst ? ITEMS[mainInst.id] : null;
@@ -235,7 +260,6 @@ function exchange(state, battle, action) {
       const styleMult = weaponStyleMult(weapon, style);
       if (styleMult <= 0) return { error: "Это оружие не бьёт таким стилем." };
 
-      // Броня врага против выбранного стиля + талант «Знание брони» (+5%/ранг).
       const armorType = e.armorType || "leather";
       const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
 
@@ -289,7 +313,7 @@ function exchange(state, battle, action) {
     } else if (battle.riskyMiss) {
       let base = e.atk * rnd(1.0, 1.2);
       base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
-      if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1); // Снижение урона у Стража
+      if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
       const damage = Math.max(2, Math.round(base));
       state.hp = Math.max(0, state.hp - damage);
       battleLog(battle, `${e.name} ловит ваш промах: ${damage} урона.`, "enemy");
@@ -332,13 +356,12 @@ function exchange(state, battle, action) {
         let base = e.atk * rnd(0.85, 1.15);
         base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
-        if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1); // Снижение урона у Стража
+        if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
         const damage = Math.max(2, Math.round(base));
         state.hp = Math.max(0, state.hp - damage);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}»: ${damage} урона.`, "enemy");
         reflectThorns(battle, uniques, damage);
 
-        // Талант «Невозгибимый»: раз за бой — 30% HP при падении ниже 20%.
         if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
           battle.secondWindUsed = true;
           const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
