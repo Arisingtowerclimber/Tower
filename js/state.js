@@ -28,7 +28,7 @@ function defaultState() {
     killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
     resources: {},
     knownRecipes: [],
-    talentPoints: 0, talents: {},
+    talentPoints: 0, talents: {},      npcDialogueIndex: {},
   };
 }
 
@@ -79,6 +79,7 @@ function loadState() {
 
     state.talentPoints = Number.isFinite(state.talentPoints) ? Math.max(0, state.talentPoints) : 0;
     state.talents = {};
+    state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
     const savedTalents = saved.talents && typeof saved.talents === "object" ? saved.talents : {};
     for (const [id, rank] of Object.entries(savedTalents)) {
       const t = TALENT_MAP[id];
