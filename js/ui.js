@@ -2137,7 +2137,9 @@ function traderDialogHtml() {
 
   const storyIndex = state.npcDialogueIndex[npc.id] || 0;
   const storyArr = DIALOGS[npc.id]?.story;
-  const currentSlide = (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
+  
+  // Если магазин уже открыт, мы игнорируем слайды и показываем товары
+  const currentSlide = (!view.npcShopOpen && !view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
 
   const portrait = `<img src="${npcPortraitSrc(npc.portrait)}" alt="${npc.name}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">`;
 
@@ -2291,7 +2293,6 @@ function onClick(event) {
       if (npcId) {
         state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
         saveState();
-        view.storyJustPlayed = true;
         view.npcShopOpen = true; 
         if (!view.traderStock) view.traderStock = getTraderInventory(); 
         render();
@@ -2468,6 +2469,12 @@ function onClick(event) {
         }
         break;
       }
+      
+      if (act === "leave") {
+        closeNpcDialog();
+        break;
+      }
+      
       const res = applyNpcAction(act, state.activeNpcId);
       if (act !== "show-goods") toast(res.text, res.ok ? "ok" : "warn");
       render();
