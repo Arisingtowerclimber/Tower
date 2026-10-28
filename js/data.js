@@ -66,6 +66,9 @@ const NPC_PORTRAITS = {
   ron: "assets/portraits/ron.webp",
   elain: "assets/portraits/elain.webp",
   elize: "assets/portraits/elize.webp",
+  stella: "assets/portraits/stella.webp",
+  arthur: "assets/portraits/arthur.webp",
+  ivan: "assets/portraits/ivan.webp",
   mira: "assets/portraits/mira.webp",
   alva: "assets/portraits/alva.webp",
   solveig: "assets/portraits/solveig.webp",
@@ -74,6 +77,102 @@ const NPC_PORTRAITS = {
 function npcPortraitSrc(id) {
   return NPC_PORTRAITS[id] || "assets/portraits/placeholder.webp";
 }
+
+// Портрет Барменши пока отсутствует — временно используем портрет Миры.
+NPC_PORTRAITS.barmaid = "assets/portraits/mira.webp";
+NPC_PORTRAITS.stella = NPC_PORTRAITS.barmaid; // Стелла — это Барменша
+
+// Реплики NPC (глобальное обновление диалогов).
+const DIALOGS = {
+  ron: {
+    greetings: [
+      "Сталь не ждёт, путник. Что вам нужно: клинок или крепкая броня?",
+      "Хороший металл, хороший уголь, умелые руки — остальное решает заказчик.",
+      "Заходи. Кузница всегда горит, а наковальня — не остывает.",
+    ],
+    shop_open: "Смотри, что сегодня на прилавке. Всё выковано при мне.",
+    quest_take: "Принесёшь руду и кости — не останешься без награды.",
+    quest_complete: [
+      "С добрым материалом и работать приятно. Держи награду.",
+      "Отличная работа! Металл чистый — скучно было только за тиглем.",
+    ],
+    farewell: "Заходи ещё. Наковальня тебя не забыла.",
+  },
+  elain: {
+    greetings: [
+      "Тише сходи, путник, не урони мой склероций.",
+      "Зелья варятся терпением, а продаются золотом. Что болит?",
+      "Травы свежи, настои крепки. Чем могу помочь?",
+    ],
+    shop_open: "Пузырьки не бей, перемешивать я уже успела.",
+    quest_take: "Принесёшь грибы и ткань — сгодится и для настоев, и для бинтов.",
+    quest_complete: [
+      "Всё свежее, всё добротное. Держи плату.",
+      "Мои склянки будут тебе кстати — вот твоя награда.",
+    ],
+    farewell: "Не хворай. Заглянешь ещё.",
+  },
+  elize: {
+    greetings: [
+      "Камень без оправы — просто камень. Нужна оправа?",
+      "Осторожнее с серебром, его легко поцарапать.",
+      "Заходи в дымку — камни сегодня особенно хороши.",
+    ],
+    shop_open: "Оправы вон там, камни — вот тут. Приглядись внимательнее!",
+    quest_take: "Принеси серебро и топазы — оправа сама попросится в руки.",
+    quest_complete: [
+      "Прекрасный материал! Держи награду — работа стоит того.",
+      "Осколки чистые. Мне понравилось; вот твоя плата.",
+    ],
+    farewell: "До встречи. Оправа за тобой не убежит.",
+  },
+  barmaid: {
+    // Стелла (Гостиница)
+    greetings: [
+      "О, новый герой! Заходи, у нас как раз тепло и пусто.",
+      "Снова ты? Рада видеть тебя живым. Эль сегодня свежий.",
+      "Эль сегодня свежий, а номер — вон тот, у окна. Рада тебя видеть.",
+    ],
+    shop_open: "Номер всё ещё стоит тот же. Куда тебя записать?",
+    quest_take: "Мелких поручений у меня нет — спроси в Зале Охотников.",
+    quest_complete: [
+      "Спасибо тебе. Вот, держи, заработал.",
+      "Ты настоящий герой. Город в долгу перед тобой.",
+    ],
+    farewell: "Ночь тёплая. Заглядывай ещё.",
+  },
+  arthur: {
+    // Артур (странствующий торговец, только ивенты в Башне)
+    greetings: [
+      "Эй, путник! Не хочешь взглянуть на мой товар?",
+      "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников.",
+      "Редкие вещицы, зелья, амулеты... Всё для настоящего героя.",
+    ],
+    shop_open: "Смотри, выбирай, не стесняйся. Цены — как в лучших домах, а товар — из-за моря!",
+    quest_take: "Мне нужно кое-что найти... Но об этом позже.",
+    quest_complete: [
+      "Спасибо! Держи, я всегда плачу по счетам.",
+      "Отличная работа, друг мой. Вот твоя доля.",
+    ],
+    farewell: "Удачной охоты! И заходи ещё, у меня всегда есть что-то новенькое.",
+  },
+  ivan: {
+    // Иван (Зал Охотников)
+    greetings: [
+      "А, новобранец. Заходи. Я научу тебя выживать в этой Башне.",
+      "Спина прямая, взгляд ясный. Что тебе нужно: тренировка или задание?",
+      "Ты не первый, кто хочет покорить Башню. Немногие дошли до второго этажа.",
+    ],
+    shop_open: "Вот мои тренировки и контракты. Выбирай, но не переоценивай свои силы.",
+    quest_take: "Вот список тех, кого нужно устранить. Принеси мне их головы.",
+    quest_complete: [
+      "Неплохо. Для новичка — даже отлично. Держи награду.",
+      "Вижу, ты учишься. Продолжай в том же духе.",
+    ],
+    farewell: "Не забывай отдыхать. И приходи, когда будешь готов.",
+  },
+};
+
 
 const DEFENSE_CAP = 0.6;
 
@@ -134,11 +233,11 @@ const ELITE_RARITY_BONUS = 0.1;
 
 const ARCHETYPES = [
   {
-    id: "berserker",
-    name: "Берсерк",
-    icon: "🪓",
-    desc: "Чем ниже HP, тем сильнее удар — до +30%. Больше куража за удар и блок. −15% к максимуму HP.",
-    mods: { atk: 1, maxHp: 0.85, dodgeCap: 35, blockZones: 2, ragePerHit: 2, blockCounter: 0 },
+    id: "duelist",
+    name: "Дуэлянт",
+    icon: "🤺",
+    desc: "+30% к урону и +10% к шансу крита, пока в правой руке одноручное оружие (1h). Средний уворот. −10% к максимуму HP.",
+    mods: { atk: 1, maxHp: 0.9, dodgeCap: 45, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
    {
@@ -160,6 +259,73 @@ const ARCHETYPES = [
 ];
 
 const ARCHETYPE_MAP = Object.fromEntries(ARCHETYPES.map((a) => [a.id, a]));
+
+// ── Стили удара и типы брони (глобальное обновление боя) ────────────────────
+const STYLE_ORDER = ["slashing", "piercing", "bludgeoning"];
+const STYLE_NAMES = { slashing: "Рубящий", piercing: "Колющий", bludgeoning: "Дробящий" };
+const STYLE_ICONS = { slashing: "⚔", piercing: "🗡", bludgeoning: "🔨" };
+const ARMOR_TYPE_NAMES = { cloth: "Ткань", leather: "Кожа", chain: "Кольчуга", plate: "Латы" };
+// Насколько каждый стиль пробивает тип брони врага.
+const ARMOR_STYLE_MULT = {
+  piercing:    { cloth: 1.3, leather: 1.1, chain: 1.0, plate: 0.6 },
+  slashing:    { cloth: 1.2, leather: 1.3, chain: 0.8, plate: 0.4 },
+  bludgeoning: { cloth: 0.6, leather: 0.8, chain: 1.1, plate: 1.3 },
+};
+const UNARMED_DAMAGE = { slashing: 6, piercing: 4, bludgeoning: 6 }; // кулаки: любой стиль доступен
+
+// ── Таланты: 3 ветки, очко раз в 3 уровня ────────────────────────────────────
+const TALENT_BRANCHES = [
+  { id: "war",  name: "Урон",      icon: "⚔" },
+  { id: "def",  name: "Стойкость", icon: "🛡" },
+  { id: "util", name: "Хитрость",  icon: "👣" },
+];
+
+const TALENTS = [
+  // Ветка «Урон»
+  { id: "t_atk",            branch: "war",  name: "Тяжёлая рука",    desc: "+2 к урону за ранг.",                 maxRank: 5, stat: "atk",            value: 2 },
+  { id: "t_crit",           branch: "war",  name: "Точный удар",     desc: "+3% к шансу крита за ранг.",          maxRank: 3, stat: "crit",           value: 3 },
+  { id: "t_armorPierce",    branch: "war",  name: "Знание брони",    desc: "+5% к пробитию брони за ранг.",       maxRank: 3, stat: "armorPierce",    value: 5 },
+  { id: "t_lifesteal",      branch: "war",  name: "Вампирская хватка", desc: "Атаки восстанавливают 10% HP урона.", maxRank: 1, stat: "lifesteal",      value: 10 },
+  // Ветка «Стойкость»
+  { id: "t_hp",             branch: "def",  name: "Крепкое тело",    desc: "+30 к максимуму HP за ранг.",         maxRank: 5, stat: "hp",             value: 30 },
+  { id: "t_def",            branch: "def",  name: "Упорный",         desc: "+1 к защите за ранг.",                maxRank: 5, stat: "def",            value: 1 },
+  { id: "t_regen",          branch: "def",  name: "Второе дыхание",  desc: "+5 HP за ход в бою за ранг.",         maxRank: 3, stat: "regen",          value: 5 },
+  { id: "t_secondWind",     branch: "def",  name: "Невозгибимый",    desc: "Раз в бой: при HP ниже 20% восстанавливает 30% HP.", maxRank: 1, stat: "secondWind", value: 30 },
+  // Ветка «Хитрость»
+  { id: "t_dodge",          branch: "util", name: "Лёгкий шаг",      desc: "+2% к увороту за ранг.",              maxRank: 5, stat: "dodge",          value: 2 },
+  { id: "t_lootChance",     branch: "util", name: "Везучий ищейка",  desc: "+10% к шансу дропа за ранг.",         maxRank: 3, stat: "lootChance",     value: 10 },  { id: "t_maxEnergy",      branch: "util", name: "Выносливый",      desc: "+1 к запасу энергии за ранг.",        maxRank: 3, stat: "maxEnergy",      value: 1 },
+  { id: "t_counterOnDodge", branch: "util", name: "Тень",            desc: "Уворот отвечает контрударом на 50% атаки.", maxRank: 1, stat: "counterOnDodge", value: 0.5 },
+];
+
+const TALENT_MAP = Object.fromEntries(TALENTS.map((t) => [t.id, t]));
+
+// Урон оружия по стилям (без оружия — кулаки). Активный экземпляр выставляется перед боем
+// (doExchange в ui.js), чтобы редкость влияла на damage без правок combat.js.
+let ACTIVE_WEAPON_INSTANCE = null;
+function setActiveWeaponInstance(inst) { ACTIVE_WEAPON_INSTANCE = inst || null; }
+function weaponDamageFor(weapon) {
+  if (!weapon) return UNARMED_DAMAGE;
+  if (!weapon.damage) return UNARMED_DAMAGE;
+  if (ACTIVE_WEAPON_INSTANCE && ITEMS[ACTIVE_WEAPON_INSTANCE.id] === weapon) {
+    const scaled = getInstanceStats(ACTIVE_WEAPON_INSTANCE).damage;
+    if (scaled) return scaled;
+  }
+  return weapon.damage;
+}
+function weaponStyleValue(weapon, style) { return weaponDamageFor(weapon)[style] || 0; }
+// Множитель стиля: лучший стиль оружия = 1.0, слабые 0.55–1.0, ноль = не бьёт.
+function weaponStyleMult(weapon, style) {
+  const d = weaponDamageFor(weapon);
+  const v = d[style] || 0;
+  if (v <= 0) return 0;
+  const best = Math.max(d.slashing, d.piercing, d.bludgeoning, 1);
+  return 0.55 + 0.45 * (v / best);
+}
+// Сильнейший стиль оружия (для подписи «Вооружен: … (Колющий)»).
+function weaponBestStyle(weapon) {
+  const d = weaponDamageFor(weapon);
+  return STYLE_ORDER.reduce((acc, s) => (d[s] > d[acc] ? s : acc), "slashing");
+}
 
 // ── Вариация мобов: редкость, модификаторы, способности ──────────────────
 // Вариация применяется только к обычным мобам; боссы всегда «обычные».
@@ -202,7 +368,6 @@ const POISON_ATK_MULT = 0.5;      // урон яда за ход: доля ат�
 
 // Засада: второй противник выходит сразу после победы, бой бесплатный по энергии.
 const AMBUSH_CHANCE = 0.10;       // в обычном бою
-const AMBUSH_GATHER_CHANCE = 0.05; // в стычке во время поиска припасов
 const AMBUSH_TEXT = "Из тени выходит второй противник!";
 
 // Случайный моб того же этажа для засады (не тот, с которым уже идёт бой).
@@ -315,26 +480,26 @@ const TRAININGS = [
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));
 
 const ITEMS = {
-  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp?v=2", atk: 4, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
-  wood_club: { id: "wood_club", name: "Дубина", slot: "mainhand", icon: "🏏", atk: 16, price: 45, shopTier: 1, desc: "Тяжёлая, но честная." },
-  short_sword: { id: "short_sword", name: "Короткий меч", slot: "mainhand", icon: "🗡️", atk: 20, crit: 2, price: 75, shopTier: 1, desc: "Быстрый и точный." },
-  iron_sword: { id: "iron_sword", name: "Железный меч", slot: "mainhand", icon: "⚔️", atk: 36, crit: 3, price: 190, shopTier: 2, desc: "Работа кузнеца из нижних ярусов." },
-  dagger: { id: "dagger", name: "Гранёный кинжал", slot: "mainhand", icon: "🔪", atk: 28, crit: 12, price: 200, shopTier: 2, desc: "Ищет щели в чужой защите." },
-  battle_axe: { id: "battle_axe", name: "Боевой топор", slot: "mainhand", icon: "🪓", atk: 48, price: 280, shopTier: 2, desc: "Пробивает даже панцирь." },
-  rune_blade: { id: "rune_blade", name: "Рунный клинок", slot: "mainhand", icon: "⚔️", atk: 72, crit: 5, price: 560, shopTier: 3, desc: "На лезвии проступают чужие имена." },
-  great_axe: { id: "great_axe", name: "Секира палача", slot: "mainhand", icon: "🪓", atk: 96, price: 640, shopTier: 3, desc: "Тяжелая настолько, что бой заканчивается быстро." },
+  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp?v=2", atk: 4, weaponType: "sword", handed: "1h", damage: { slashing: 2, piercing: 4, bludgeoning: 0 }, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
+  wood_club: { id: "wood_club", name: "Дубина", slot: "mainhand", icon: "🏏", atk: 16, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 1, bludgeoning: 16 }, price: 45, shopTier: 1, desc: "Тяжёлая, но честная." },
+  short_sword: { id: "short_sword", name: "Короткий меч", slot: "mainhand", icon: "🗡️", atk: 20, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 12, piercing: 10, bludgeoning: 0 }, price: 75, shopTier: 1, desc: "Быстрый и точный." },
+  iron_sword: { id: "iron_sword", name: "Железный меч", slot: "mainhand", icon: "⚔️", atk: 36, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 12, bludgeoning: 2 }, price: 190, shopTier: 2, desc: "Работа кузнеца из нижних ярусов." },
+  dagger: { id: "dagger", name: "Гранёный кинжал", slot: "mainhand", icon: "🔪", atk: 28, crit: 12, weaponType: "sword", handed: "1h", damage: { slashing: 4, piercing: 22, bludgeoning: 0 }, price: 200, shopTier: 2, desc: "Ищет щели в чужой защите." },
+  battle_axe: { id: "battle_axe", name: "Боевой топор", slot: "mainhand", icon: "🪓", atk: 48, weaponType: "axe", handed: "1h", damage: { slashing: 34, piercing: 2, bludgeoning: 14 }, price: 280, shopTier: 2, desc: "Пробивает даже панцирь." },
+  rune_blade: { id: "rune_blade", name: "Рунный клинок", slot: "mainhand", icon: "⚔️", atk: 72, crit: 5, weaponType: "sword", handed: "2h", damage: { slashing: 40, piercing: 15, bludgeoning: 5 }, price: 560, shopTier: 3, desc: "На лезвии проступают чужие имена." },
+  great_axe: { id: "great_axe", name: "Секира палача", slot: "mainhand", icon: "🪓", atk: 96, weaponType: "axe", handed: "2h", damage: { slashing: 45, piercing: 2, bludgeoning: 20 }, price: 640, shopTier: 3, desc: "Тяжелая настолько, что бой заканчивается быстро." },
 
-  rags: { id: "rags", name: "Рваная рубаха", slot: "chest", icon: "👕", def: 0, hp: 0, price: 0, shopTier: 0, desc: "Лучше, чем ничего." },
-  gambeson: { id: "gambeson", name: "Стёганый гамбезон", slot: "chest", icon: "🥋", def: 4, hp: 40, price: 40, shopTier: 1, desc: "Мягкая броня, но держит удар." },
-  leather: { id: "leather", name: "Кожаный доспех", slot: "chest", icon: "🥋", def: 6, hp: 60, price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
-  chain: { id: "chain", name: "Кольчуга", slot: "chest", icon: "🥋", def: 10, hp: 90, price: 210, shopTier: 2, desc: "Тысяча колец, ни одного лишнего." },
-  scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "🥋", def: 12, hp: 110, price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
-  plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
+  rags: { id: "rags", name: "Рваная рубаха", slot: "chest", icon: "👕", def: 0, hp: 0, armorType: "cloth", price: 0, shopTier: 0, desc: "Лучше, чем ничего." },
+  gambeson: { id: "gambeson", name: "Стёганый гамбезон", slot: "chest", icon: "🥋", def: 4, hp: 40, armorType: "cloth", mana: 5, price: 40, shopTier: 1, desc: "Мягкая броня, но держит удар." },
+  leather: { id: "leather", name: "Кожаный доспех", slot: "chest", icon: "🥋", def: 6, hp: 60, armorType: "leather", price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
+  chain: { id: "chain", name: "Кольчуга", slot: "chest", icon: "🥋", def: 10, hp: 90, armorType: "chain", price: 210, shopTier: 2, desc: "Тысяча колец, ни одного лишнего." },
+  scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "🥋", def: 12, hp: 110, armorType: "chain", price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
+  plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
 
-  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, price: 55, shopTier: 1, desc: "Третья зона блока." },
-  kite_shield: { id: "kite_shield", name: "Каплевидный щит", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
-  tower_shield: { id: "tower_shield", name: "Башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, price: 480, shopTier: 3, desc: "Стена, которую можно носить." },
-  parrying_dagger: { id: "parrying_dagger", name: "Кинжал парирования", slot: "offhand", icon: "🗡️", atk: 12, crit: 2, price: 160, shopTier: 2, desc: "Вторая рука тоже умеет ранить." },
+  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, armorType: "cloth", price: 55, shopTier: 1, desc: "Третья зона блока." },
+  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 6, block: 1, armorType: "plate", price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
+  tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, dodge: -2, armorType: "plate", price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
+  parrying_dagger: { id: "parrying_dagger", name: "Кинжал парирования", slot: "offhand", icon: "🗡️", atk: 12, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 3, piercing: 12, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Вторая рука тоже умеет ранить." },
 
   worn_hood: gearItem("worn_hood", "Поношенный капюшон", "head", "🧢", 0, 0, { def: 0, hp: 0 }, "Ткань, которую не жалко потерять."),
   patched_pants: gearItem("patched_pants", "Штаны в заплатках", "legs", "👖", 0, 0, { def: 0, hp: 0 }, "Заплатка на заплатке."),
@@ -374,10 +539,81 @@ const ITEMS = {
   trinket_totem: gearItem("trinket_totem", "Железный тотем", "trinket", "🔮", 120, 2, { dodge: 2, hp: 20 }, "Тёплый, если долго держать."),
   trinket_shard: gearItem("trinket_shard", "Кристальный осколок", "trinket", "💠", 350, 3, { dodge: 3, crit: 1 }, "Показывает, куда придётся удар."),
 
+  // ── Новое оружие (weaponType/handed/damage) ──
+  rapier: { id: "rapier", name: "Рапира", slot: "mainhand", icon: "🗡️", atk: 26, crit: 6, weaponType: "sword", handed: "1h", damage: { slashing: 5, piercing: 15, bludgeoning: 1 }, price: 90, shopTier: 1, desc: "Тонкий клинок для точных уколов." },
+  mace: { id: "mace", name: "Булава", slot: "mainhand", icon: "🏏", atk: 30, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 1, bludgeoning: 14 }, price: 65, shopTier: 1, desc: "Инструмент, что правит чужие шлемы." },
+  staff: { id: "staff", name: "Посох", slot: "mainhand", icon: "🦯", atk: 18, weaponType: "mace", handed: "2h", damage: { slashing: 0, piercing: 2, bludgeoning: 12 }, price: 50, shopTier: 1, desc: "Древко для сдерживания жадной толпы." },
+  claws: { id: "claws", name: "Когти", slot: "mainhand", icon: "🐾", atk: 22, crit: 5, weaponType: "claw", handed: "1h", damage: { slashing: 13, piercing: 3, bludgeoning: 0 }, price: 40, shopTier: 1, desc: "Четыре дуги ржавого металла. Не для галантности." },
+  sabre: { id: "sabre", name: "Сабля", slot: "mainhand", icon: "⚔️", atk: 34, crit: 4, weaponType: "sword", handed: "1h", damage: { slashing: 16, piercing: 6, bludgeoning: 2 }, price: 150, shopTier: 2, desc: "Тянущий рубящий удар с разворота." },
+  spear: { id: "spear", name: "Копьё", slot: "mainhand", icon: "🔱", atk: 52, weaponType: "spear", handed: "2h", damage: { slashing: 3, piercing: 18, bludgeoning: 2 }, price: 240, shopTier: 2, desc: "Держит врага на расстоянии. Страж умеет носить его со щитом." },
+  great_sword: { id: "great_sword", name: "Двуручный меч", slot: "mainhand", icon: "⚔️", atk: 68, weaponType: "sword", handed: "2h", damage: { slashing: 40, piercing: 15, bludgeoning: 5 }, price: 350, shopTier: 2, desc: "Обе руки заняты — зато дуга широка." },
+  war_hammer: { id: "war_hammer", name: "Боевой молот", slot: "mainhand", icon: "🔨", atk: 76, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 45 }, price: 590, shopTier: 3, desc: "Латы против него — просто приглашение." },
+  halberd: { id: "halberd", name: "Алебарда", slot: "mainhand", icon: "🪓", atk: 88, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 28, bludgeoning: 8 }, price: 620, shopTier: 3, desc: "Копьё, топор и крюк в одном древке." },
+
+  // ── Тир 1 «Железо» (shopTier: 1, ниша 50–150) ──
+  iron_longsword: { id: "iron_longsword", name: "Железный длинный меч", slot: "mainhand", icon: "⚔️", atk: 26, weaponType: "sword", handed: "2h", damage: { slashing: 18, piercing: 8, bludgeoning: 0 }, price: 110, shopTier: 1, desc: "Длинный клинок, требующий обеих рук." },
+  iron_hatchet: { id: "iron_hatchet", name: "Железный топорик", slot: "mainhand", icon: "🪓", atk: 18, weaponType: "axe", handed: "1h", damage: { slashing: 14, piercing: 0, bludgeoning: 4 }, price: 95, shopTier: 1, desc: "Плотницкий инструмент, ставший оружием." },
+  iron_battleaxe: { id: "iron_battleaxe", name: "Железная секира", slot: "mainhand", icon: "🪓", atk: 26, weaponType: "axe", handed: "2h", damage: { slashing: 20, piercing: 0, bludgeoning: 6 }, price: 150, shopTier: 1, desc: "Древко подлиннее — и размах шире." },
+  iron_mace: { id: "iron_mace", name: "Железная булава", slot: "mainhand", icon: "🏏", atk: 18, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 0, bludgeoning: 16 }, price: 85, shopTier: 1, desc: "Грубая дробящая простота." },
+  iron_maul: { id: "iron_maul", name: "Железный молот", slot: "mainhand", icon: "🔨", atk: 24, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 22 }, price: 150, shopTier: 1, desc: "Кузнечный молот, перепрофилированный по врагам." },
+  iron_spear: { id: "iron_spear", name: "Железное копьё", slot: "mainhand", icon: "🔱", atk: 20, weaponType: "spear", handed: "2h", damage: { slashing: 4, piercing: 16, bludgeoning: 0 }, price: 120, shopTier: 1, desc: "Дешёвое древко с честным жалом." },
+
+  // ── Щиты (offhand; armorType — чтобы броня видела тип) ──
+  leather_shield: { id: "leather_shield", name: "Кожаный щит", slot: "offhand", icon: "🛡️", def: 3, block: 1, armorType: "leather", price: 80, shopTier: 1, desc: "Кожа на раме — легче стали, но держит." },
+
+  // ── Тир 2 «Сталь» (shopTier: 2, ниша 150–350) ──
+  steel_short_sword: { id: "steel_short_sword", name: "Стальной короткий меч", slot: "mainhand", icon: "🗡️", atk: 33, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 15, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Тот же профиль, что у железного — но сталь честнее." },
+  steel_great_sword: { id: "steel_great_sword", name: "Стальной двуручный меч", slot: "mainhand", icon: "⚔️", atk: 38, weaponType: "sword", handed: "2h", damage: { slashing: 26, piercing: 12, bludgeoning: 0 }, price: 310, shopTier: 2, desc: "Клинок длиной в человека." },
+  steel_rapier: { id: "steel_rapier", name: "Стальная рапира", slot: "mainhand", icon: "🗡️", atk: 30, crit: 6, weaponType: "sword", handed: "1h", damage: { slashing: 8, piercing: 22, bludgeoning: 0 }, price: 210, shopTier: 2, desc: "Укол длиннее, сталь звонче." },
+  steel_axe: { id: "steel_axe", name: "Стальной топор", slot: "mainhand", icon: "🪓", atk: 26, weaponType: "axe", handed: "1h", damage: { slashing: 20, piercing: 0, bludgeoning: 6 }, price: 180, shopTier: 2, desc: "Лезвие правильной стали не вязнет." },
+  steel_great_axe: { id: "steel_great_axe", name: "Стальная секира", slot: "mainhand", icon: "🪓", atk: 36, weaponType: "axe", handed: "2h", damage: { slashing: 28, piercing: 0, bludgeoning: 8 }, price: 330, shopTier: 2, desc: "Каждый замах — обещание." },
+  steel_mace: { id: "steel_mace", name: "Стальная булава", slot: "mainhand", icon: "🏏", atk: 26, weaponType: "mace", handed: "1h", damage: { slashing: 4, piercing: 0, bludgeoning: 22 }, price: 190, shopTier: 2, desc: "Ребра стали сиротливо звенят по шлемам." },
+  steel_maul: { id: "steel_maul", name: "Стальной молот", slot: "mainhand", icon: "🔨", atk: 34, weaponType: "mace", handed: "2h", damage: { slashing: 4, piercing: 0, bludgeoning: 30 }, price: 340, shopTier: 2, desc: "Против лат — это уже не оружие, а решение." },
+  steel_spear: { id: "steel_spear", name: "Стальное копьё", slot: "mainhand", icon: "🔱", atk: 30, weaponType: "spear", handed: "2h", damage: { slashing: 6, piercing: 24, bludgeoning: 0 }, price: 250, shopTier: 2, desc: "Жало, что держит врага на расстоянии." },
+
+  // ── Новая броня (armorType) ──
+  wanderer_coat: gearItem("wanderer_coat", "Плащ странника", "chest", "🧥", 35, 1, { def: 3, hp: 45, mana: 8, armorType: "cloth" }, "Стёганая ткань, пахнущая дорогой и дымом."),
+  mage_robe: gearItem("mage_robe", "Мантия чародея", "chest", "🧙", 80, 1, { def: 2, hp: 30, mana: 40, armorType: "cloth" }, "Ткань хранит тепло чужих заклинаний."),
+  hard_leather: gearItem("hard_leather", "Просмолённая кожа", "chest", "🥋", 55, 1, { def: 7, hp: 55, armorType: "leather" }, "Слои кожи вяжут дёгтем в единый пласт."),
+  shadow_leather: gearItem("shadow_leather", "Кожа ловца дорожек", "chest", "🥋", 180, 2, { def: 6, hp: 60, dodge: 5, armorType: "leather" }, "Сшита по следам; в ней двигаешься тише."),
+  riveted_chain: gearItem("riveted_chain", "Клёпаная кольчуга", "chest", "🥋", 330, 3, { def: 13, hp: 100, armorType: "chain" }, "Каждое кольцо расклёпано вручную."),
+  knight_plate: gearItem("knight_plate", "Полный латный доспех", "chest", "🛡️", 620, 3, { def: 18, hp: 140, dodge: -6, armorType: "plate" }, "Вес гасит чужие удары и вашу прыть."),
+  hood_mage: gearItem("hood_mage", "Капюшон чародея", "head", "🧢", 60, 2, { def: 2, hp: 15, mana: 20, armorType: "cloth" }, "Тесьма вдоль шва отводит лишние мысли."),
+  scout_gloves: gearItem("scout_gloves", "Разведческие перчатки", "hands", "🧤", 45, 1, { def: 2, hp: 10, dodge: 2, armorType: "leather" }, "Мягкая кожа, усиленная на ладонях."),
+  scout_boots: gearItem("scout_boots", "Сапоги разведчика", "feet", "🥾", 50, 1, { def: 2, hp: 15, dodge: 2, armorType: "leather" }, "Подошва гасит звук собственных шагов."),
+  plate_gorget: gearItem("plate_gorget", "Латный воротник", "neck", "📿", 140, 2, { def: 4, hp: 25, armorType: "plate" }, "Кольцо стали, прикрывающее горло."),
+
+  // ── Броня тир 1 (Железо) ──
+  student_robe: gearItem("student_robe", "Ученическая роба", "chest", "🧥", 50, 1, { def: 2, hp: 10, mana: 10, armorType: "cloth" }, "Роба ученика алхимика — ткань теперь пахнет травами."),
+  rough_leather: gearItem("rough_leather", "Грубый кожаный доспех", "chest", "🥋", 80, 1, { def: 4, hp: 20, dodge: 2, armorType: "leather" }, "Свинженные куски, сшитые без вкуса, но вовремя."),
+  rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "🥋", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
+  dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "🛡️", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
+
+  // ── Броня тир 2 (Сталь) ──
+  dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
+  reinforced_leather: gearItem("reinforced_leather", "Укрепленная кожа", "chest", "🥋", 200, 2, { def: 8, hp: 40, dodge: 4, armorType: "leather" }, "Кожа с вбиваемыми стальными шипами."),
+  steel_chain: gearItem("steel_chain", "Стальная кольчуга", "chest", "🥋", 300, 2, { def: 14, hp: 60, armorType: "chain" }, "Каждое кольцо — углеродистая сталь."),
+  steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "🛡️", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
+
   hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 100, price: 20, shopTier: 1, desc: "Восстанавливает 100 HP." },
   hp_big: { id: "hp_big", name: "Большое зелье лечения", slot: "potion", icon: "⚗️", type: "potion", effect: "hp", amount: 225, price: 45, shopTier: 1, desc: "Восстанавливает 225 HP." },
   mana_small: { id: "mana_small", name: "Зелье маны", slot: "potion", icon: "🔷", type: "potion", effect: "mana", amount: 20, price: 20, shopTier: 1, desc: "Восстанавливает 20 маны." },
 };
+
+// armorType старой gearItem()-брони (голова/плечи/спина/руки/пояс/ноги/ступни).
+const ARMOR_TYPE_BY_ID = {
+  head_cloth: "cloth", head_iron: "plate", head_crystal: "plate",
+  shoulder_leather: "leather", shoulder_iron: "plate", shoulder_crystal: "plate",
+  back_cloak: "cloth", back_guard: "cloth", back_crystal: "plate",
+  wrist_leather: "leather", wrist_chain: "chain", wrist_crystal: "plate",
+  hands_gloves: "leather", hands_iron: "plate", hands_crystal: "plate",
+  waist_rope: "cloth", waist_plate: "plate", waist_crystal: "plate",
+  legs_leather: "leather", legs_chain: "chain", legs_crystal: "plate",
+  feet_leather: "leather", feet_iron: "plate", feet_crystal: "plate",
+};
+for (const [id, armorType] of Object.entries(ARMOR_TYPE_BY_ID)) {
+  if (ITEMS[id] && !ITEMS[id].armorType) ITEMS[id].armorType = armorType;
+}
 
 const MOB_ICONS = {
   goblin_scout: "assets/mobs/goblin_scout.webp",
@@ -443,7 +679,7 @@ function shopFloorFor(item) {
 }
 
 function enemy(def) {
-  return { prefers: ["chest"], gold: 10, xp: 10, ...def, maxHp: def.hp };
+  return { prefers: ["chest"], armorType: "leather", gold: 10, xp: 10, ...def, maxHp: def.hp };
 }
 
 const FLOORS = [
@@ -452,23 +688,23 @@ const FLOORS = [
     cardImg: "assets/backgrounds/duskwood.webp",
     bg: "assets/backgrounds/duskwood.webp",
     mobs: [
-      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 140, atk: 20, def: 3, gold: 25, xp: 40, prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
+      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 140, atk: 20, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
         drops: [
           { id: "rust", chance: 0.35, min: 1, max: 2 },
           { id: "cloth", chance: 0.25, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 210, atk: 26, def: 6, gold: 35, xp: 55, prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
+      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 210, atk: 26, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
         drops: [
           { id: "leather", chance: 0.30, min: 1, max: 2 },
           { id: "wood", chance: 0.20, min: 1, max: 2 },
         ] }),
-      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 310, atk: 34, def: 10, gold: 50, xp: 75, prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
+      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 310, atk: 34, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "iron_ore", chance: 0.20, min: 1, max: 1 },
         ] }),
     ],
-    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1200, atk: 45, def: 14, gold: 250, xp: 300, prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
+    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1200, atk: 45, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
       drops: [
         { id: "gambeson", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "malachite", chance: 0.60, min: 2, max: 3 },
@@ -483,7 +719,7 @@ const FLOORS = [
         id: "skeleton_warrior", 
         name: "Скелет-воин", 
         icon: "skeleton_warrior", // <-- ИЗМЕНЕНО
-        hp: 350, atk: 36, def: 12, gold: 60, xp: 84, prefers: ["chest", "legs"], desc: "Восставший из старой могилы...",
+        hp: 350, atk: 36, def: 12, gold: 60, xp: 84, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"], desc: "Восставший из старой могилы...",
         drops: [
           { id: "bone", chance: 0.40, min: 1, max: 2 },
           { id: "rust", chance: 0.20, min: 1, max: 3 },
@@ -493,7 +729,7 @@ const FLOORS = [
         id: "unquiet_ghost", 
         name: "Неупокоенный призрак", 
         icon: "unquiet_ghost", // <-- ИЗМЕНЕНО
-        hp: 400, atk: 42, def: 6, gold: 65, xp: 90, prefers: ["head", "belly"], desc: "Полупрозрачный силуэт...",
+        hp: 400, atk: 42, def: 6, gold: 65, xp: 90, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"], desc: "Полупрозрачный силуэт...",
         drops: [
           { id: "bone", chance: 0.30, min: 1, max: 2 },
           { id: "herb", chance: 0.20, min: 1, max: 2 },
@@ -503,7 +739,7 @@ const FLOORS = [
         id: "crypt_ghoul", 
         name: "Свежий Упырь", 
         icon: "crypt_ghoul", // <-- ИЗМЕНЕНО
-        hp: 480, atk: 48, def: 16, gold: 75, xp: 105, prefers: ["waist", "chest"], desc: "Пожиратель падали...",
+        hp: 480, atk: 48, def: 16, gold: 75, xp: 105, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"], desc: "Пожиратель падали...",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "leather", chance: 0.20, min: 1, max: 2 },
@@ -514,7 +750,7 @@ const FLOORS = [
       id: "dark_knight", 
       name: "Темный Рыцарь", 
       icon: "dark_knight", // <-- ИЗМЕНЕНО
-      hp: 2100, atk: 64, def: 28, gold: 450, xp: 480, prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Павший паладин...",
+      hp: 2100, atk: 64, def: 28, gold: 450, xp: 480, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Павший паладин...",
       drops: [
         { id: "head_iron", chance: 1.0, min: 1, max: 1 },
         { id: "steel", chance: 0.40, min: 1, max: 2 }, 
@@ -534,7 +770,7 @@ const FLOORS = [
           { id: "leather", chance: 0.20, min: 1, max: 3 },
           { id: "iron_ore", chance: 0.20, min: 1, max: 3 },
         ] }),
-      enemy({ id: "crab", name: "Панцирный краб", icon: "crab", hp: 140, atk: 21, def: 14, gold: 32, xp: 46, prefers: ["legs"], desc: "Почти не пробивается, зато бьёт по ногам.",
+      enemy({ id: "crab", name: "Панцирный краб", icon: "crab", hp: 140, atk: 21, def: 14, gold: 32, xp: 46, armorType: "plate", prefers: ["legs"], desc: "Почти не пробивается, зато бьёт по ногам.",
         drops: [
           { id: "topaz", chance: 0.30, min: 1, max: 1 },
           { id: "iron", chance: 0.20, min: 1, max: 2 },
@@ -553,7 +789,7 @@ const FLOORS = [
           { id: "iron_ore", chance: 0.20, min: 1, max: 3 },
         ] }),
     ],
-    boss: enemy({ id: "gatekeeper", name: "Хранитель шлюза", icon: "gatekeeper", hp: 600, atk: 39, def: 11, gold: 240, xp: 280, prefers: ["chest", "legs"], boss: true, enrage: true, desc: "Щупальца перекрывают проход, а вода поднимается.",
+    boss: enemy({ id: "gatekeeper", name: "Хранитель шлюза", icon: "gatekeeper", hp: 600, atk: 39, def: 11, gold: 240, xp: 280, armorType: "plate", prefers: ["chest", "legs"], boss: true, enrage: true, desc: "Щупальца перекрывают проход, а вода поднимается.",
       drops: [
         { id: "kite_shield", chance: 1.0, min: 1, max: 1 },
         { id: "topaz", chance: 0.60, min: 2, max: 3 },
@@ -563,12 +799,12 @@ const FLOORS = [
     desc: "Стены покрыты кристаллами, которые ловят каждый луч света. Тишина здесь звенит, а отражения в гранях двигаются чуть медленнее, чем вы.",
     bg: "assets/backgrounds/floor4.webp",
     mobs: [
-      enemy({ id: "golem", name: "Кристальный голем", icon: "golem", hp: 900, atk: 72, def: 34, gold: 144, xp: 204, prefers: ["chest"], desc: "Медленный, но каждый удар как обвал.",
+      enemy({ id: "golem", name: "Кристальный голем", icon: "golem", hp: 900, atk: 72, def: 34, gold: 144, xp: 204, armorType: "plate", prefers: ["chest"], desc: "Медленный, но каждый удар как обвал.",
         drops: [
           { id: "steel", chance: 0.35, min: 1, max: 2 },
           { id: "ruby", chance: 0.20, min: 1, max: 1 },
         ] }),
-      enemy({ id: "shard", name: "Осколочный двойник", icon: "shard", hp: 675, atk: 90, def: 18, gold: 132, xp: 192, prefers: ["head", "waist"], desc: "Повторяет ваши движения с задержкой в полсекунды.",
+      enemy({ id: "shard", name: "Осколочный двойник", icon: "shard", hp: 675, atk: 90, def: 18, gold: 132, xp: 192, armorType: "plate", prefers: ["head", "waist"], desc: "Повторяет ваши движения с задержкой в полсекунды.",
         drops: [
           { id: "crystal_herb", chance: 0.30, min: 1, max: 2 },
           { id: "steel", chance: 0.20, min: 1, max: 1 },
@@ -579,7 +815,7 @@ const FLOORS = [
           { id: "crystal_herb", chance: 0.20, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "sentinel", name: "Кристальный страж", icon: "sentinel", hp: 4300, atk: 108, def: 30, gold: 1260, xp: 1380, prefers: ["head", "chest"], boss: true, enrage: true, desc: "В его гранях отражается ваше же оружие.",
+    boss: enemy({ id: "sentinel", name: "Кристальный страж", icon: "sentinel", hp: 4300, atk: 108, def: 30, gold: 1260, xp: 1380, armorType: "plate", prefers: ["head", "chest"], boss: true, enrage: true, desc: "В его гранях отражается ваше же оружие.",
       drops: [
         { id: "head_crystal", chance: 1.0, min: 1, max: 1 },
         { id: "ruby", chance: 0.60, min: 2, max: 3 },
@@ -605,7 +841,7 @@ const FLOORS = [
           { id: "shadow_herb", chance: 0.20, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "lord", name: "Владыка Башни", icon: "lord", hp: 5600, atk: 132, def: 38, gold: 2700, xp: 2850, prefers: ["head", "chest"], boss: true, enrage: true, desc: "Он ждал вас на самом верху. Похоже, очень давно.",
+    boss: enemy({ id: "lord", name: "Владыка Башни", icon: "lord", hp: 5600, atk: 132, def: 38, gold: 2700, xp: 2850, armorType: "plate", prefers: ["head", "chest"], boss: true, enrage: true, desc: "Он ждал вас на самом верху. Похоже, очень давно.",
       drops: [
         { id: "rune_blade", chance: 1.0, min: 1, max: 1 },
         { id: "diamond", chance: 0.60, min: 2, max: 3 },
@@ -664,6 +900,78 @@ const FLOOR_RESOURCES = {
 };
 
 const ALL_RESOURCES = Object.values(FLOOR_RESOURCES).flat();
+
+// ── Сцены (Этап 2) ─────────────────────────────────────────────────────────
+// Текстовые события с выборами. Выпадают при исследовании (10%).
+// group — индексы мобов этажа для группового боя; actions — кнопки выбора.
+// Действия разбирает resolveSceneAction (ui.js): stealth/fight/dig/leave.
+const FLOOR_SCENES = {
+  1: [
+    {
+      id: "goblin_murmur",
+      title: "Гоблинское бормотание",
+      text: "За поворотом тропы — гоблинское кострище. Твари бормочут над горшком, спины их повернулись к вам. Можно переждать в кустах, пока они разойдутся, а можно обрушиться на них в лоб.",
+      actions: [
+        { id: "stealth", label: "🫥 Затаиться" },
+        { id: "fight", label: "⚔ Сразиться" },
+      ],
+      group: [0, 0, 1],
+    },
+    {
+      id: "dark_pit",
+      title: "Тёмный провал",
+      text: "Тропа обрывается: чёрный провал уходит вниз, оттуда тянет холодом и падалью. Вокруг блестят чьи-то косточки. Можно обойти стороной, а можно спуститься и порыться.",
+      actions: [
+        { id: "leave", label: "🚶 Обойти" },
+        { id: "dig", label: "⛏ Спуститься" },
+      ],
+      group: [0, 1],
+    },
+  ],
+  2: [
+    {
+      id: "strange_grave",
+      title: "Странная могила",
+      text: "Среди старых ниш стоит могила без имени. Земля взрыта свежо — чей-то труд или чья-то приманка. Можно пройти мимо, а можно порыться в рыхлой земле.",
+      actions: [
+        { id: "leave", label: "🚶 Пойти дальше" },
+        { id: "dig", label: "⛏ Порыскать" },
+      ],
+      group: [0, 2],
+    },
+  ],
+};
+
+// ── NPC (Этап 3) ───────────────────────────────────────────────────────────
+// События исследования могут открывать диалог NPC. Портреты — через npcPortraitSrc().
+const TRADER_PRICE_MULT = 1.5; // странствующий торговец берёт на 50% дороже лавочной цены
+
+// Артур — странствующий торговец: появляется только из ивентов исследования в Башне.
+const NPCS = {
+  arthur: {
+    id: "arthur",
+    name: "Артур, странствующий торговец",
+    portrait: "arthur",
+    text: "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников — редкие вещицы, зелья, амулеты. Цены — как в лучших домах, а товар — из-за моря.",
+    options: [
+      { id: "show-goods", label: "💰 Показать товары" },
+      { id: "leave", label: "🚶 Уйти" },
+    ],
+  },
+};
+
+// Атмосферные ивенты: вешают дебафф на N боёв (списывается в result-continue / flee).
+const EVENTS = [
+  { id: "cold_breath",
+    text: "Вы почувствовали холод: по коже пошли мурашки, пальцы не слушаются.",
+    debuff: { id: "cowardice", name: "Трусость", icon: "🥶", mult: 0.9, battles: 1, desc: "−10% урона на 1 бой" } },
+  { id: "wall_whispers",
+    text: "Из стен донеслись шёпот и смешки — вы то и дело оглядываетесь.",
+    debuff: { id: "fear", name: "Страх", icon: "😱", mult: 0.85, battles: 1, desc: "−15% урона на 1 бой" } },
+  { id: "rusted_air",
+    text: "Воздух пахнет ржавчиной и пеплом, дыхание сбивается.",
+    debuff: { id: "wheeze", name: "Одышка", icon: "💨", mult: 0.95, battles: 2, desc: "−5% урона на 2 боя" } },
+];
 
 const RECIPES = [
   // 1-й этаж

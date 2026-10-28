@@ -56,6 +56,15 @@ function variationLabel(enemy) {
 function createBattle(enemyDef, floorId) {
   const enemy = applyMobVariation(enemyDef);
   const floor = FLOORS.find(f => f.id === floorId);
+  // Случайное оружие моба (Блок 5): имя сохраняется, atk растёт от мощи оружия.
+  if (Array.isArray(enemyDef.weapons) && enemyDef.weapons.length) {
+    const weaponId = pick(enemyDef.weapons);
+    const w = ITEMS[weaponId];
+    if (w) {
+      enemy.weaponId = weaponId;
+      enemy.atk = Math.round(enemy.atk + w.atk * 0.25);
+    }
+  }
   
   const battle = {
     enemy,
@@ -72,6 +81,7 @@ function createBattle(enemyDef, floorId) {
     staggered: false,
     tripped: false,
     riskyMiss: false,
+    secondWindUsed: false,
     enemyBlockHistory: [],
     enemyAttackHistory: [],
     playerDebuffs: [],
@@ -79,6 +89,7 @@ function createBattle(enemyDef, floorId) {
   
   const label = variationLabel(enemy);
   if (label) battleLog(battle, `${enemy.name} — ${label}`, "info");
+  if (enemy.weaponId) battleLog(battle, `${enemy.name} достаёт ${ITEMS[enemy.weaponId].name}!`, "warn");
   return battle;
 }
 
@@ -156,6 +167,15 @@ function exchange(state, battle, action) {
     }
   }
 
+  // Талант «Второе дыхание»: +5 HP за ход в бою за ранг.
+  if ((st.hpRegen || 0) > 0 && state.hp > 0) {
+    const regen = Math.min(st.hpRegen, st.maxHp - state.hp);
+    if (regen > 0) {
+      state.hp += regen;
+      battleLog(battle, `Регенерация: +${regen} HP.`, "heal");
+    }
+  }
+
   if (state.hp <= 0) {
     return { ok: true, summary: defeatSummary(state, battle, e) };
   }
@@ -206,24 +226,34 @@ function exchange(state, battle, action) {
     } else {
       const power = tech ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
-      let base = st.atk * power * zoneMult * rnd(0.9, 1.1);
-      if (!tech && state.archetype === "berserker") {
-        const hpRatio = Math.max(0, Math.min(1, state.hp / Math.max(1, st.maxHp)));
-        base *= 1 + (1 - hpRatio) * 0.3;
-      }
+      // Стиль удара (Блок 3-4): урон оружия по стилю + броня врага.
+      // Выбранный стиль проверяется на доступность оружию; недоступный → лучший стиль оружия.
+      const wanted = STYLE_ORDER.includes(action.style) ? action.style : "slashing";
+      const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+      const weapon = mainInst ? ITEMS[mainInst.id] : null;
+      const style = weaponStyleValue(weapon, wanted) > 0 ? wanted : weaponBestStyle(weapon);
+      const styleMult = weaponStyleMult(weapon, style);
+      if (styleMult <= 0) return { error: "Это оружие не бьёт таким стилем." };
+
+      // Броня врага против выбранного стиля + талант «Знание брони» (+5%/ранг).
+      const armorType = e.armorType || "leather";
+      const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
+
+      let base = st.atk * power * zoneMult * styleMult * armorMult * rnd(0.9, 1.1);
       const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
       const crit = !tech && Math.random() * 100 < critChance;
       if (crit) base *= 1.7;
 
-      const pierce = zone.armorPierce || 0;
+      const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
       const effectiveDef = e.def * (1 - pierce);
       const damage = Math.max(1, Math.round(base - effectiveDef * 0.6));
 
       battle.hp = Math.max(0, battle.hp - damage);
       battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
 
-      if (uniques.includes("lifesteal")) {
-        const healed = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(damage * LIFESTEAL_PERCENT)));
+      const lifestealPct = (uniques.includes("lifesteal") ? LIFESTEAL_PERCENT : 0) + (st.lifesteal || 0) / 100;
+      if (lifestealPct > 0) {
+        const healed = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(damage * lifestealPct)));
         if (healed > 0) {
           state.hp += healed;
           battleLog(battle, `Вампиризм восстанавливает ${healed} HP.`, "heal");
@@ -233,7 +263,7 @@ function exchange(state, battle, action) {
       const suffix = crit ? " — критический" : "";
       battleLog(
         battle,
-        `Удар в «${zoneName}»${suffix}: ${e.name} теряет ${damage} HP.`,
+        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult}).`,
         crit ? "crit" : "hit"
       );
 
@@ -286,6 +316,12 @@ function exchange(state, battle, action) {
       } else if (Math.random() * 100 < st.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
         
+        if ((st.counterOnDodge || 0) > 0) {
+          const shadowDmg = Math.max(1, Math.round(st.atk * st.counterOnDodge - e.def * 0.3));
+          battle.hp = Math.max(0, battle.hp - shadowDmg);
+          battleLog(battle, `Талант «Тень»: контрудар! ${e.name} теряет ${shadowDmg} HP.`, "crit");
+        }
+
         if (Math.random() * 100 < st.counter) {
           const counterDmg = Math.max(1, Math.round(st.atk * 0.5 - e.def * 0.3));
           battle.hp = Math.max(0, battle.hp - counterDmg);
@@ -301,6 +337,16 @@ function exchange(state, battle, action) {
         state.hp = Math.max(0, state.hp - damage);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}»: ${damage} урона.`, "enemy");
         reflectThorns(battle, uniques, damage);
+
+        // Талант «Невозгибимый»: раз за бой — 30% HP при падении ниже 20%.
+        if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
+          battle.secondWindUsed = true;
+          const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
+          if (healed > 0) {
+            state.hp += healed;
+            battleLog(battle, `Талант «Невозгибимый»: вы приходите в себя и восстанавливаете ${healed} HP!`, "heal");
+          }
+        }
 
         if (e.ability === "vampire") {
           const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));

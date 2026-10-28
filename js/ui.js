@@ -1,11 +1,15 @@
 const view = {
-  screen: "hub", battle: null, attackZone: "chest", blocks: ["head", "chest"],
-  summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry",
-  questsOpen: false,
+  screen: "hub", battle: null, attackZone: "chest", attackStyle: "slashing", blocks: ["head", "chest"],
+  summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry", talentsTab: "war",
+  questsOpen: false, bestiaryOpen: false,
   currentFloor: null,
   levelUp: null,
-  questsTab: "daily",
-  dollSlot: null, tripActive: false, farm: null,
+  dollSlot: null, tripActive: false,
+  sceneGroup: null, sceneGroupFloorId: null, autoExplore: null,
+  autoExploreMode: "safe",
+  npcShopOpen: false, traderStock: null,
+  talkNpc: null, talkNpcText: null,
+  shopTab: "buy", sellSelection: [], activeShopNpc: null, shopNpcPhrase: null,
   trainingTab: "train",
   inventoryTab: "gear",
   invItemUid: null,
@@ -31,24 +35,27 @@ function iconHtml(icon, size = 32, fit = "contain") {
   return `<span style="font-size:${Math.round(size * 0.8)}px;line-height:1;vertical-align:middle;">${resolved}</span>`;
 }
 
-// Подписи атрибутов для чипов аффиксов.
 const ATTR_LABEL = { str: "Сила", end: "Выносливость", agi: "Ловкость", int: "Интеллект" };
 
-function itemStats(item) {
+function itemStats(item, inst = null) {
+  const s = inst ? getInstanceStats(inst) : item;
   const out = [];
-  if (item.atk) out.push(`⚔ +${item.atk}`); if (item.def) out.push(`🛡 +${item.def}`); if (item.hp) out.push(`❤ +${item.hp}`);
-  if (item.mana) out.push(`🔷 +${item.mana} маны`); if (item.crit) out.push(`🎯 +${item.crit}%`); if (item.dodge) out.push(`💨 +${item.dodge}%`); if (item.block) out.push(`🧱 +${item.block} зона блока`);
+  if (s.atk) out.push(`⚔ +${s.atk}`);
+  if (s.def) out.push(`🛡 +${s.def}`);
+  if (s.hp) out.push(`❤ +${s.hp}`);
+  if (s.mana) out.push(`🔷 +${s.mana} маны`);
+  if (s.crit) out.push(`🎯 +${s.crit}%`);
+  if (s.dodge) out.push(`💨 +${s.dodge}%`);
+  if (s.block) out.push(`🧱 +${s.block} зона блока`);
   return out;
 }
 
-// Полное имя экземпляра с аффиксом: «Железный меч Медведя». Редкость видна по цвету рамки и в тултипе.
 function getItemDisplayName(instance) {
   const item = instance ? ITEMS[instance.id] : null;
   if (!item) return "Предмет";
   return instance.affix?.name ? `${item.name} ${instance.affix.name}` : item.name;
 }
 
-// Класс окрашивания рамки по редкости; common остаётся с дефолтной рамкой.
 function rarityClass(instance) {
   const r = instance?.rarity;
   return r && r !== "common" && RARITY_TIERS[r] ? ` rarity-${r}` : "";
@@ -56,8 +63,7 @@ function rarityClass(instance) {
 
 function durabilityChip() { return ""; }
 function statsChips(item, inst = null) {
-  const s = inst ? getInstanceStats(inst) : item;
-  const chips = itemStats(s);
+  const chips = itemStats(item, inst); // передаем inst, чтобы посчиталась редкость
   let html = chips.length ? chips.map((c) => `<span class="chip">${c}</span>`).join("") : `<span class="chip dim">без бонусов</span>`;
   if (inst && inst.affix) {
     for (const b of inst.affix.bonuses || []) {
@@ -70,8 +76,30 @@ function statsChips(item, inst = null) {
   }
   return html;
 }
+function damageStatsHtml(item, inst = null) {
+  const s = inst ? getInstanceStats(inst) : item;
+  const dmg = s.damage;
+  if (!dmg) return "";
 
-// Экземпляры конкретного предмета и его надетость (по UID).
+  // Оставляем только те стили, у которых урон больше нуля
+  const styles = [];
+  if (dmg.slashing > 0) styles.push({ name: "Рубящий", val: dmg.slashing });
+  if (dmg.piercing > 0) styles.push({ name: "Колющий", val: dmg.piercing });
+  if (dmg.bludgeoning > 0) styles.push({ name: "Дробящий", val: dmg.bludgeoning });
+
+  if (!styles.length) return "";
+
+  // Рисуем вертикальный список
+  const rows = styles.map(s => `
+    <div style="display: flex; justify-content: space-between; max-width: 140px; font-size: 12px; color: var(--dim); margin-top: 4px;">
+      <span>${s.name}:</span>
+      <b style="color: #d1c0aa;">${s.val}</b>
+    </div>
+  `).join("");
+
+  return `<div style="margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px;">${rows}</div>`;
+}
+
 function copiesOf(id) { return state.owned.filter((inst) => inst.id === id); }
 function equippedUidOf(id) {
   for (const [slot, uid] of Object.entries(state.equipped)) {
@@ -91,23 +119,18 @@ function priceHtml(item, shop = "forge") { const p = priceFor(item, shop); if (!
 function battleActive() { return view.screen === "battle" && view.battle && !view.battle.over; }
 
 function previewStats(attrs, archetypeId = null) {
-  const gear = gearBonuses(); // базовые бонусы (обычно пусто на экране создания)
-  
-  // Добавляем бонусы от стартового снаряжения архетипа
+  const gear = gearBonuses();
   const arch = ARCHETYPE_MAP[archetypeId];
   if (arch && Array.isArray(arch.startEquipment)) {
-    const eq = {}; // виртуальная экипировка: слот -> id
+    const eq = {};
     for (const id of arch.startEquipment) {
       const item = ITEMS[id];
       if (!item) continue;
-      
-      // Ищем свободный слот (или основной, если предмет туда подходит)
       let slot = null;
       if (item.slot === "mainhand" || item.slot === "offhand") {
-        // Для оружия: сначала правая рука, потом левая
         if (!eq.mainhand) slot = "mainhand";
         else if (!eq.offhand) slot = "offhand";
-        else slot = "mainhand"; // если обе заняты, перезаписываем правую
+        else slot = "mainhand";
       } else if (item.slot === "ring") {
         if (!eq.ring1) slot = "ring1"; else slot = "ring2";
       } else if (item.slot === "trinket") {
@@ -115,19 +138,13 @@ function previewStats(attrs, archetypeId = null) {
       } else {
         slot = item.slot;
       }
-      
       if (slot) eq[slot] = id;
     }
-    
-    // Применяем бонусы
     for (const [slot, id] of Object.entries(eq)) {
       const item = ITEMS[id];
       if (!item) continue;
-      
       let atkMult = 1;
-      // Левая рука с оружием (mainhand) даёт только 50% урона (только для Убийцы)
       if (slot === "offhand" && item.slot === "mainhand") atkMult = 0.5;
-      
       if (item.atk) gear.atk += Math.round(item.atk * atkMult);
       if (item.def) gear.def += item.def;
       if (item.hp) gear.hp += item.hp;
@@ -137,7 +154,6 @@ function previewStats(attrs, archetypeId = null) {
       if (item.block) gear.block += item.block;
     }
   }
-  
   const a = { str: attrs.str + (gear.str || 0), agi: attrs.agi + (gear.agi || 0), end: attrs.end + (gear.end || 0), int: attrs.int + (gear.int || 0) };
   const mods = archetypeMods(archetypeId);
   return {
@@ -190,10 +206,10 @@ function createHtml() {
 }).join("");
   const startLabel = c.points > 0 ? `Распределите ещё ${c.points}` : !archetype ? "Выберите архетип" : "Начать путь";
 
-  const startEquipmentIds = (archetype && Array.isArray(archetype.startEquipment)) 
-    ? archetype.startEquipment 
+  const startEquipmentIds = (archetype && Array.isArray(archetype.startEquipment))
+    ? archetype.startEquipment
     : ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"];
-    
+
   const startEquipmentChips = startEquipmentIds.map(id => {
     const item = ITEMS[id];
     if (!item) return "";
@@ -258,26 +274,17 @@ function tryStartGame() {
 function topbarHtml(st) {
   const hpPct = Math.round((state.hp / st.maxHp) * 100); const manaPct = Math.round((state.mana / st.maxMana) * 100);
   const phase = phaseInfo(); const event = todaysEvent(); const lockNav = battleActive() ? " locked" : "";
-  
-  ensureQuests();
-  ensureNpcQuests();
-  
-  const qDone = state.quests.list.filter(q => q.done && !state.quests.claimed.includes(q.id)).length;
-  const qTotal = state.quests.list.length;
-  
-  const nqDone = state.npcQuests.list.filter(q => {
-    const have = state.resources[q.resId] || 0;
-    return have >= q.target && !q.claimed;
-  }).length;
-  const nqTotal = state.npcQuests.list.length;
 
-  const dailyPill = qTotal > 0 
-    ? `<button class="pill${qDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="daily" type="button" title="Зал Охотников (Ежедневные)">📋 <b>${qDone}/${qTotal}</b></button>` 
+  ensureWeekQuests();
+
+  const wqDone = state.weekQuests.list.filter((q) => q.status === "claimed" || q.status === "done").length;
+  const wqTotal = state.weekQuests.list.length;
+
+  const weeklyPill = wqTotal > 0
+    ? `<button class="pill${wqDone > 0 ? " ok" : ""}" data-act="quests-open" type="button" title="Недельные заказы">📦 <b>${wqDone}/${wqTotal}</b></button>`
     : "";
-    
-  const weeklyPill = nqTotal > 0 
-    ? `<button class="pill${nqDone > 0 ? " ok" : ""}" data-act="quests-open-tab" data-tab="weekly" type="button" title="Заказы горожан (Ежедневные)">📦 <b>${nqDone}/${nqTotal}</b></button>` 
-    : "";
+
+  const hasRewards = wqDone > 0;
 
   return `
     <button class="brand" data-act="goto" data-screen="hub" type="button"><span class="brand-text"><b>ВОСХОЖДЕНИЕ</b></span></button>
@@ -288,14 +295,15 @@ function topbarHtml(st) {
       <div class="pill gold"><span>💰</span><b>${state.gold}</b></div><div class="pill">УР <b>${state.level}</b></div>
       ${state.points > 0 ? `<button class="pill gold points" data-act="goto" data-screen="hero" type="button">+<b>${state.points}</b></button>` : ""}
       <div class="pill">ЭТАЖ <b>${state.maxFloor}/5</b></div>
-      <div class="pill time${phase.towerOpen ? "" : " night"}">${phase.icon} <b>${phase.name}</b> · ${calendarLabel()}</div>
-                  <div class="pill event event-pill" data-tip="${event ? esc(event.desc) : 'Нет события'}">
-        ${event ? event.icon : "·"} <b>${event ? event.name : "—"}</b>
-      </div>
-      ${dailyPill}
+      <div class="pill time event-pill${phase.towerOpen ? "" : " night"}" data-tip="${event ? `${event.icon} ${event.name}: ${esc(event.desc)}` : "Сегодня обычный день — событий нет"}">${phase.icon} <b>${phase.name}</b> · ${calendarLabel()}</div>
       ${weeklyPill}
     </div>
-    <nav class="topnav${lockNav}"><button class="nav-btn" data-act="goto" data-screen="hero" type="button">Герой</button><button class="nav-btn" data-act="goto" data-screen="hub" type="button">Йорстед</button></nav>
+    <nav class="topnav${lockNav}">
+      <button class="nav-btn icon-btn${hasRewards ? " ok" : ""}" data-act="quests-open" type="button" title="Журнал заданий">📋</button>
+      <button class="nav-btn icon-btn" data-act="bestiary-open" type="button" title="Бестиарий">📖</button>
+      <button class="nav-btn icon-btn" data-act="goto" data-screen="hero" type="button" title="Меню Героя">👤</button>
+      <button class="nav-btn icon-btn" data-act="goto" data-screen="hub" type="button" title="Вернуться в Йорстед">🏰</button>
+    </nav>
   `;
 }
 
@@ -306,8 +314,7 @@ function hubHtml(st) {
   const closed = towerClosedReason();
   const event = todaysEvent();
 
-  // Выбор фона по времени суток
-  let bgImage = "assets/backgrounds/hub_day.webp"; // по умолчанию день
+  let bgImage = "assets/backgrounds/hub_day.webp";
   if (state.phase === 0) bgImage = "assets/backgrounds/hub_morning.webp";
   else if (state.phase === 1) bgImage = "assets/backgrounds/hub_day.webp";
   else if (state.phase === 2) bgImage = "assets/backgrounds/hub_evening.webp";
@@ -336,8 +343,6 @@ function hubHtml(st) {
           </div>
         ` : ""}
       </div>
-
-     
 
             <div class="locations">
         <button class="loc-card${isNight() ? " locked" : ""}" data-act="goto" data-screen="market" type="button">
@@ -384,6 +389,92 @@ function hubHtml(st) {
             <span class="loc-cta">${closed ? "До утра" : "Войти →"}</span>
           </div>
         </button>
+      </div>
+    </section>
+  `;
+}
+
+const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "barmaid", training: "ivan" };
+
+function npcDialogueBar(npcId, buyLabel, sellLabel) {
+  const tab = view.shopTab || "buy";
+  const npcName = NPC_NAMES[npcId] || npcId;
+  const phrase = view.shopNpcPhrase || getRandomPhrase(npcId, "greetings");
+  const btn = (tabId, label) =>
+    `<button class="shop-tab${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button">${label}</button>`;
+  return `
+    <div class="npc-dialogue-bar">
+      <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}"
+        onerror="this.src='assets/portraits/placeholder.webp'">
+      <div class="npc-dialogue-text">
+        <p class="npc-name">${esc(npcName)}</p>
+        <p class="npc-dialogue">«${esc(phrase)}»</p>
+      </div>
+      <div class="npc-dialogue-actions">
+        ${btn("buy", buyLabel)}
+        ${sellLabel ? btn("sell", sellLabel) : ""}
+        ${btn("quests", "📜 Есть задания?")}
+      </div>
+    </div>
+  `;
+}
+
+function sellPanelHtml(shopName) {
+  const npc = view.activeShopNpc || SHOP_NPCS[shopName] || shopName;
+  const sel = new Set(view.sellSelection || []);
+  const jewelrySlots = new Set(["neck", "ring", "trinket"]);
+  const acceptsPotions = npc === "elain";
+  const acceptsGear = npc === "ron" || npc === "elize";
+  const gearOk = (slot) => npc === "ron" ? !jewelrySlots.has(slot) : jewelrySlots.has(slot);
+
+  if (!acceptsPotions && !acceptsGear) {
+    return `<section class="shop-group"><h2 class="group-title">🧾 Скупка</h2><p class="empty">Мне это не интересно.</p></section>`;
+  }
+
+  const potionRows = acceptsPotions
+    ? Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0).map((item) => {
+    const id = item.id; const count = state.potions[id];
+    const price = sellPrice(item) * count;
+    return `<label class="sell-row${sel.has(id) ? " picked" : ""}" data-act="sell-toggle" data-id="${id}" data-shop="${shopName}">
+      <input type="checkbox" ${sel.has(id) ? "checked" : ""} type="button">
+      <span class="sell-icon">${iconHtml(item.icon, 28)}</span>
+      <span class="sell-name">${item.name} ×${count}</span>
+      <span class="price">${price} 💰</span>
+    </label>`;
+  }).join("") : "";
+
+  const gearRows = acceptsGear
+    ? state.owned.filter((inst) => !isEquipped(inst.uid) && !(ITEMS[inst.id]?.type === "potion") && gearOk(ITEMS[inst.id]?.slot)).map((inst) => {
+    const item = ITEMS[inst.id]; if (!item) return "";
+    const price = sellPrice(item, inst);
+    return `<label class="sell-row${sel.has(inst.uid) ? " picked" : ""}" data-act="sell-toggle" data-id="${inst.uid}" data-shop="${shopName}">
+      <input type="checkbox" ${sel.has(inst.uid) ? "checked" : ""}>
+      <span class="sell-icon">${iconHtml(item.icon, 28)}</span>
+      <span class="sell-name">${getItemDisplayName(inst)}<i class="hint"> · прочность ${durabilityOf(inst)}</i></span>
+      <span class="price">${price} 💰</span>
+    </label>`;
+  }).join("") : "";
+
+  let total = 0;
+  for (const id of sel) {
+    const inst = getInstance(id);
+    if (inst) { const item = ITEMS[inst.id]; if (item && !isEquipped(inst.uid) && acceptsGear && gearOk(item.slot)) total += sellPrice(item, inst); continue; }
+    const item = ITEMS[id];
+    if (item && item.type === "potion" && acceptsPotions) total += sellPrice(item) * (state.potions[id] || 0);
+  }
+
+  const empty = !potionRows && !gearRows;
+  if (empty) return `<section class="shop-group"><h2 class="group-title">🧾 Скупка</h2><p class="empty">Мне это не интересно.</p></section>`;
+  return `
+    <section class="shop-group">
+      <h2 class="group-title">💰 Скупка <span class="hint">— отмечайте всё лишнее, продажа одним кликом</span></h2>
+      <div class="sell-grid">
+        ${gearRows ? `<h3 class="group-title">Снаряжение</h3>${gearRows}` : ""}
+        ${potionRows ? `<h3 class="group-title">Зелья</h3>${potionRows}` : ""}
+      </div>
+      <div class="repair-all">
+        <span class="price">Итого: ${total} 💰</span>
+        <button class="btn primary" data-act="sell-submit" data-shop="${shopName}" ${sel.size ? "" : "disabled"} type="button">Продать выбранное (${total} 💰)</button>
       </div>
     </section>
   `;
@@ -443,20 +534,20 @@ function hotelHtml() {
   const companionNote = companion
     ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${daysLeft} дн. Найм не сдвигает время.</span></div>`
     : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
-    
+
+  const tab = view.shopTab || "buy";
+  const content =
+    tab === "quests"
+      ? npcQuestHtml("barmaid")
+      : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
+         <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
+         <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
+
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
     ${subHeader("Гостиница", "Тёплый свет и чужие истории", "hub", "← В Йорстед")}
-    <img src="assets/backgrounds/hotel.webp" class="shop-banner" onerror="this.style.display='none'">
-    <div class="hotel-status">
-      <span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span>
-      <span>💞 Спутница: ${companionPrice} 💰 · ${COMPANION_BUFF_DAYS} дня</span>
-      <span>⏳ Найм не сдвигает время</span>
-    </div>
-    <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
-    <h2 class="group-title">Спутницы</h2>
-    ${companionNote}
-    <div class="companion-grid">${cards}</div>
+    ${npcDialogueBar("barmaid", "Снять номер", "")}
+    ${content}
   `;
 }
 
@@ -477,133 +568,61 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
-  const tab = view.trainingTab || "train";
-  if (tab === "quests") return trainingQuestsHtml();
+  const tab = view.shopTab || "buy";
+  const cap = trainingCap(state.level);
+  const warning = state.phase === 0
+    ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
+    : `<div class="banner warn-banner">🌙 Сейчас не утро.</div>`;
 
-  const cap = trainingCap(state.level); const isMorning = state.phase === 0;
-  const cards = TRAININGS.map((t) => {
+  let content = "";
+  if (tab === "quests") content = trainingQuestsListHtml();
+  else if (tab === "sell") content = sellPanelHtml("training");
+  else content = `${warning}<div class="training-grid">${TRAININGS.map((t) => {
     const avail = trainingAvailability(t); const current = state.attrs[t.attr]; const atCap = current >= cap;
     return `<article class="training-card${avail.ok ? "" : " disabled"}"><div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-attr">${ATTR_INFO.find((a) => a.id === t.attr).name}: ${current} / ${cap}</span></div></div><p class="item-desc">${t.desc}</p><div class="training-foot"><button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? `Тренироваться` : avail.reason}</button></div></article>`;
-  }).join("");
-  const warning = !isMorning ? `<div class="banner warn-banner">🌙 Сейчас не утро.</div>` : state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`;
-  
-   return `
-    <div class="screen-bg" style="background-image: ="assets/backgrounds/training.webp');"></div>
-    ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}${trainingTabsHtml("train")}${warning}<div class="training-grid">${cards}</div>
-  `;
-}
-
-function trainingQuestsHtml() {
-  ensureQuests();
-  const list = state.quests.list;
-  if (!list.length) {
-    return `${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}${trainingTabsHtml("quests")}<p class="empty">Сегодня заданий нет.</p>`;
-  }
-
-  const cards = list.map((q) => {
-    const claimed = state.quests.claimed.includes(q.id);
-    const canClaim = q.done && !claimed;
-    const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
-    return `
-      <article class="quest-card${claimed ? " claimed" : q.done ? " done" : ""}">
-        <div class="quest-head">
-          <span class="quest-icon">${iconHtml(q.mobIcon, 32)}</span>
-          <div class="quest-title">
-            <h3>Убить: ${q.mobName}</h3>
-            <span class="hint">Этаж ${q.floorId} · цель ${q.target}</span>
-          </div>
-          ${claimed ? `<span class="badge">Получено</span>` : q.done ? `<span class="badge">Готово</span>` : ""}
-        </div>
-        <div class="quest-progress">
-          <div class="bar"><span style="width:${pct}%"></span></div>
-          <span class="quest-count">${q.progress} / ${q.target}</span>
-        </div>
-        <div class="quest-foot">
-          <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-quest" data-id="${q.id}"
-            ${canClaim ? "" : "disabled"} type="button">
-            ${claimed ? "Получено" : q.done ? "Забрать" : "В процессе"}
-          </button>
-        </div>
-      </article>
-    `;
-  }).join("");
+  }).join("")}</div>`;
 
   return `
-    ${subHeader("Зал Охотников", "Ежедневные контракты на убийство", "hub")}
-    ${trainingTabsHtml("quests")}
-    <div class="banner" style="margin-bottom: 15px;">📋 Эти задания обновляются каждое утро. Сдавать награду нужно здесь, в Зале Охотников.</div>
-    <div class="quest-grid">${cards}</div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/training.webp');"></div>
+    ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}
+    ${npcDialogueBar("ivan", "Тренировки", "")}
+    ${content}
   `;
 }
+
+function trainingQuestsListHtml() {
+  return npcQuestHtml("ivan");
+}
+
 function questsModalHtml() {
-  ensureQuests();
-  ensureNpcQuests();
-  
-  const tab = view.questsTab || "daily";
-  const dailyList = state.quests.list || [];
-  const npcList = state.npcQuests.list || [];
+  ensureWeekQuests();
+  const list = state.weekQuests.list || [];
 
-  const dailyCards = dailyList.map((q) => {
-    const claimed = state.quests.claimed.includes(q.id);
-    const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
-    
-    let statusHtml = `<span class="badge">В процессе</span>`;
-    if (claimed) statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
-    else if (q.done) statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (в Зал Охотников)</span>`;
+  const npcName = (id) => NPC_NAMES[id] || id;
+  const cards = list.map((q) => {
+    const title = q.type === "kill" ? `Убить: ${q.mobName}` : `Собрать: ${q.resName}`;
+    const icon = q.type === "kill" ? q.mobIcon : q.resIcon;
+
+    let statusHtml = `<span class="badge">Предложение недели</span>`;
+    if (q.status === "active") statusHtml = `<span class="badge">В работе</span>`;
+    else if (q.status === "done") statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(npcName(q.npc))})</span>`;
+    else if (q.status === "claimed") statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
 
     return `
-      <article class="quest-card quest-card-wide${claimed ? " claimed" : q.done ? " done" : ""}">
+      <article class="quest-card quest-card-wide${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}">
         <div class="quest-icon-wrap">
-          <span class="quest-icon">${iconHtml(q.mobIcon, 32)}</span>
+          <span class="quest-icon">${iconHtml(icon, 32)}</span>
         </div>
         <div class="quest-body">
           <div class="quest-info">
             <div class="quest-title">
-              <h3>Убить: ${q.mobName}</h3>
-              <span class="hint">Этаж ${q.floorId}</span>
+              <h3>${title}</h3>
+              <span class="hint">Дал: <b>${esc(npcName(q.npc))}</b> · до конца недели</span>
             </div>
           </div>
           <div class="quest-progress-wrap">
-            <div class="bar"><span style="width:${pct}%"></span></div>
+            <div class="bar"><span style="width:${Math.min(100, Math.round((q.progress / q.target) * 100))}%"></span></div>
             <span class="quest-count">${q.progress} / ${q.target}</span>
-          </div>
-        </div>
-        <div class="quest-side">
-          <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          ${statusHtml}
-        </div>
-      </article>
-    `;
-  }).join("");
-
-  const npcCards = npcList.map((q) => {
-    const res = ALL_RESOURCES.find(r => r.id === q.resId);
-    if (!res) return "";
-    
-    const have = state.resources[q.resId] || 0;
-    const pct = Math.min(100, Math.round((have / q.target) * 100));
-    const npcName = q.npc === "ron" ? "Рон" : q.npc === "elain" ? "Элейн" : "Элиза";
-    
-    let statusHtml = `<span class="badge">В процессе</span>`;
-    if (q.claimed) statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
-    else if (have >= q.target) statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${npcName})</span>`;
-
-    return `
-      <article class="quest-card quest-card-wide${q.claimed ? " claimed" : have >= q.target ? " done" : ""}">
-        <div class="quest-icon-wrap">
-          <span class="quest-icon">${iconHtml(res.icon, 32)}</span>
-        </div>
-        <div class="quest-body">
-          <div class="quest-info">
-            <div class="quest-title">
-              <h3>Собрать: ${res.name}</h3>
-              <span class="hint">Сдать: <b>${npcName}</b></span>
-            </div>
-          </div>
-          <div class="quest-progress-wrap">
-            <div class="bar"><span style="width:${pct}%"></span></div>
-            <span class="quest-count">${have} / ${q.target}</span>
           </div>
         </div>
         <div class="quest-side">
@@ -618,65 +637,124 @@ function questsModalHtml() {
     <div class="doll-menu-backdrop" data-act="quests-close"></div>
     <div class="doll-menu quest-modal" role="dialog">
       <div class="doll-menu-head">
-        <h3>Журнал заданий</h3>
+        <h3>Журнал · Недельные заказы</h3>
         <button class="doll-menu-close" data-act="quests-close" type="button">✕</button>
       </div>
-      
-      <div class="shop-tabs" style="margin-bottom: 15px;">
-        <button class="shop-tab${tab === "daily" ? " active" : ""}" data-act="quests-tab" data-tab="daily" type="button">📋 Зал Охотников (Ежедневные)</button>
-        <button class="shop-tab${tab === "weekly" ? " active" : ""}" data-act="quests-tab" data-tab="weekly" type="button">📦 Заказы горожан (Ежедневные)</button>
-      </div>
-
+      <p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Взять — у NPC лично.</p>
       <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
-        ${tab === "daily" 
-          ? (dailyCards || `<p class="empty">Все ежедневные задания выполнены!</p>`) 
-          : (npcCards || `<p class="empty">Все заказы выполнены!</p>`)}
+        ${cards || `<p class="empty">На этой неделе предложений нет.</p>`}
       </div>
     </div>
   `;
 }
 
+function bestiaryModalHtml() {
+  const cards = FLOORS.flatMap((floor) => {
+    const bossDefeated = Boolean(state.cleared[floor.id]);
+    const entries = [...floor.mobs.map((def) => ({ def, floor, isBoss: false })), { def: floor.boss, floor, isBoss: true }];
+    return entries.map(({ def, floor, isBoss }) => {
+      const known = isBoss ? bossDefeated : Boolean(state.bestiary[def.id]);
+      if (!known) {
+        return `
+          <article class="bestiary-card unknown${isBoss ? " boss" : ""}">
+            <span class="bestiary-icon">${iconHtml(def.icon, 44)}</span>
+            <b class="bestiary-name">???</b>
+            <p class="bestiary-desc">${isBoss ? "Хозяин этажа. Имя откроется после победы." : "Вы еще не встречали это существо"}</p>
+            <span class="hint">Этаж ${floor.id}</span>
+          </article>`;
+      }
+      return `
+        <article class="bestiary-card${isBoss ? " boss" : ""}">
+          <span class="bestiary-icon">${iconHtml(def.icon, 44)}</span>
+          <b class="bestiary-name">${def.name}${isBoss ? " 👑" : ""}</b>
+          <p class="bestiary-desc">${def.desc || ""}</p>
+          <div class="bestiary-chips">
+            <span class="mob-stat-chip hp">❤ ${def.hp}</span>
+            <span class="mob-stat-chip atk">⚔ ${def.atk}</span>
+            <span class="mob-stat-chip def">🛡 ${def.def}</span>
+          </div>
+          <span class="hint">Этаж ${floor.id}</span>
+        </article>`;
+    });
+  }).join("");
+
+  const total = FLOORS.reduce((n, f) => n + f.mobs.length + 1, 0);
+  const knownCount = FLOORS.reduce((n, f) => n + f.mobs.filter((m) => state.bestiary[m.id]).length + (state.cleared[f.id] ? 1 : 0), 0);
+
+  return `
+    <div class="doll-menu-backdrop" data-act="bestiary-close"></div>
+    <div class="doll-menu quest-modal" role="dialog">
+      <div class="doll-menu-head">
+        <h3>📖 Бестиарий (${knownCount}/${total})</h3>
+        <button class="doll-menu-close" data-act="bestiary-close" type="button">✕</button>
+      </div>
+      <p class="hint" style="margin: 0 0 12px;">Обычные существа открываются при первой встрече в бою; имя босса — после победы над ним.</p>
+      <div class="bestiary-grid">${cards}</div>
+    </div>
+  `;
+}
+
 function npcQuestHtml(npcId) {
-  ensureNpcQuests();
-  const quests = state.npcQuests.list.filter(q => q.npc === npcId);
-  if (!quests.length) return `<p class="empty">У этого торговца сейчас нет заказов.</p>`;
-  
-  const cards = quests.map(q => {
-    const res = ALL_RESOURCES.find(r => r.id === q.resId);
-    if (!res) return "";
-    
-    const have = state.resources[q.resId] || 0;
-    const pct = Math.min(100, Math.round((have / q.target) * 100));
-    const canClaim = have >= q.target && !q.claimed;
-    
-    return `
-      <article class="quest-card quest-card-wide${q.claimed ? " claimed" : canClaim ? " done" : ""}">
+  ensureWeekQuests();
+  const q = state.weekQuests.list.find((x) => x.npc === npcId);
+  const npcName = NPC_NAMES[npcId] || npcId;
+  if (!q) return `<p class="empty">На этой неделе у меня для вас ничего нет.</p>`;
+
+  let title, subjectIcon, countText, pct;
+  if (q.type === "kill") {
+    title = `Убить: ${q.mobName}`;
+    subjectIcon = q.mobIcon;
+    pct = Math.round((q.progress / q.target) * 100);
+    countText = `${q.progress} / ${q.target}`;
+  } else {
+    const res = ALL_RESOURCES.find((r) => r.id === q.resId);
+    if (!res) return `<p class="empty">На этой неделе у меня для вас ничего нет.</p>`;
+    title = `Собрать: ${res.name}`;
+    subjectIcon = res.icon;
+    pct = Math.round((q.progress / q.target) * 100);
+    countText = `${q.progress} / ${q.target}`;
+  }
+
+  let button;
+  if (q.status === "offered") button = `<button class="btn small primary" data-act="accept-week-quest" data-npc="${npcId}" type="button">Взять задание</button>`;
+  else if (q.status === "active") button = `<button class="btn small" disabled type="button">В работе</button>`;
+  else if (q.status === "done") button = `<button class="btn small primary" data-act="claim-npc-quest" data-id="${q.id}" type="button">Сдать</button>`;
+  else button = `<button class="btn small" disabled type="button">Получено</button>`;
+
+  const statusBadge = q.status === "claimed"
+    ? `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`
+    : q.status === "done"
+      ? `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово</span>`
+      : q.status === "active"
+        ? `<span class="badge">В работе</span>`
+        : `<span class="badge">Предложение недели</span>`;
+
+  return `
+    <section class="shop-group"><div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">
+      <article class="quest-card quest-card-wide${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}">
         <div class="quest-icon-wrap">
-          <span class="quest-icon">${iconHtml(res.icon, 32)}</span>
+          <span class="quest-icon">${iconHtml(subjectIcon, 32)}</span>
         </div>
         <div class="quest-body">
           <div class="quest-info">
             <div class="quest-title">
-              <h3>Собрать: ${res.name}</h3>
-              <span class="hint">Нужно ${q.target} шт.</span>
+              <h3>${title}</h3>
+              <span class="hint">Дал: ${esc(npcName)} · до конца недели</span>
             </div>
           </div>
           <div class="quest-progress-wrap">
             <div class="bar"><span style="width:${pct}%"></span></div>
-            <span class="quest-count">${have} / ${q.target}</span>
+            <span class="quest-count">${countText}</span>
           </div>
         </div>
         <div class="quest-side">
-          <span class="price">💰 ${q.gold} · ✦ ${q.xp}</span>
-          <button class="btn small${canClaim ? " primary" : ""}" data-act="claim-npc-quest" data-id="${q.id}" ${canClaim ? "" : "disabled"} type="button">
-            ${q.claimed ? "Получено" : canClaim ? "Сдать" : "Не хватает"}
-          </button>
+          <span class="price">💰 ${q.gold} · ✦ ${q.xp}${q.potions > 0 ? ` · 🧪 +${q.potions}` : ""}</span>
+          ${statusBadge}
+          ${button}
         </div>
       </article>
-    `;
-  }).join("");
-  
-  return `<section class="shop-group"><div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">${cards}</div></section>`;
+    </div></section>
+  `;
 }
 
 function repairPanelHtml() {
@@ -704,12 +782,29 @@ function shopItemsHtml(tabs, activeId, shopName) {
       const equippedInfo = equippedUidOf(item.id);
       const p = priceFor(item, shopName);
       const canBuy = state.gold >= p.price;
-      // Дубликаты разрешены: кнопка покупки активна всегда, копии показываем чипами.
-      let label = `Купить · ${p.price} 💰`; if (!canBuy) label = `Нужно ${p.price} 💰`;
+      
+      let label = `Купить · ${p.price} 💰`; 
+      if (!canBuy) label = `Нужно ${p.price} 💰`;
+      
       const countChip = copies.length ? `<span class="chip ok">В сумке: ${copies.length}</span>` : "";
       const equippedChip = equippedInfo ? `<span class="chip ok">Надето: ${SLOT_NAME[equippedInfo.slot] || equippedInfo.slot}</span>` : "";
       const durChips = copies.map((inst) => durabilityChip(inst)).join("");
-      return `<article class="gear-card${copies.length ? " owned" : ""}"><div class="gear-card-head"><div class="item-icon">${iconHtml(item.icon, 48)}</div><div class="gear-card-info"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips">${statsChips(item)}${countChip}${equippedChip}${durChips}</div></div></div><div class="gear-card-foot"><span class="price">${priceHtml(item, shopName)}</span><button class="btn small" data-act="buy" data-id="${item.id}" data-shop="${shopName}" ${canBuy ? "" : "disabled"} type="button">${label}</button></div></article>`;
+      
+      return `<article class="gear-card${copies.length ? " owned" : ""}">
+        <div class="gear-card-head">
+          <div class="item-icon">${iconHtml(item.icon, 48)}</div>
+          <div class="gear-card-info">
+            <h3>${item.name}</h3>
+            <p class="item-desc">${item.desc}</p>
+            <div class="chips">${statsChips(item)}${countChip}${equippedChip}${durChips}</div>
+            ${damageStatsHtml(item)}
+          </div>
+        </div>
+        <div class="gear-card-foot">
+          <span class="price">${priceHtml(item, shopName)}</span>
+          <button class="btn small" data-act="buy" data-id="${item.id}" data-shop="${shopName}" ${canBuy ? "" : "disabled"} type="button">${label}</button>
+        </div>
+      </article>`;
     }).join("");
     return `<section class="shop-group"><h2 class="group-title">${SLOT_ICON[slot] || ""} ${SLOT_NAME[slot]}</h2><div class="item-grid">${cards}</div></section>`;
   }).join("");
@@ -735,7 +830,6 @@ function craftPanelHtml(station) {
     const copies = copiesOf(recipe.result);
     const enough = Object.entries(recipe.materials).every(([resId, need]) => (state.resources[resId] || 0) >= need);
     const chips = Object.entries(recipe.materials).map(([resId, need]) => materialChipHtml(resId, need)).join("");
-    // Каждый крафт создаёт новый экземпляр — кнопка всегда «Создать».
     const countChip = copies.length ? `<span class="chip ok">В сумке: ${copies.length}</span>` : "";
     const durChips = copies.map((inst) => durabilityChip(inst)).join("");
     return `<article class="gear-card recipe-card${copies.length ? " owned" : ""}">
@@ -759,103 +853,57 @@ function craftPanelHtml(station) {
 }
 
 function forgeHtml() {
-  const activeTab = FORGE_TABS.find((t) => t.id === view.forgeTab) || FORGE_TABS[0];
-  const tabs = shopTabsHtml(FORGE_TABS, activeTab.id, "forge-tab");
-  const stock = activeTab.id === "craft" 
-    ? craftPanelHtml("forge") 
-    : activeTab.id === "buyback" 
-      ? buybackPanelHtml("forge") 
-      : activeTab.id === "quests"
-        ? npcQuestHtml("ron")
-        : shopItemsHtml(FORGE_TABS, activeTab.id, "forge");
-
-  const greeting = `
-    <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
-      <img src="${npcPortraitSrc("ron")}" alt="Кузнец" class="npc-portrait"
-        style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:2px solid #f59e0b;flex-shrink:0;background-color:#1e1b2e;"
-        onerror="this.src='assets/portraits/placeholder.webp'">
-      <div class="npc-text" style="display:flex;flex-direction:column;justify-content:flex-start;flex:1;">
-        <p class="npc-name" style="font-weight:bold;color:#f59e0b;margin:0 0 0.5rem 0;font-size:1.1rem;text-transform:uppercase;letter-spacing:0.05em;">Рон, кузнец</p>
-        <p class="npc-dialogue" style="margin:0;line-height:1.6;font-style:italic;color:#e2e8f0;font-size:1.05rem;">«Добро пожаловать в мою кузницу. Здесь куют не только сталь, но и судьбы. Выбирай снаряжение с умом: хороший доспех спасёт жизнь, а плохой — лишь добавит вес. Снятые вещи можешь продать мне за полцены.»</p>
-      </div>
-    </div>
-  `;
+  const tab = view.shopTab || "buy";
+  const content =
+    tab === "sell" ? sellPanelHtml("forge")
+    : tab === "quests" ? npcQuestHtml("ron")
+    : [
+        shopItemsHtml([{ id: "held", name: "Оружие и щиты", slots: ["mainhand", "offhand"] }], "held", "forge"),
+        shopItemsHtml([{ id: "armor", name: "Доспехи", slots: ["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"] }], "armor", "forge"),
+      ].join("");
 
   return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
-    ${greeting}
-    <div class="shop-tabs">${tabs}</div>
-    <div class="shop-grid"><div class="shop-main">${stock}</div></div>
+    ${npcDialogueBar("ron", "🛒 Показать товары", "💰 Хочу продать")}
+    <div class="shop-grid"><div class="shop-main">${content}</div></div>
   `;
 }
 
 function jewelryHtml() {
-  const activeTab = JEWELRY_TABS.find((t) => t.id === view.jewelryTab) || JEWELRY_TABS[0];
-  const tabs = shopTabsHtml(JEWELRY_TABS, activeTab.id, "jewelry-tab");
-  const stock = activeTab.id === "craft" 
-    ? craftPanelHtml("jewelry") 
-    : activeTab.id === "buyback" 
-      ? buybackPanelHtml("jewelry") 
-      : activeTab.id === "quests"
-        ? npcQuestHtml("elize")
-        : shopItemsHtml(JEWELRY_TABS, activeTab.id, "jewelry");
-
-  const greeting = `
-    <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
-      <img src="${npcPortraitSrc("elize")}" alt="Элиза, ювелир" class="npc-portrait"
-        style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:2px solid #22d3ee;flex-shrink:0;background-color:#1e1b2e;"
-        onerror="this.src='assets/portraits/placeholder.webp'">
-      <div class="npc-text" style="display:flex;flex-direction:column;justify-content:flex-start;flex:1;">
-        <p class="npc-name" style="font-weight:bold;color:#67e8f9;margin:0 0 0.5rem 0;font-size:1.1rem;text-transform:uppercase;letter-spacing:0.05em;">Элиза, ювелир</p>
-        <p class="npc-dialogue" style="margin:0;line-height:1.6;font-style:italic;color:#e2e8f0;font-size:1.05rem;">«Камень без оправы — просто камень. Принеси мне осколок — и я сделаю из него искусство, достойное королей. А если у тебя есть что-то лишнее — я всегда готова обменять его на звонкую монету.»</p>
-      </div>
-    </div>
-  `;
+  const tab = view.shopTab || "buy";
+  const content =
+    tab === "sell" ? sellPanelHtml("jewelry")
+    : tab === "quests" ? npcQuestHtml("elize")
+    : shopItemsHtml([{ id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] }], "jewelry", "jewelry");
 
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
-    ${greeting}
-    <div class="shop-tabs">${tabs}</div>
-    <div class="shop-grid"><div class="shop-main">${stock}</div></div>
+    ${npcDialogueBar("elize", "🛒 Показать товары", "💰 Хочу продать")}
+    <div class="shop-grid"><div class="shop-main">${content}</div></div>
   `;
 }
 
 function alchemyHtml() {
-  const activeTab = view.alchemyTab === "buyback" ? "buyback" : view.alchemyTab === "quests" ? "quests" : "potions";
-  const tabs = shopTabsHtml([{ id: "potions", name: "Зелья" }, { id: "buyback", name: "Скупка" }, { id: "quests", name: "📦 Заказы" }], activeTab, "alchemy-tab");
-  
-  const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
-    const count = state.potions[item.id] || 0; 
-    const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana; 
-    const p = priceFor(item, "alchemy");
-    return `<article class="item-card potion"><div class="item-icon big">${iconHtml(item.icon, 48)}</div><div class="item-main"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips"><span class="chip">В сумке: ${count}</span></div></div><div class="item-buy"><span class="price">${priceHtml(item, "alchemy")}</span><div class="stack-buttons"><button class="btn small" data-act="buy" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button><button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button></div></div></article>`;
-  }).join("");
-  
-  const body = activeTab === "buyback" 
-    ? buybackPanelHtml("alchemy") 
-    : activeTab === "quests"
-      ? npcQuestHtml("elain")
-      : cards;
-
-  const greeting = `
-    <div class="npc-greeting" style="display:flex;flex-direction:row;align-items:flex-start;gap:1.5rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:1.5rem;margin-bottom:2rem;border:1px solid rgba(255,255,255,0.1);">
-      <img src="${npcPortraitSrc("elain")}" alt="Элейн, хозяйка лавки" class="npc-portrait"
-        style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:2px solid #8b5cf6;flex-shrink:0;background-color:#1e1b2e;"
-        onerror="this.src='assets/portraits/placeholder.webp'">
-      <div class="npc-text" style="display:flex;flex-direction:column;justify-content:flex-start;flex:1;">
-        <p class="npc-name" style="font-weight:bold;color:#a78bfa;margin:0 0 0.5rem 0;font-size:1.1rem;text-transform:uppercase;letter-spacing:0.05em;">Элейн, хозяйка лавки</p>
-        <p class="npc-dialogue" style="margin:0;line-height:1.6;font-style:italic;color:#e2e8f0;font-size:1.05rem;">«Добро пожаловать, путник. Мои зелья всегда наивысшего качества. Если раны воспалились или мана на исходе — ты по адресу. Но помни: в бою глоток зелья заменяет удар, так что выбирай момент с умом. А старые зелья выкупаю за полцены — не пропадать же добру.»</p>
-      </div>
-    </div>
-  `;
+  const tab = view.shopTab || "buy";
+  let content = "";
+  if (tab === "sell") content = sellPanelHtml("alchemy");
+  else if (tab === "quests") content = npcQuestHtml("elain");
+  else {
+    const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
+      const count = state.potions[item.id] || 0;
+      const full = item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana;
+      const p = priceFor(item, "alchemy");
+      return `<article class="item-card potion"><div class="item-icon big">${iconHtml(item.icon, 48)}</div><div class="item-main"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips"><span class="chip">В сумке: ${count}</span></div></div><div class="item-buy"><span class="price">${priceHtml(item, "alchemy")}</span><div class="stack-buttons"><button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button><button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button></div></div></article>`;
+    }).join("");
+    content = `<section class="shop-group"><div class="item-grid">${cards || `<p class="empty">Зелий нет.</p>`}</div></section>`;
+  }
 
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
-    ${greeting}
-    <div class="shop-tabs">${tabs}</div>
-    <div class="shop-grid single"><div class="shop-main">${body}</div></div>
+    ${npcDialogueBar("elain", "🛒 Показать товары", "💰 Хочу продать")}
+    <div class="shop-grid single"><div class="shop-main">${content}</div></div>
   `;
 }
 
@@ -869,7 +917,7 @@ function dollSlotHtml(slotId) {
   const open = view.dollSlot === slotId;
   const broken = eq && isBroken(eq);
   const rarityClass = eq && eq.rarity !== "common" ? ` rarity-${eq.rarity}` : "";
-  
+
   let title = "";
   if (item) {
     const stats = itemStats(getInstanceStats(eq)).join(", ");
@@ -905,7 +953,6 @@ function dollMenuHtml() {
   return `<div class="doll-menu-backdrop" data-act="doll-close"></div><div class="doll-menu" role="dialog"><div class="doll-menu-head"><h3>${slot.name}</h3><button class="doll-menu-close" data-act="doll-close" type="button">✕</button></div>${offhandNote}<div class="doll-menu-list">${rows}</div>${current ? `<div class="doll-menu-foot"><button class="btn small ghost" data-act="doll-unequip" data-slot="${slot.id}" type="button">Снять «${getItemDisplayName(current)}»</button></div>` : ""}</div>`;
 }
 
-// Мини-меню предмета из сумки (сетка инвентаря): надеть или продать.
 function invMenuHtml() {
   if (!view.invItemUid) return "";
   const inst = getInstance(view.invItemUid);
@@ -920,8 +967,6 @@ function invMenuHtml() {
   return `<div class="doll-menu-backdrop" data-act="inv-menu-close"></div><div class="doll-menu" role="dialog"><div class="doll-menu-head"><h3>Предмет</h3><button class="doll-menu-close" data-act="inv-menu-close" type="button">✕</button></div><div class="inv-menu-preview">${iconHtml(item.icon, 40)}<span class="inv-menu-info"><b>${getItemDisplayName(inst)}</b><span class="chips"><span class="chip" style="border-color:${tier.color};color:${tier.color};">${tier.name}</span>${statsChips(item, inst)}</span><span class="hint">${item.desc}</span></span></div>${slotNote}<div class="inv-menu-actions"><button class="btn small" data-act="inv-equip" data-uid="${inst.uid}" ${canEquip ? "" : "disabled"} type="button">Надеть</button></div></div>`;
 }
 
-// Вкладка «Скупка» в магазине: выкуп подходящих товаров за половину цены.
-// shop: "forge" — оружие и броня, "jewelry" — амулеты, кольца, аксессуары, "alchemy" — зелья.
 function buybackPanelHtml(shop) {
   if (shop === "alchemy") {
     const potionItems = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
@@ -945,19 +990,92 @@ function buybackPanelHtml(shop) {
   return `<section class="shop-group"><h2 class="group-title">${shop === "jewelry" ? "💍" : "⚔"} Скупка снаряжения</h2>${rows.length ? `<div class="resource-list">${rows.join("")}</div>` : `<p class="empty">Нечего продавать.</p>`}</section>`;
 }
 
+function talentsHtml() {
+  const points = state.talentPoints || 0;
+  const activeTab = view.talentsTab || "war";
+
+  const tabsHtml = `
+    <div class="shop-tabs" style="margin-bottom: 20px;">
+      ${TALENT_BRANCHES.map(branch => `
+        <button class="shop-tab${activeTab === branch.id ? " active" : ""}" data-act="talents-tab" data-tab="${branch.id}" type="button">
+          ${branch.name}
+        </button>
+      `).join("")}
+    </div>
+  `;
+
+  const branch = TALENT_BRANCHES.find(b => b.id === activeTab) || TALENT_BRANCHES[0];
+  
+  // Получаем таланты именно этой ветки и делим их на линии по 4 штуки
+  const branchTalents = TALENTS.filter((t) => t.branch === branch.id);
+  const lines = [];
+  for (let i = 0; i < branchTalents.length; i += 4) {
+    lines.push(branchTalents.slice(i, i + 4));
+  }
+
+  const cards = lines.map((lineTalents, lineIndex) => {
+    // Проверяем, закрыта ли предыдущая линия
+    let previousLineMaxed = true;
+    if (lineIndex > 0) {
+      const prevLine = lines[lineIndex - 1];
+      previousLineMaxed = prevLine.every(t => ((state.talents || {})[t.id] || 0) >= t.maxRank);
+    }
+
+    return lineTalents.map((t) => {
+      const rank = (state.talents || {})[t.id] || 0;
+      const maxed = rank >= t.maxRank;
+      const canLearn = !maxed && points > 0 && previousLineMaxed;
+      const rankHtml = Array.from({ length: t.maxRank }, (_, i) => `<span class="pip${i < rank ? " on" : ""}"></span>`).join("");
+      
+      // Подсветка: если изучен (maxed) — claimed, если можно изучить — done, иначе обычный
+      const cardClass = maxed ? " claimed" : canLearn ? " done" : "";
+      
+      let actionButton;
+      if (maxed) {
+        actionButton = `<button class="btn small" disabled type="button">Изучен</button>`;
+      } else if (!previousLineMaxed) {
+        actionButton = `<div class="hint" style="text-align: right; line-height: 1.2; font-size: 11px; color: #c2483c;">Раскройте предыдущую линию до максимума</div>`;
+      } else {
+        actionButton = `<button class="btn small${canLearn ? " primary" : ""}" data-act="learn-talent" data-id="${t.id}" ${canLearn ? "" : "disabled"} type="button">Изучить</button>`;
+      }
+
+      return `
+        <article class="quest-card talent-card${cardClass}" style="opacity: ${!previousLineMaxed && !maxed ? 0.6 : 1};">
+          <div class="quest-head">
+            <div class="quest-title">
+              <h3>${t.name}</h3>
+              <span class="hint">${t.desc}</span>
+            </div>
+          </div>
+          <div class="quest-progress"><div class="rage"><span class="rage-label">Ранг</span>${rankHtml}</div></div>
+          <div class="quest-foot">
+            <span class="price">${rank}/${t.maxRank}</span>
+            ${actionButton}
+          </div>
+        </article>
+      `;
+    }).join("");
+  }).join("");
+
+  return `
+    <div class="banner" style="margin-bottom: 12px;">🌟 Свободных очков таланта: <b>${points}</b> · +1 каждые 3 уровня</div>
+    ${tabsHtml}
+    <div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">${cards}</div>
+  `;
+}
+
 function heroInventoryHtml() {
+   if (view.inventoryTab === "talents") return talentsHtml();
    if (view.inventoryTab === "potions") {
-    // Находим все зелья из базы предметов
     const potions = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
-    
+
     if (!potions.length) return `<p class="empty">В сумке нет зелий.</p>`;
-    
+
     const rows = potions.map((item) => {
       const count = state.potions[item.id] || 0;
       const st = stats();
-      // Проверяем, можно ли выпить (не полное ли HP/мана)
       const isFull = item.effect === "hp" ? state.hp >= st.maxHp : state.mana >= st.maxMana;
-      
+
       return `
         <div class="resource-row" style="padding: 12px; margin-bottom: 8px; align-items: center;">
           <span style="display: flex; align-items: center; gap: 10px;">
@@ -972,7 +1090,7 @@ function heroInventoryHtml() {
         </div>
       `;
     }).join("");
-    
+
     return `<div class="resource-list">${rows}</div>`;
   }
   if (view.inventoryTab === "gear") {
@@ -999,7 +1117,7 @@ function heroInventoryHtml() {
     const slots = filtered.map((inst) => {
       const item = ITEMS[inst.id]; if (!item) return "";
       const tier = RARITY_TIERS[inst.rarity] || RARITY_TIERS.common;
-      const statLine = itemStats(getInstanceStats(inst)).join(", ");
+      const statLine = itemStats(item, inst).join(", ");
       const affixLine = (inst.affix?.bonuses || []).filter((b) => ATTR_LABEL[b.id]).map((b) => `${ATTR_LABEL[b.id]} +${b.value}`).join(", ");
       const eff = inst.unique ? UNIQUE_EFFECTS.find((u) => u.id === inst.unique) : null;
       let title = `${getItemDisplayName(inst)} (${tier.name})`;
@@ -1037,7 +1155,7 @@ function heroHtml(st) {
   const counterFormatted = Math.round(st.counter * 10) / 10;
 
   return `
-    <div class="hero-bg"></div> <!-- ДОБАВЛЕНА СТРОКА С ФОНОМ -->
+    <div class="hero-bg"></div>
     ${subHeader(
       "Герой",
       `${esc(state.name)} — искатель Башни`,
@@ -1075,6 +1193,7 @@ function heroHtml(st) {
         <div style="margin-top: 20px;">
                     <div class="shop-tabs" style="margin-bottom:10px;">
             <button class="shop-tab${view.inventoryTab === "gear" ? " active" : ""}" data-act="inventory-tab" data-tab="gear" type="button">Снаряжение</button>
+            <button class="shop-tab${view.inventoryTab === "talents" ? " active" : ""}" data-act="inventory-tab" data-tab="talents" type="button">Таланты</button>
             <button class="shop-tab${view.inventoryTab === "resources" ? " active" : ""}" data-act="inventory-tab" data-tab="resources" type="button">Материалы</button>
             <button class="shop-tab${view.inventoryTab === "recipes" ? " active" : ""}" data-act="inventory-tab" data-tab="recipes" type="button">Рецепты</button>
             <button class="shop-tab${view.inventoryTab === "potions" ? " active" : ""}" data-act="inventory-tab" data-tab="potions" type="button">Зелья</button>
@@ -1090,18 +1209,18 @@ function heroHtml(st) {
 
 function towerHtml() {
   const reason = towerClosedReason();
-  
+
   const floors = FLOORS.map((floor) => {
     const locked = floor.id > state.maxFloor;
     const cleared = Boolean(state.cleared[floor.id]);
-    
+
     return `
       <article class="floor-card${locked ? " locked" : ""}${cleared ? " cleared" : ""}" 
                style="position: relative; overflow: hidden; min-height: 220px; border: 1px solid var(--line); border-radius: 16px; padding: 0;">
         
-         <div style="position: absolute; inset: 0; background-image: url('${floor.cardImg || floor.bg || "assets/backgrounds/tower.webp"}'); background-size: cover; background-position: center; z-index: 0; ${locked ? 'filter: grayscale(1) brightness(0.3);' : 'filter: brightness(0.3);'}"></div>
+         <div style="position: absolute; inset: 0; background-image: url('${floor.cardImg || floor.bg || "assets/backgrounds/tower.webp"}'); background-size: cover; background-position: center; z-index: 0; ${locked ? 'filter: grayscale(1) brightness(0.6);' : 'filter: brightness(0.6);'}"></div>
         
-        <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.35) 0%, rgba(10, 8, 7, 0.15) 100%); height: 100%; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.05) 0%, rgba(10, 8, 7, 0.00) 100%); height: 100%; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
           
           <span class="loc-kicker" style="color: var(--gold); font-size: 11px; letter-spacing: 0.1em;">
             ЭТАЖ ${floor.id} ${locked ? "· ЗАПЕЧАТАН" : cleared ? "· ПРОЙДЕН" : ""}
@@ -1114,8 +1233,8 @@ function towerHtml() {
           </p>
 
           <div>
-            ${locked 
-              ? `<span class="badge" style="border-color: var(--blood); color: var(--blood);">🔒 Запечатан</span>` 
+            ${locked
+              ? `<span class="badge" style="border-color: var(--blood); color: var(--blood);">🔒 Запечатан</span>`
               : `<button class="btn primary" data-act="floor-open" data-floor="${floor.id}" type="button">Войти на этаж →</button>`}
           </div>
           
@@ -1137,12 +1256,11 @@ function towerHtml() {
 function floorResourcesHtml(floorId) {
   const resources = FLOOR_RESOURCES[floorId] || [];
   if (!resources.length) return "Здесь нечего искать.";
-  
+
   const list = resources.map(res => {
-    // Используем resolveIcon, чтобы подтянуть картинку или эмодзи
     return `<span style="display:inline-flex; align-items:center; gap:4px; margin-right:8px; white-space:nowrap;">${iconHtml(res.icon, 16)} ${res.name}</span>`;
   }).join("");
-  
+
   return `<div style="font-size:12px; line-height:1.6; text-align:left; max-width:280px;"><b>Возможная добыча:</b><br>${list}</div>`;
 }
 function floorHtml() {
@@ -1160,52 +1278,59 @@ function floorHtml() {
   const towerControls = `
     <div class="tower-controls" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--line);">
       <button class="btn primary" data-act="rest" type="button">${isNight() ? "Дождаться утра" : "Отдых · +3 энергии"}</button>
-     <button class="btn ghost gather-btn" data-act="gather" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button">
-  🔍 Искать припасы (1 ⚡)
-  <div class="gather-tooltip">
-    <b>Возможная добыча:</b>
-    <div class="gather-tooltip-list">
-      ${(FLOOR_RESOURCES[floor.id] || []).map(res => `<span>${iconHtml(res.icon, 16)} ${res.name}</span>`).join("")}
-    </div>
-  </div>
-</button>
       ${potionsHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-left: auto;">${potionsHtml}</div>` : ""}
     </div>
   `;
 
-  const mobs = floor.mobs.map((mob, index) => {
-    const isFarming = view.farm && view.farm.floorId === floor.id && view.farm.mobIndex === index;
-    const farmBtn = isFarming 
-      ? `<button class="btn small danger" data-act="farm-stop" type="button" style="width:100%;">⏹ Стоп</button>` 
-      : `<button class="btn small ghost" data-act="farm" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button" style="width:100%; margin-top: 5px;">⏩ Фарм</button>`;
+  const progress = Math.min(100, state.floorProgress?.[floor.id] || 0);
+  const explored = progress >= 100;
+  const cleared = Boolean(state.cleared[floor.id]);
+
+  const autoReady = canFight && !view.autoExplore && (view.screen !== "battle");
+  const modeSafe = view.autoExploreMode !== "fight";
+
+  const autoBlock = `
+    <div style="display:flex; gap:6px; align-items:stretch;">
+      <button class="btn" data-act="auto-explore" data-floor="${floor.id}" ${autoReady ? "" : "disabled"} type="button" style="font-size: 14px; padding: 10px 16px;">Авто-исследование</button>
       
-    return `
-      <div class="mob-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: row; gap: 20px; align-items: center;">
-        
-        <div style="display: flex; align-items: flex-start; gap: 15px; flex: 1;">
-          <div class="mob-icon" style="width: 60px; height: 60px; flex: 0 0 60px; font-size: 32px; background: #1c1511; border-radius: 12px; border: 1px solid var(--line2); display: grid; place-items: center;">
-            ${iconHtml(mob.icon, 48)}
-          </div>
-          <div>
-            <b style="font-size: 18px; color: var(--gold2);">${mob.name}</b>
-            <div style="font-size: 13px; color: var(--dim); margin-top: 4px; line-height: 1.4; max-width: 500px;">${mob.desc}</div>
-            
-            <div class="mob-stats-container" style="margin-top: 12px;">
-              <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${mob.hp} HP</span>
-              <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${mob.atk}</span>
-              <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${mob.def}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 140px;">
-          <button class="btn small primary" data-act="fight" data-floor="${floor.id}" data-mob="${index}" ${canFight ? "" : "disabled"} type="button" style="width:100%;">⚔ В бой</button>
-          ${farmBtn}
-        </div>
-
+      <div style="display:flex; flex-direction:column; gap:4px; justify-content:space-between;">
+        <button class="btn ${modeSafe ? "primary" : "ghost"}" data-act="auto-mode" data-mode="safe" ${view.autoExplore ? "disabled" : ""} type="button" style="font-size: 11px; padding: 0 12px; flex:1; min-height:0;" title="Избегать все бои">Скрытный</button>
+        <button class="btn ${modeSafe ? "ghost" : "danger"}" data-act="auto-mode" data-mode="fight" ${view.autoExplore ? "disabled" : ""} type="button" style="font-size: 11px; padding: 0 12px; flex:1; min-height:0;" title="Принимать все бои">Боевой</button>
       </div>
-    `;
-  }).join("");
+    </div>
+  `;
+
+  const exploreActions = explored
+    ? `${cleared ? `<button class="btn ghost" data-act="seek-fight" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button" style="font-size: 14px; padding: 10px 16px;">⚔ Искать боя</button>
+       ${autoBlock}` : ""}`
+    : `<div style="display:flex; gap:8px; align-items:stretch; flex-wrap:wrap;">
+         <button class="btn primary" data-act="explore" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button" style="font-size: 14px; padding: 10px 16px;">Исследовать (1 ⚡)</button>
+         ${autoBlock}
+       </div>`;
+
+  const autoPanel = view.autoExplore ? `
+    <div style="margin-top: 15px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,0.25); padding: 12px 14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <b style="font-size:14px; color: var(--gold2);">Авто-исследование: ${view.autoExplore.avoidDanger ? "Скрытный" : "Боевой"}${battleActive() ? ` <span style="color: var(--gold);">(пауза на бой)</span>` : ""}</b>
+        <button class="btn small danger" data-act="auto-stop" type="button">⏹ Стоп</button>
+      </div>
+      <div style="margin-top:10px; background:#0b0b0d; border:1px solid var(--line); border-radius:8px; padding:8px 10px; max-height:120px; overflow-y:auto; font-family: Consolas, 'Courier New', monospace; font-size:12px; line-height:1.7; color:#8fd98f;">
+        ${view.autoExplore.log.length ? view.autoExplore.log.slice(-7).map(line => `<div>${line}</div>`).join("") : `<div style="color:#5a5a5a;">Ожидание…</div>`}
+      </div>
+    </div>
+  ` : "";
+
+  const exploreBlock = `
+    <div class="explore-block" style="padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); margin-bottom: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
+        <b style="font-size: 18px; color: var(--gold2);">🔎 Исследование этажа</b>
+        <span style="color: var(--dim); font-size: 14px;">Исследовано: <b style="color: var(--gold2);">${progress}%</b></span>
+      </div>
+      ${bar("xp", progress, 100)}
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 15px; align-items:center;">${exploreActions}</div>
+      ${autoPanel}
+    </div>
+  `;
 
   return `
     <div class="screen-bg" style="background-image: url('${floor.bg || "assets/backgrounds/tower.webp"}');"></div>
@@ -1213,30 +1338,20 @@ function floorHtml() {
     <p class="lead" style="margin-bottom: 20px;">${floor.desc || ""}</p>
     ${towerControls}
     
-    ${view.farm ? `
-      <div class="banner farm-banner" style="display:flex; flex-direction:column; gap:10px; align-items:stretch;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <b>⏩ Идет фарм: ${floor.mobs[view.farm.mobIndex]?.name}</b>
-          <button class="btn small danger" data-act="farm-stop" type="button">⏹ Остановить</button>
-        </div>
-        <div class="farm-log" style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; max-height:150px; overflow-y:auto; font-size:0.85rem; font-family:monospace;">
-          ${view.farm.log.length > 0 ? view.farm.log.slice(-5).map(line => `<div>${line}</div>`).join("") : "<div>Ожидание боя...</div>"}
-        </div>
-      </div>
-    ` : ""}
-    
+    ${state.debuff ? `<div class="banner warn-banner">${state.debuff.icon} ${state.debuff.name}: ${state.debuff.desc} · боёв осталось: ${state.debuff.battles}</div>` : ""}
     ${reason ? `<div class="banner warn-banner">${reason}</div>` : ""}
     
     <div class="floors">
-      <article class="floor-card${state.cleared[floor.id] ? " cleared" : ""}">
-        <div class="floor-head"><div><h2>Противники</h2></div></div>
-        <div class="mobs" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">${mobs}</div>
+      <article class="floor-card${cleared ? " cleared" : ""}">
+        <div class="floor-head"><div><h2>Исследование</h2></div></div>
+        ${exploreBlock}
         
-        <div class="boss-row" style="margin-top: 20px; padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--blood); display: flex; align-items: center; gap: 20px;">
+        ${explored ? `
+        <div class="boss-row" style="margin-top: 5px; padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--blood); display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
           <span class="mob-icon boss-icon" style="width: 80px; height: 80px; flex: 0 0 80px; font-size: 40px; background: #1c1511; border-radius: 12px; border: 1px solid var(--blood); display: grid; place-items: center;">
             ${iconHtml(floor.boss.icon, 64)}
           </span>
-          <div class="mob-info" style="flex: 1;">
+          <div class="mob-info" style="flex: 1; min-width: 220px;">
             <b style="font-size: 20px; color: #ff6b6b;">${floor.boss.name}</b>
             <div class="mob-stats-container" style="margin-top: 8px;">
               <span class="mob-stat-chip hp" style="font-size: 13px; padding: 5px 12px;">❤ ${floor.boss.hp} HP</span>
@@ -1244,8 +1359,11 @@ function floorHtml() {
               <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${floor.boss.def}</span>
             </div>
           </div>
-          <button class="btn primary" data-act="fight" data-floor="${floor.id}" data-mob="boss" ${canFight ? "" : "disabled"} type="button" style="font-size: 16px; padding: 12px 24px;">⚔ Атаковать Босса</button>
-        </div>
+          <button class="btn primary" data-act="fight" data-floor="${floor.id}" data-mob="boss" ${canFight ? "" : "disabled"} type="button" style="font-size: 14px; padding: 10px 16px;">🗡 Атаковать Босса</button>
+          ${cleared
+            ? `<span class="badge elite" style="padding: 8px 14px;">⚠ Повержен — можно снова</span>`
+            : `<span class="badge elite" style="padding: 8px 14px;">⚠ Босс пробуждён</span>`}
+        </div>` : ""}
       </article>
     </div>
   `;
@@ -1265,7 +1383,6 @@ function zoneButtons() {
   };
 }
 
-// Значки вариации противника: редкость, модификатор, способность.
 function enemyStatusHtml(enemy) {
   const badges = [];
   if (enemy.rarity === "rare") badges.push(`<span class="badge rare">✦ Редкий</span>`);
@@ -1297,6 +1414,22 @@ function battleHtml(st) {
     `<span class="pip${i < battle.rage ? " on" : ""}"></span>`
   ).join("");
 
+  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  setActiveWeaponInstance(mainInst);
+  const playerWeapon = mainInst ? ITEMS[mainInst.id] : null;
+  const activeStyle = (weaponStyleValue(playerWeapon, view.attackStyle) || 0) > 0
+    ? view.attackStyle
+    : weaponBestStyle(playerWeapon);
+  const styleButtonsHtml = STYLE_ORDER.map((s) => {
+    const value = weaponStyleValue(playerWeapon, s);
+    const disabled = value <= 0;
+    const sel = activeStyle === s ? " selected" : "";
+    const tip = disabled ? "Это оружие так не бьёт" : `Множитель стиля x${weaponStyleMult(playerWeapon, s).toFixed(2)}`;
+    return `<button class="zone attack${sel}" data-act="attack-style" data-style="${s}" ${disabled ? "disabled" : ""} type="button" title="${tip}">${STYLE_ICONS[s]} ${STYLE_NAMES[s]}</button>`;
+  }).join("");
+
+  const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
+
   const log = battle.log.slice(-18).map((entry) =>
     `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`
   ).join("");
@@ -1309,6 +1442,8 @@ function battleHtml(st) {
         <h3>Куда бить</h3>
         <div class="zones">${zones.attack}</div>
         ${activeZoneTip ? `<div class="zone-tip hint">${esc(activeZoneTip)}</div>` : ""}
+        <h3 style="margin-top: 12px;">Как бить</h3>
+        <div class="zones" style="grid-template-columns: repeat(3, 1fr);">${styleButtonsHtml}</div>
       </div>
       <div class="control-group">
         <h3>Что блокировать</h3>
@@ -1327,7 +1462,7 @@ function battleHtml(st) {
   `;
 
   return `
-    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: linear-gradient(rgba(10, 8, 7, 0.6), rgba(10, 8, 7, 0.6)), url('${bgImage}'); background-size: cover; background-position: center; z-index: 0; pointer-events: none;"></div>
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: linear-gradient(rgba(10, 8, 7, 0.3), rgba(10, 8, 7, 0.3)), url('${bgImage}'); background-size: cover; background-position: center; z-index: 0; pointer-events: none;"></div>
     
     <section class="battle" style="position: relative; z-index: 1; padding-top: 10px;">
       
@@ -1405,7 +1540,17 @@ function battleHtml(st) {
               <span class="mob-stat-chip atk" style="font-size: 13px; padding: 5px 12px;">⚔ ${enemy.atk}</span>
               <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${enemy.def}</span>
             </div>
-
+            ${enemyWeapon ? `<div style="margin-top: 8px; font-size: 12px; color: var(--dim);">Вооружен: ${enemyWeapon.name} (${STYLE_NAMES[weaponBestStyle(enemyWeapon)]})</div>` : ""}
+            ${(() => {
+  const armorName = ARMOR_TYPE_NAMES[enemy.armorType] || "Без брони";
+  let hint = "";
+  if (enemy.armorType === "plate") hint = " (слабость: дробящий)";
+  else if (enemy.armorType === "chain") hint = " (слабость: дробящий/колющий)";
+  else if (enemy.armorType === "leather") hint = " (слабость: рубящий)";
+  else if (enemy.armorType === "cloth") hint = " (слабость: рубящий/колющий)";
+  
+  return `<div style="margin-top: 4px; font-size: 12px; color: var(--dim);">Броня: <b style="color: #d1c0aa;">${armorName}</b>${hint}</div>`;
+})()}
           </div>
         </article>
       </div>
@@ -1453,7 +1598,6 @@ function resultHtml() {
     </div>`;
   }
 
-  // Блок поражения
   const battle = view.battle;
   const log = battle ? battle.log.slice(-12).map((entry) =>
     `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`
@@ -1482,7 +1626,7 @@ function scrollLog() { const log = document.getElementById("battle-log"); if (lo
 function levelUpModalHtml() {
   const level = view.levelUp;
   if (!level) return "";
-  
+
   return `
     <div class="result-overlay" data-act="levelup-close" style="z-index: 200;">
       <div class="result-card levelup-card">
@@ -1512,7 +1656,11 @@ function render() {
     if (view.questsOpen) html += questsModalHtml();
   screen.innerHTML = html; screen.dataset.screen = view.screen; if (view.screen === "battle") requestAnimationFrame(scrollLog);
     if (view.questsOpen) html += questsModalHtml();
-    if (view.levelUp) html += levelUpModalHtml(); // <-- ДОБАВИТЬ ЭТО
+    if (view.levelUp) html += levelUpModalHtml();
+    if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
+    if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
+    if (view.talkNpc) html += npcDialogHtml(view.talkNpc);
+    if (view.bestiaryOpen) html += bestiaryModalHtml();
   screen.innerHTML = html;
 }
 
@@ -1520,15 +1668,14 @@ function startBattle(floorId, mobKey) {
   const floor = FLOORS.find((f) => f.id === floorId); if (!floor) return; const def = mobKey === "boss" ? floor.boss : floor.mobs[Number(mobKey)]; if (!def) return;
   const spend = spendFightEnergy(); if (!spend.ok) { toast(spend.text, "warn"); render(); return; }
   beginBattle(def, floor.id);
-  // Засада: только в обычном бою, не с боссом.
   if (!def.boss && Math.random() < AMBUSH_CHANCE) {
     view.ambush = { floorId: floor.id, nextMobIndex: ambushMobIndex(floor, Number(mobKey)) };
   }
 }
 
-// Общая точка входа в бой: строит баттл и настраивает экран.
 function beginBattle(def, floorId, opts = {}) {
   const st = stats();
+  if (def && def.id && !state.bestiary[def.id]) { state.bestiary[def.id] = true; saveState(); }
   view.tripActive = true;
   view.battle = createBattle(def, floorId);
   if (opts.ambush) {
@@ -1546,7 +1693,9 @@ function beginBattle(def, floorId, opts = {}) {
 
 function doExchange(type, potionId) {
   if (!view.battle || view.battle.over) return;
-  const result = exchange(state, view.battle, { type, zone: view.attackZone, blocks: view.blocks, id: potionId });
+  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  setActiveWeaponInstance(mainInst);
+  const result = exchange(state, view.battle, { type, zone: view.attackZone, blocks: view.blocks, style: view.attackStyle, id: potionId });
   if (result.error) { toast(result.error, "warn"); return; } if (result.summary) view.summary = result.summary; render();
 }
 
@@ -1554,31 +1703,36 @@ function endTrip() { if (!view.tripActive) return; view.tripActive = false; adva
 
 function go(screen) {
   if (!state.created) return;
-  if (view.farm) stopFarm("Фарм остановлен.");
+  const shopNpc = SHOP_NPCS[screen];
+  if (shopNpc) {
+    if (view.activeShopNpc !== shopNpc) { view.activeShopNpc = shopNpc; view.sellSelection = []; view.shopTab = "buy"; }
+    view.shopNpcPhrase = getRandomPhrase(shopNpc, "greetings");
+    view.shopTab = view.shopTab || "buy";
+  } else {
+    view.activeShopNpc = null; view.sellSelection = []; view.shopTab = "buy";
+  }
+  if (view.autoExplore) stopAutoExplore("Авто-исследование остановлено.");
   if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
-  
-  // --- ДОБАВЛЯЕМ ПРОВЕРКУ НА НОЧЬ ---
+
   if (isNight() && ["market", "forge", "alchemy", "jewelry", "training"].includes(screen)) {
     toast("Ночью эта локация закрыта. Дождитесь утра.", "warn");
     return;
   }
-  // ---------------------------------
 
   if (screen === "hero" && view.screen !== "hero") {
     view.heroBackScreen = view.screen;
   }
   if (!state.created) return;
-  if (view.farm) stopFarm("Фарм остановлен.");
+  if (view.autoExplore) stopAutoExplore("Авто-исследование остановлено.");
   if (battleActive()) { toast("Сначала завершите бой.", "warn"); return; }
   if (screen === "hero" && view.screen !== "hero") {
     view.heroBackScreen = view.screen;
   }
   if (screen === "tower") { const reason = towerClosedReason(); if (reason) { toast(reason, "warn"); return; } }
-  
+
   const leavingTower = view.tripActive && (view.screen === "tower" || view.screen === "battle") && screen !== "tower" && screen !== "battle" && screen !== "hero";
-  
+
   if (leavingTower) endTrip();
-  // Уход с экрана боя отменяет ждущую засаду — как побег.
   view.ambush = null;
   view.screen = screen;
   view.dollSlot = null;
@@ -1604,60 +1758,271 @@ function handleKey(event) {
 function onInput(event) {
   const el = event.target;
   if (el?.dataset?.role === "create-name" && view.create) { view.create.name = el.value; const caption = document.querySelector(".preview-portrait-caption b"); if (caption) caption.textContent = el.value.trim() || "Странник"; return; }
-  // Поиск в инвентаре: render() пересобирает DOM, поэтому после него возвращаем фокус и курсор в поле.
   if (el?.dataset?.role === "inv-search") {
     view.invSearch = el.value;
     const pos = el.selectionStart;
     render();
     const input = document.querySelector('[data-role="inv-search"]');
-    if (input) { input.focus(); try { input.setSelectionRange(pos, pos); } catch { /* не критично */ } }
+    if (input) { input.focus(); try { input.setSelectionRange(pos, pos); } catch { } }
   }
 }
 
-function startFarm(floorId, mobIndex) {
-  const floor = FLOORS.find((f) => f.id === floorId); if (!floor) return; const mob = floor.mobs[mobIndex]; if (!mob) return;
-  if (state.energy < FIGHT_ENERGY_COST) { toast("Энергия на исходе.", "warn"); return; }
-  view.farm = { floorId, mobIndex, timer: null, log: [] }; toast(`Начат фарм: ${mob.name}`, "info"); render(); view.farm.timer = setTimeout(() => { if (view.farm) farmTick(); }, 100);
+function startAutoExplore(floorId, avoidDanger) {
+  if (view.autoExplore) return;
+  const reason = towerClosedReason();
+  if (reason) { toast(reason, "warn"); render(); return; }
+  if (state.activeSceneId) { toast("Сначала разберитесь с активной сценой.", "warn"); render(); return; }
+  if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; }
+  view.autoExplore = { floorId, avoidDanger, timer: null, log: [] };
+  toast(avoidDanger ? "⏩ Авто-исследование: безопасный режим." : "⏩ Авто-исследование: боевой режим.", "info");
+  render();
+  view.autoExplore.timer = setTimeout(autoExploreLoop, 400);
 }
 
-function farmTick() {
-  if (!view.farm) return; 
-  const floor = FLOORS.find(f => f.id === view.farm.floorId); 
-  const mob = floor?.mobs[view.farm.mobIndex]; 
-  if (!mob) { stopFarm("Ошибка."); return; }
-  
-  if (state.energy < FIGHT_ENERGY_COST) { stopFarm("Энергия на исходе."); return; }
-  
-  const result = simulateFarmBattle(mob); 
-  view.farm.log.push(`[${new Date().toLocaleTimeString()}] ${result.text}`); 
-  render();
-  
-  if (!result.ok) { 
-    // Если проиграли или вышли по таймауту
-    if (result.text.includes("погибли")) {
-      toast("Вы погибли во время фарма! Возвращение в Йорстед...", "warn");
-      
-      // Пропускаем день и лечим (как при поражении)
-      view.screen = "hub";
-      view.currentFloor = null;
-      state.phase = TIME_PHASES.length - 1; 
-      endTrip(); 
-      const st = stats();
-      state.hp = st.maxHp;
-      state.mana = st.maxMana;
-      state.energy = st.maxEnergy;
-      
-      stopFarm(); // Останавливаем цикл
-      render();
+function autoExploreLoop() {
+  const ae = view.autoExplore; if (!ae) return;
+  if (battleActive()) return;
+  if (isNight()) { stopAutoExplore("Наступила ночь. Авто-исследование остановлено."); return; }
+  if (state.activeSceneId) resolveSceneAction("leave");
+  if (!view.autoExplore) return;
+  if (state.activeNpcId) applyNpcAction("leave", state.activeNpcId);
+  if (!view.autoExplore) return;
+  if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
+  autoExploreTick(ae.floorId, ae.avoidDanger);
+  if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 700);
+}
+
+function autoExploreTick(floorId, avoidDanger) {
+  const ae = view.autoExplore; if (!ae) return;
+  const floor = FLOORS.find((f) => f.id === floorId);
+  if (!floor) { stopAutoExplore("Этаж не найден."); return; }
+  const stamp = `[${new Date().toLocaleTimeString()}]`;
+
+  if ((state.floorProgress[floorId] || 0) >= 100) {
+    if (avoidDanger) { stopAutoExplore("Этаж пройден — исследовать нечего. В безопасном режиме здесь делать нечего."); return; }
+    if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
+    const mobIndex = Math.floor(Math.random() * floor.mobs.length);
+    ae.log.push(`${stamp} ⚔ Ищем боя: ${floor.mobs[mobIndex].name}.`);
+    startBattle(floorId, mobIndex);
+    return;
+  }
+
+  const res = exploreFloor(floorId);
+  ae.log.push(`${stamp} ${res.text}`);
+  if (ae.log.length > 30) ae.log.splice(0, ae.log.length - 30);
+  toast(res.text, res.ok ? "ok" : "warn");
+  if (!res.ok) { stopAutoExplore(); return; }
+
+  if (res.encounter) {
+    const encFloor = FLOORS.find((f) => f.id === res.encounter.floorId);
+    const def = encFloor ? encFloor.mobs[res.encounter.mobIndex] : null;
+    if (def && !avoidDanger) {
+      view.ambush = null;
+      beginBattle(def, encFloor.id);
       return;
     }
-    stopFarm(result.text); 
-    return; 
+    ae.log.push(`${stamp} ⏭ Бой пропущен: ${def ? def.name : "противник"}.`);
   }
-  view.farm.timer = setTimeout(farmTick, 1500);
+  render();
 }
 
-function stopFarm(reason) { if (!view.farm) return; clearTimeout(view.farm.timer); view.farm = null; if (reason) toast(reason, "warn"); render(); }
+function stopAutoExplore(reason) {
+  if (!view.autoExplore) return;
+  clearTimeout(view.autoExplore.timer);
+  view.autoExplore = null;
+  if (reason) toast(reason, "warn");
+  render();
+}
+
+function sceneModalHtml() {
+  const floor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
+  const scene = floor ? (FLOOR_SCENES[floor.id] || []).find((s) => s.id === state.activeSceneId) : null;
+  if (!scene) return "";
+  const actions = scene.actions.map((a) =>
+    `<button class="btn primary" data-act="scene-action" data-action="${a.id}" type="button" style="flex:1; min-width:180px;">${a.label}</button>`
+  ).join("");
+  return `
+    <div class="result-overlay" data-act="scene-backdrop" style="z-index: 190;">
+      <div class="result-card">
+        <h2 style="color: var(--gold2); font-size: 26px;">🎬 ${scene.title}</h2>
+        <p style="font-size: 15px; line-height: 1.55; margin: 15px 0 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">${scene.text}</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">${actions}</div>
+      </div>
+    </div>
+  `;
+}
+
+function resolveSceneAction(type) {
+  const floor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
+  const scene = floor ? (FLOOR_SCENES[floor.id] || []).find((s) => s.id === state.activeSceneId) : null;
+  if (!scene || !floor) { state.activeSceneId = null; state.activeSceneFloorId = null; saveState(); render(); return; }
+
+  const closeScene = () => { state.activeSceneId = null; state.activeSceneFloorId = null; saveState(); };
+  const addProgress = (amount) => {
+    state.floorProgress = state.floorProgress || {};
+    state.floorProgress[floor.id] = Math.min(100, (state.floorProgress[floor.id] || 0) + amount);
+  };
+  const startGroup = (groupIndexes) => {
+    view.sceneGroup = groupIndexes.slice(1);
+    view.sceneGroupFloorId = floor.id;
+    beginBattle(floor.mobs[groupIndexes[0]], floor.id);
+  };
+
+  if (type === "stealth") {
+    if (Math.random() < 0.8) {
+      addProgress(3);
+      closeScene();
+      toast(`Вы переждали в кустах, пока гоблины не ушли. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+      render();
+    } else {
+      closeScene();
+      toast("Гоблин обернулся — вы замечены!", "warn");
+      startGroup(scene.group);
+    }
+  } else if (type === "fight") {
+    closeScene();
+    startGroup(scene.group);
+  } else if (type === "dig") {
+    if (Math.random() < 0.6) {
+      closeScene();
+      const count = Math.min(scene.group.length, 1 + Math.floor(Math.random() * 3));
+      toast(`Земля шевельнулась — поднимаются мертвецы (×${count})!`, "warn");
+      startGroup(scene.group.slice(0, count));
+    } else {
+      const pool = FLOOR_RESOURCES[floor.id + 1] || FLOOR_RESOURCES[floor.id] || [];
+      const res = pool[Math.floor(Math.random() * pool.length)];
+      const amount = Math.floor(Math.random() * (res.maxAmount - res.minAmount + 1)) + res.minAmount;
+      state.resources[res.id] = (state.resources[res.id] || 0) + amount;
+      weekQuestResourceGain(res.id, amount);
+      addProgress(1);
+      closeScene();
+      toast(`В земле нашлось: ${res.name} ×${amount}! Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+      render();
+    }
+  } else {
+    addProgress(1);
+    closeScene();
+    toast(`Вы обошли это место стороной. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+    render();
+  }
+}
+
+function discardTraderStock() {
+  if (!view.traderStock) return;
+  for (const entry of view.traderStock) {
+    if (entry.kind === "gear" && !entry.sold) {
+      state.owned = state.owned.filter((i) => i.uid !== entry.uid);
+    }
+  }
+  view.traderStock = null;
+  view.npcShopOpen = false;
+}
+
+function closeNpcDialog() {
+  discardTraderStock();
+  state.activeNpcId = null;
+  saveState();
+  render();
+}
+
+const NPC_TALK_TARGETS = {
+  ron:     { screen: "forge",    tabField: "forgeTab",    shopLabel: "Показать товары" },
+  elain:   { screen: "alchemy",  tabField: "alchemyTab",  shopLabel: "Показать товары" },
+  elize:   { screen: "jewelry",  tabField: "jewelryTab",  shopLabel: "Показать товары" },
+  barmaid: { screen: "hotel",    tabField: null,          shopLabel: "Снять номер" },
+  ivan:    { screen: "training", tabField: "trainingTab", shopLabel: "Тренировки", shopTab: "train" },
+};
+
+const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, хозяйка лавки", elize: "Элиза, ювелир", barmaid: "Стелла, хозяйка гостиницы", ivan: "Иван, инструктор Зала Охотников" };
+
+function getRandomPhrase(npcId, phraseType) {
+  const set = DIALOGS[npcId];
+  const phrase = set ? set[phraseType] : null;
+  if (Array.isArray(phrase) && phrase.length) return phrase[Math.floor(Math.random() * phrase.length)];
+  return phrase || "";
+}
+
+const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", barmaid: "Гостиница «Усталый путник»", ivan: "Зал Охотников" };
+
+function npcDialogHtml(npcId) {
+  const target = NPC_TALK_TARGETS[npcId];
+  if (!target) return "";
+  const dialogue = view.talkNpcText || getRandomPhrase(npcId, "greetings");
+  ensureWeekQuests();
+  const q = state.weekQuests.list.find((x) => x.npc === npcId);
+
+  let questButton = "";
+  if (q) {
+    if (q.status === "offered") questButton = `<button class="btn small primary" data-act="npc-talk-quest" data-npc="${npcId}" type="button">Взять задание</button>`;
+    else if (q.status === "active") questButton = `<button class="btn small" disabled type="button">Задание в работе</button>`;
+    else if (q.status === "done") questButton = `<button class="btn small primary" data-act="claim-npc-quest" data-id="${q.id}" type="button">Сдать задание</button>`;
+  }
+
+  return `
+    <div class="result-overlay" data-act="npc-talk-backdrop" style="z-index: 184;">
+      <div class="result-card">
+        <div style="display:flex; gap:15px; align-items:center; text-align:left;">
+          <img src="${npcPortraitSrc(npcId)}" alt="${NPC_NAMES[npcId]}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">
+          <div>
+            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 8px;">${NPC_TALK_PLACE[npcId]}</h2>
+            <p style="font-size:14px; margin:0; line-height:1.5;">«${esc(dialogue)}»</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
+          <button class="btn primary" data-act="npc-talk-shop" data-npc="${npcId}" type="button">${target.shopLabel}</button>
+          ${questButton}
+          <button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function traderDialogHtml() {
+
+  const npc = NPCS[state.activeNpcId];
+  if (!npc) return "";
+
+  const portrait = `<img src="${npcPortraitSrc(npc.portrait)}" alt="${npc.name}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">`;
+
+  let shopHtml = "";
+  if (view.npcShopOpen) {
+    const rows = (view.traderStock || []).map((entry) => {
+      const label = entry.kind === "gear"
+        ? `${getItemDisplayName(entry.inst)} · <span style="color:${RARITY_TIERS[entry.inst.rarity]?.color || "var(--dim)"};">${RARITY_TIERS[entry.inst.rarity]?.name || ""}</span>`
+        : `${entry.icon} ${entry.name}`;
+      const afford = state.gold >= entry.price;
+      return `<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.2);">
+        <span style="flex:1; font-size:14px;">${label}</span>
+        <b style="color:var(--gold2);">${entry.price} 💰</b>
+        <button class="btn small primary" data-act="npc-action" data-npc-action="buy" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" ${afford ? "" : "disabled"} type="button">Купить</button>
+      </div>`;
+    }).join("");
+    shopHtml = `
+      <div style="display:flex; flex-direction:column; gap:8px; margin:15px 0 8px;">${rows}</div>
+      <p style="color:var(--dim); font-size:12px; margin:0 0 15px;">Цены странствующего: лавочная ×${TRADER_PRICE_MULT}. У вас: <b style="color:var(--gold2);">${state.gold} 💰</b></p>`;
+  }
+
+  const options = npc.options.map((o) =>
+    `<button class="btn ${o.id === "leave" ? "ghost" : "primary"}" data-act="npc-action" data-npc-action="${o.id}" type="button" style="flex:1; min-width:160px;">${o.label}</button>`
+  ).join("");
+
+  return `
+    <div class="result-overlay" data-act="npc-backdrop" style="z-index: 185;">
+      <div class="result-card">
+        <div style="display:flex; gap:15px; align-items:center; text-align:left;">
+          ${portrait}
+          <div>
+            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 8px;">🧙 ${npc.name}</h2>
+            <p style="color:var(--dim); font-size:14px; margin:0; line-height:1.5;">${npc.text}</p>
+          </div>
+        </div>
+        ${shopHtml}
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">${options}</div>
+      </div>
+    </div>
+  `;
+}
 
 function onClick(event) {
   const el = event.target.closest("[data-act]"); if (!el || el.disabled) return; event.preventDefault();
@@ -1665,39 +2030,98 @@ function onClick(event) {
   switch (act) {
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
-    case "quests-open-tab": 
-      view.questsOpen = true; 
-      view.questsTab = el.dataset.tab || "daily"; 
-      render(); 
-      break;
     case "quests-close": view.questsOpen = false; render(); break;
-    case "quests-tab": view.questsTab = el.dataset.tab; render(); break;
+    case "bestiary-open": view.bestiaryOpen = true; render(); break;
+    case "bestiary-close": view.bestiaryOpen = false; render(); break;
     case "levelup-close": view.levelUp = null; render(); break;
     case "goto":
       if (el.dataset.screen === "tower") view.currentFloor = null;
       go(el.dataset.screen);
       break;
+    case "npc-talk":
+      if (NPC_TALK_TARGETS[el.dataset.npc]) { view.talkNpc = el.dataset.npc; view.talkNpcText = getRandomPhrase(el.dataset.npc, "greetings"); render(); }
+      break;
+    case "npc-talk-backdrop": view.talkNpc = null; view.talkNpcText = null; render(); break;
+    case "npc-talk-close": {
+      const npc = view.talkNpc;
+      view.talkNpc = null; view.talkNpcText = null; render();
+      if (npc) toast(getRandomPhrase(npc, "farewell"), "ok");
+      break;
+    }
+    case "npc-talk-shop": {
+      const npcId = el.dataset.npc; const target = NPC_TALK_TARGETS[npcId];
+      if (!target) break;
+      if (isNight() && ["forge", "alchemy", "jewelry", "training"].includes(target.screen)) { toast("Ночью эта локация закрыта. Дождитесь утра.", "warn"); break; }
+      toast(getRandomPhrase(npcId, "shop_open"), "ok");
+      view.talkNpc = null; view.talkNpcText = null;
+      if (target.tabField) view[target.tabField] = target.shopTab || "quests";
+      go(target.screen);
+      break;
+    }
+    case "npc-talk-quest": {
+      const npcId = el.dataset.npc;
+      if (!npcId) break;
+      const r = acceptWeekQuest(npcId);
+      toast(r.text, r.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "accept-week-quest": {
+      res = acceptWeekQuest(el.dataset.npc);
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "shop-tab": {
+      const tab = el.dataset.tab || "buy";
+      if (view.shopTab === "sell" && tab !== "sell") view.sellSelection = [];
+      view.shopTab = tab;
+      view.activeShopNpc = el.dataset.npc || view.activeShopNpc;
+      render();
+      break;
+    }
+    case "sell-toggle": {
+      const id = el.dataset.id; if (!id) break;
+      const idx = view.sellSelection.indexOf(id);
+      if (idx >= 0) view.sellSelection.splice(idx, 1); else view.sellSelection.push(id);
+      render();
+      break;
+    }
+    case "sell-submit": {
+      res = sellMultipleItems(view.sellSelection);
+      view.sellSelection = [];
+      toast(res.text, res.ok ? "ok" : "warn");
+      if (res.ok && res.text.includes("Новый уровень")) view.levelUp = state.level;
+      render();
+      break;
+    }
+    case "buy-item": {
+      const shop = el.dataset.shop || "forge";
+      res = buyItem(id, shop);
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
     case "forge-tab": view.forgeTab = el.dataset.tab; render(); break;
     case "jewelry-tab": view.jewelryTab = el.dataset.tab; render(); break;
     case "alchemy-tab": view.alchemyTab = el.dataset.tab || "potions"; render(); break;
     case "training-tab": view.trainingTab = el.dataset.tab || "train"; render(); break;
     case "inventory-tab": view.inventoryTab = el.dataset.tab || "gear"; render(); break;
-    case "claim-quest": 
-      res = claimQuest(id); 
-      toast(res.text, res.ok ? "ok" : "warn"); 
-      if (res.ok && res.text.includes("Новый уровень")) {
-        view.levelUp = state.level; 
+    case "talents-tab": view.talentsTab = el.dataset.tab; render(); break;
+    case "learn-talent": res = learnTalent(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "claim-npc-quest": {
+      res = claimNpcQuest(id);
+      if (res.ok) {
+        const q = state.weekQuests.list.find(x => x.id === id);
+        if (q) res = { ...res, text: `${res.text} ${getRandomPhrase(q.npc, "quest_complete")}` };
       }
-      render(); 
-      break;
-    case "claim-npc-quest": 
-      res = claimNpcQuest(id); 
-      toast(res.text, res.ok ? "ok" : "warn"); 
+      toast(res.text, res.ok ? "ok" : "warn");
       if (res.ok && res.text.includes("Новый уровень")) {
         view.levelUp = state.level;
       }
-      render(); 
+      render();
       break;
+    }
     case "create-portrait": { const c = view.create; if (c && PORTRAIT_MAP[el.dataset.portrait]) { c.portrait = el.dataset.portrait; render(); } break; }
     case "create-archetype": { const c = view.create; if (c && ARCHETYPE_MAP[el.dataset.id]) { c.archetype = el.dataset.id; render(); } break; }
     case "create-attr": { const c = view.create; if (!c) break; const attr = el.dataset.attr; const delta = Number(el.dataset.delta); if (delta > 0 && c.points > 0) { c.attrs[attr]++; c.points--; } else if (delta < 0 && c.attrs[attr] > 1) { c.attrs[attr]--; c.points++; } render(); break; }
@@ -1712,16 +2136,16 @@ function onClick(event) {
     case "inv-equip": res = equipItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.invItemUid = null; render(); break;
     case "inv-filter": view.invFilter = el.dataset.filter || "all"; render(); break;
     case "add-attr": res = addAttr(el.dataset.attr); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "rest": 
-      res = freeRest(); 
-      if (isNight()) { 
-        view.screen = "hub"; 
+    case "rest":
+      res = freeRest();
+      if (isNight()) {
+        view.screen = "hub";
         view.tripActive = false;
-        toast("Ночь. Вы покидаете Башню.", "warn"); 
+        toast("Ночь. Вы покидаете Башню.", "warn");
       } else {
-        toast(res.text, res.ok ? "ok" : "warn"); 
+        toast(res.text, res.ok ? "ok" : "warn");
       }
-      render(); 
+      render();
       break;
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
@@ -1734,30 +2158,60 @@ function onClick(event) {
     case "sell-potion": res = sellPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell-resource": res = sellResource(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "gather":
-       res = gatherResource(Number(el.dataset.floor) || state.maxFloor);
+    case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
+    case "explore": {
+      const res = exploreFloor(Number(el.dataset.floor) || state.maxFloor);
       toast(res.text, res.ok ? "ok" : "warn");
       if (res.encounter) {
-        const floor = FLOORS.find(f => f.id === res.encounter.floorId);
+        const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
         const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
-        if (def) {
-          beginBattle(def, floor.id);
-          view.ambush = res.encounter.ambush || null;
-        } else {
-          render();
-        }
-      } else {
-        render();
+        view.ambush = null;
+        if (def) { beginBattle(def, floor.id); break; }
       }
+      render();
       break;
-    case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
-    case "farm": startFarm(Number(el.dataset.floor), Number(el.dataset.mob)); break;
-    case "farm-stop": stopFarm("Фарм остановлен."); break;
+    }
+    case "seek-fight": {
+      const floor = FLOORS.find((f) => f.id === Number(el.dataset.floor));
+      if (floor && floor.mobs.length) startBattle(floor.id, Math.floor(Math.random() * floor.mobs.length));
+      break;
+    }
+    case "auto-explore": startAutoExplore(Number(el.dataset.floor) || state.maxFloor, view.autoExploreMode === "safe"); break;
+    case "auto-mode": {
+      const m = el.dataset.mode === "fight" ? "fight" : "safe";
+      if (view.autoExploreMode !== m) { view.autoExploreMode = m; render(); }
+      break;
+    }
+    case "auto-stop": stopAutoExplore("Авто-исследование остановлено."); break;
+    case "scene-action": resolveSceneAction(el.dataset.action); break;
+    case "scene-backdrop": resolveSceneAction("leave"); break;
+    case "npc-action": {
+      const act = el.dataset.npcAction;
+      if (act === "buy") {
+        const res = buyFromTrader(id);
+        toast(res.text, res.ok ? "ok" : "warn");
+        if (res.ok) {
+          if (view.traderStock) {
+            const bought = view.traderStock.find((e) => (e.kind === "gear" ? e.uid : e.id) === id);
+            if (bought) bought.sold = true;
+            view.traderStock = view.traderStock.filter((e) => (e.kind === "gear" ? e.uid : e.id) !== id);
+          }
+          closeNpcDialog();
+        }
+        break;
+      }
+      const res = applyNpcAction(act, state.activeNpcId);
+      if (act !== "show-goods") toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "npc-backdrop": closeNpcDialog(); break;
     case "attack-zone": setAttackZone(el.dataset.zone); break;
+    case "attack-style": if (STYLE_ORDER.includes(el.dataset.style)) { view.attackStyle = el.dataset.style; render(); } break;
     case "block-zone": toggleBlock(el.dataset.zone); break;
     case "exchange": doExchange("attack"); break;
     case "tech": doExchange("tech"); break;
-    case "flee": view.battle = null; view.summary = null; view.ambush = null; saveState(); view.screen = "tower"; render(); break;
+    case "flee": view.battle = null; view.summary = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); if (state.debuff) consumeBattleDebuff(); saveState(); render(); break;
     case "result-continue": {
       const victory = view.summary?.victory;
       const ambush = victory ? view.ambush : null;
@@ -1770,25 +2224,36 @@ function onClick(event) {
       }
       view.ambush = null;
       if (victory) {
+        if (view.sceneGroup && view.sceneGroup.length) {
+          const gFloor = FLOORS.find((f) => f.id === view.sceneGroupFloorId);
+          const nextIndex = view.sceneGroup.shift();
+          const def = gFloor ? gFloor.mobs[nextIndex] : null;
+          if (def) { beginBattle(def, gFloor.id); break; }
+          view.sceneGroup = null; view.sceneGroupFloorId = null;
+        }
+        if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 700);
         if (view.currentFloor) {
           view.screen = "floor";
         } else {
-          view.screen = "tower"; 
+          view.screen = "tower";
         }
-      } else { 
-        view.screen = "hub"; 
+      } else {
+        view.sceneGroup = null; view.sceneGroupFloorId = null;
+        view.screen = "hub";
         view.currentFloor = null;
-        state.phase = TIME_PHASES.length - 1; 
-        endTrip(); 
+        state.phase = TIME_PHASES.length - 1;
+        endTrip();
         const st = stats();
         state.hp = st.maxHp;
         state.mana = st.maxMana;
         state.energy = st.maxEnergy;
+        if (view.autoExplore) stopAutoExplore("Вы погибли. Авто-исследование остановлено.");
       }
+      if (state.debuff) consumeBattleDebuff();
       render();
       break;
     }
-    case "reset": if (confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
+    case "reset": if (confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
     default: break;
   }
 }

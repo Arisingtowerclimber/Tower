@@ -370,6 +370,23 @@ button.pill:hover { border-color: var(--gold); background: #2a2010; }
 .topnav.locked { opacity: 0.35; pointer-events: none; }
 .topbar[hidden] { display: none; }
 
+/* Иконки-кнопки топбара (Журнал / Бестиарий / Герой / Йорстед) */
+.nav-btn.icon-btn {
+  padding: 0;
+  width: 40px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+}
+.nav-btn.icon-btn.ok {
+  border-color: #3c573f;
+  background: #142016;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.35);
+}
+
 kbd {
   display: inline-block;
   padding: 1px 5px;
@@ -845,7 +862,7 @@ kbd {
 .gear-card-foot .btn { flex: 0 0 auto; }
 
 .shop-side { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-.shop-group { margin-bottom: 26px; }
+.shop-group { margin-bottom: 26px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(18, 13, 11, 0.85); }
 .group-title { margin-bottom: 12px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 
 .item-card { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, #191310, #14100d); }
@@ -995,8 +1012,53 @@ kbd {
 .zone:hover { border-color: var(--line2); color: var(--text); }
 .zone.attack.selected { border-color: var(--blood); background: linear-gradient(180deg, #4a1c17, #2a110e); color: #f0b0a6; box-shadow: 0 0 0 1px rgba(194, 72, 60, 0.35); }
 .zone.block.selected { border-color: var(--blue); background: linear-gradient(180deg, #1c324d, #101d2c); color: #b6d2ef; box-shadow: 0 0 0 1px rgba(95, 146, 204, 0.35); }
+.zone:disabled { opacity: 0.35; cursor: default; }
+.zone:disabled:hover { border-color: var(--line); color: #b6a592; }
 .battle-actions { display: flex; flex-direction: column; gap: 10px; }
 .potion-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* ── Единый поток магазинов: диалог-бар с NPC ── */
+.npc-dialogue-bar {
+  display: flex; align-items: center; gap: 18px;
+  background: rgba(18, 13, 11, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 18px;
+}
+.npc-dialogue-bar .npc-portrait {
+  width: 120px; height: 120px; flex-shrink: 0;
+  object-fit: cover; border-radius: 12px;
+  border: 2px solid var(--gold); background-color: #1e1b2e;
+}
+.npc-dialogue-text { flex: 1; min-width: 0; }
+.npc-dialogue-text .npc-name {
+  margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold);
+}
+.npc-dialogue-text .npc-dialogue {
+  margin: 0; font-style: italic; color: #e2e8f0; font-size: 1rem; line-height: 1.55;
+}
+.npc-dialogue-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+@media (max-width: 680px) {
+  .npc-dialogue-bar { flex-direction: column; text-align: center; padding: 14px; }
+  .npc-dialogue-bar .npc-portrait { width: 80px; height: 80px; }
+  .npc-dialogue-actions { flex-direction: column; width: 100%; }
+  .npc-dialogue-actions .shop-tab { width: 100%; }
+}
+
+/* Панель продажи: чекбоксы */
+.sell-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.sell-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: rgba(18, 13, 11, 0.85);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.sell-row:hover { background: rgba(255, 255, 255, 0.06); }
+.sell-row.picked { border-color: var(--gold); background: rgba(245, 158, 11, 0.08); }
+.sell-row input[type="checkbox"] { flex-shrink: 0; pointer-events: none; } /* клик ловит вся строка, иначе label дублирует событие и переключает дважды */
+.sell-row .sell-icon { flex-shrink: 0; }
+.sell-row .sell-name { flex: 1; min-width: 0; }
+.sell-row .hint { opacity: 0.6; font-size: 0.85em; font-style: normal; }
 
 .battle-log { height: 210px; overflow-y: auto; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #0e0a08; font-size: 13.5px; scrollbar-width: thin; scrollbar-color: #3d2c21 #0e0a08; }
 .log-line { padding: 3px 0; color: #b6a592; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
@@ -1045,10 +1107,10 @@ kbd {
 .inv-durability { position: absolute; right: 5px; bottom: 4px; font-size: 10px; line-height: 1; color: var(--dim); }
 .inv-durability.broken { color: #e0605c; }
 
-.inv-slot.rarity-uncommon, .doll-item.rarity-uncommon, .gear-card.rarity-uncommon, .resource-row.rarity-uncommon { border-color: #4caf50; }
-.inv-slot.rarity-rare, .doll-item.rarity-rare, .gear-card.rarity-rare, .resource-row.rarity-rare { border-color: #2196f3; }
-.inv-slot.rarity-epic, .doll-item.rarity-epic, .gear-card.rarity-epic, .resource-row.rarity-epic { border-color: #9c27b0; }
-.inv-slot.rarity-legendary, .doll-item.rarity-legendary, .gear-card.rarity-legendary, .resource-row.rarity-legendary { border-color: #ff9800; }
+.inv-slot.rarity-uncommon, .doll-item.rarity-uncommon, .gear-card.rarity-uncommon, .resource-row.rarity-uncommon, .doll-slot.rarity-uncommon { border-color: #4caf50; }
+.inv-slot.rarity-rare, .doll-item.rarity-rare, .gear-card.rarity-rare, .resource-row.rarity-rare, .doll-slot.rarity-rare { border-color: #2196f3; }
+.inv-slot.rarity-epic, .doll-item.rarity-epic, .gear-card.rarity-epic, .resource-row.rarity-epic, .doll-slot.rarity-epic { border-color: #9c27b0; }
+.inv-slot.rarity-legendary, .doll-item.rarity-legendary, .gear-card.rarity-legendary, .resource-row.rarity-legendary, .doll-slot.rarity-legendary { border-color: #ff9800; }
 
 .chip.affix { border-color: rgba(242, 204, 122, 0.5); color: var(--gold2); }
 .chip.unique { border-color: #ff9800; color: #ff9800; }
@@ -1082,7 +1144,6 @@ kbd {
 .quest-count { font-size: 0.85rem; color: var(--dim); white-space: nowrap; }
 .quest-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; }
 .mob-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.farm-banner { border-color: #f59e0b; color: #fde68a; display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
 .repair-all { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* ── Приветствие NPC в магазинах ────────────────────────── */
@@ -1102,8 +1163,8 @@ kbd {
   width: 100vw;
   height: 100vh;
   background-image: 
-    linear-gradient(rgba(10, 8, 7, 0.75), rgba(10, 8, 7, 0.75)),
-    url('assets/backgrounds/create-bg.webp') !important; /* Убрали ../ */
+    linear-gradient(rgba(10, 8, 7, 0.3), rgba(10, 8, 7, 0.3)),
+    url('/assets/backgrounds/create-bg.webp') !important; /* Убрали ../ */
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -1128,7 +1189,7 @@ kbd {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(10, 8, 7, 0.7);
+  background: rgba(10, 8, 7, 0.5);
 }
 
 /* ── Виджет музыки ──────────────────────────────────────── */
@@ -1235,8 +1296,8 @@ kbd {
   width: 100vw;
   height: 100vh;
   background-image: 
-    linear-gradient(rgba(10, 8, 7, 0.8), rgba(10, 8, 7, 0.8)),
-    url('assets/backgrounds/hero-screen.webp') !important; /* Убрали ../ */
+    linear-gradient(rgba(10, 8, 7, 0.3), rgba(10, 8, 7, 0.3)),
+    url('/assets/backgrounds/hero-screen.webp') !important; /* Убрали ../ */
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -1467,62 +1528,6 @@ kbd {
   .mob-row .btn, .boss-row .btn { grid-column: 1 / -1; }
   .npc-greeting { flex-direction: column; align-items: center; text-align: center; }
 }
-.gather-btn {
-  position: relative;
-  overflow: visible; /* Чтобы тултип не обрезался */
-}
-
-.gather-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: rgba(18, 13, 11, 0.98);
-  border: 1px solid var(--gold);
-  color: var(--text);
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  white-space: nowrap; /* Чтобы текст не ломался некрасиво */
-  z-index: 100;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: all 0.2s ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
-  text-align: left;
-}
-
-/* Стрелочка вниз */
-.gather-tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--gold);
-}
-
-.gather-tooltip-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.gather-tooltip-list span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Показ при наведении */
-.gather-btn:hover .gather-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(2px);
-}
 .quest-card-wide {
   display: flex;
   flex-direction: row;
@@ -1639,6 +1644,27 @@ kbd {
   background: #142016;
   color: #a9d3b1;
 }
+
+/* ── Бестиарий ── */
+.bestiary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.bestiary-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 10px; text-align: center;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,0.25);
+}
+.bestiary-card.boss { border-color: rgba(255, 107, 107, 0.35); }
+.bestiary-card .bestiary-icon {
+  width: 56px; height: 56px; display: grid; place-items: center; overflow: hidden;
+  background: #1c1511; border: 1px solid var(--line); border-radius: 10px;
+}
+.bestiary-card .bestiary-name { font-size: 14px; color: var(--gold2); }
+.bestiary-card .bestiary-desc { margin: 0; font-size: 12px; color: var(--dim); line-height: 1.45; flex: 1; }
+.bestiary-card .bestiary-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.bestiary-card .bestiary-chips .mob-stat-chip { font-size: 11px; padding: 3px 8px; }
+/* Неизвестные существа: тёмный силуэт */
+.bestiary-card.unknown .bestiary-icon img,
+.bestiary-card.unknown .bestiary-icon span { filter: brightness(0) opacity(0.55); }
+.bestiary-card.unknown .bestiary-name { color: var(--dim); }
 .pill.ok b {
   color: #c8e8ce;
 }

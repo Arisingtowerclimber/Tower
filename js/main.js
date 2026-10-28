@@ -124,33 +124,28 @@ function init() {
   render();
 }
 function preloadImages() {
-  // Собираем пути ко всем фонам, портретам и иконкам
+  // Собираем пути ко всем фонам и портретам. Только реально существующие файлы
+  // (в assets/ всё в .webp): несуществующие пути дают 404 на GitHub Pages.
   const imagesToPreload = [
     // Фоны хаба (все время суток)
-    "assets/backgrounds/hub_morning.jpg",
-    "assets/backgrounds/hub_day.jpg",
-    "assets/backgrounds/hub_evening.jpg",
-    "assets/backgrounds/hub_night.jpg",
-    // Фоны магазинов
-    "assets/backgrounds/market.jpg",
-    "assets/backgrounds/forge.jpg",
-    "assets/backgrounds/alchemy.jpg",
-    "assets/backgrounds/jewelry.jpg",
-    "assets/backgrounds/hotel.jpg",
-    "assets/backgrounds/training.jpg",
-    "assets/backgrounds/tower.jpg",
+    "assets/backgrounds/hub_morning.webp",
+    "assets/backgrounds/hub_day.webp",
+    "assets/backgrounds/hub_evening.webp",
+    "assets/backgrounds/hub_night.webp",
+    // Фоны локаций и экранов
+    "assets/backgrounds/market.webp",
+    "assets/backgrounds/forge.webp",
+    "assets/backgrounds/jewelry.webp",
+    "assets/backgrounds/hero-screen.webp",
+    "assets/backgrounds/create-bg.webp",
     // Фоны этажей Башни
-    "assets/backgrounds/floor1.jpg",
-    "assets/backgrounds/floor2.jpg",
-    "assets/backgrounds/floor3.jpg",
-    "assets/backgrounds/floor4.jpg",
-    "assets/backgrounds/floor5.jpg",
-    // Фон создания персонажа
-    "assets/backgrounds/create-bg.jpg",
-    // Портреты спутниц (грузятся при заходе в гостиницу)
-    "assets/portraits/mira.jpg",
-    "assets/portraits/alva.jpg",
-    "assets/portraits/solveig.jpg"
+    "assets/backgrounds/duskwood.webp",
+    "assets/backgrounds/crypt.webp",
+    // Портреты (грузятся при заходе в гостиницу)
+    "assets/portraits/mira.webp",
+    "assets/portraits/alva.webp",
+    "assets/portraits/solveig.webp",
+    "assets/portraits/ron.webp",
   ];
 
   // Создаем виртуальные теги img — браузер скачает их в кэш, но на экране не покажет
