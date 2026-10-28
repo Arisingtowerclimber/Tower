@@ -1580,6 +1580,7 @@ function battleHtml(st) {
               <span class="mob-stat-chip def" style="font-size: 13px; padding: 5px 12px;">🛡 ${enemy.def}</span>
             </div>
             ${enemyWeapon ? `<div style="margin-top: 8px; font-size: 12px; color: var(--dim);">Вооружен: ${enemyWeapon.name} (${STYLE_NAMES[weaponBestStyle(enemyWeapon)]})</div>` : ""}
+             ${enemy.armorType ? `<div style="margin-top: 4px; font-size: 12px; color: var(--dim);">Броня: <b style="color: #d1c0aa;">${ARMOR_TYPE_NAMES[enemy.armorType] || "Без брони"}</b></div>` : ""}
 
           </div>
         </article>
