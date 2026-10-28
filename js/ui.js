@@ -402,13 +402,15 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
   const tab = view.shopTab || "buy";
   const npcName = NPC_NAMES[npcId] || npcId;
   const phrase = view.shopNpcPhrase || getRandomPhrase(npcId, "greetings");
+  
   const btn = (tabId, label) =>
-    `<button class="shop-tab${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button">${label}</button>`;
+    `<button class="shop-tab${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button" style="text-align: center;">${label}</button>`;
+    
   return `
     <div class="npc-dialogue-bar">
-      <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}"
-      <div class="npc-dialogue-text">
-        <p class="npc-name">${esc(npcName)}</p>
+      <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
+      <div class="npc-dialogue-text" style="display: flex; flex-direction: column; justify-content: flex-start; padding-top: 4px;">
+        <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
         <p class="npc-dialogue">«${esc(phrase)}»</p>
       </div>
       <div class="npc-dialogue-actions">
