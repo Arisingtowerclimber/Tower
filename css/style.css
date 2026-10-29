@@ -2059,6 +2059,15 @@ kbd {
   min-height: 16px;
 }
 
+/* Содержимое боевых вкладок «Приёмы»/«Расходники» (Этап 9) */
+.deck-content {
+  display: flex; flex-direction: column; gap: 6px;
+  width: 100%; margin-top: 6px;
+}
+.deck-content .stack-buttons { width: 100%; }
+.deck-content .deck-title { margin-top: 4px; }
+.deck-content .btn { width: 100%; justify-content: flex-start; text-align: left; }
+
 .deck-tabs {
   width: 100% !important;
   flex: 1 !important;

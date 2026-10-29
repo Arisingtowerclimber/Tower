@@ -1083,7 +1083,16 @@ function materialChipHtml(resId, need) {
 // выбор стата «Крит» или «Уворот». У Алхимика (elain) наковальни нет — заглушка.
 function upgradePanelHtml() {
   if (view.screen === "alchemy") {
-    return `<section class="shop-group"><h2 class="group-title">🔧 Улучшение</h2><p class="empty">Наковальни у меня нет. Оружие и броню улучшайте у Рона в кузнице, украшения — у Элизы.</p></section>`;
+    // Улучшение зелий (Этап 9): доступ открывается на тире «Уважаемый»
+    // фракции алхимиков, сам механизм пока в разработке.
+    const faction = FACTION_MAP["alchemists"];
+    const rep = state.reputation ? (state.reputation["alchemists"] || 0) : 0;
+    const unlocked = rep >= FACTION_TIERS[2].min;
+    return `<section class="shop-group"><h2 class="group-title">⚗️ Улучшение зелий</h2>${
+      unlocked
+        ? `<p class="settings-stub">В разработке. Скоро здесь можно будет улучшать зелья</p>`
+        : `<p class="settings-stub">🔒 Требуется репутация «Уважаемый» (${FACTION_TIERS[2].min} заказов) у ${faction ? faction.name : "Цеха алхимиков"}. Сейчас: ${rep}</p>`
+    }</section>`;
   }
 
   const pathIds = view.screen === "forge" ? ["weapon", "armor"] : ["jewelry"];
@@ -1223,15 +1232,27 @@ function alchemyHtml() {
   } else if (tab === "upgrade") {
     content = upgradePanelHtml();
   } else if (tab === "buy") {
-    const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
+    const rows = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
       const count = state.potions[item.id] || 0;
       const isCombat = item.type === "combat";
       const full = !isCombat && (item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana);
       const p = priceFor(item, "alchemy");
       const drinkBtn = isCombat ? "" : `<button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button>`;
-      return `<article class="item-card potion"><div class="item-icon big">${iconHtml(item.icon, 48)}</div><div class="item-main"><h3>${item.name}</h3><p class="item-desc">${item.desc}</p><div class="chips"><span class="chip">В сумке: ${count}</span></div></div><div class="item-buy"><span class="price">${priceHtml(item, "alchemy")}</span><div class="stack-buttons"><button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button>${drinkBtn}</div></div></article>`;
+      return `<article class="gear-row${count > 0 ? " owned" : ""}">
+        <div class="gear-row-icon">${iconHtml(item.icon, 34)}</div>
+        <div class="gear-row-main">
+          <h3>${item.name}</h3>
+          <p class="item-desc">${item.desc}</p>
+          <div class="chips"><span class="chip">В сумке: ${count}</span></div>
+        </div>
+        <div class="gear-row-side">
+          <span class="price">${priceHtml(item, "alchemy")}</span>
+          <button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button>
+          ${drinkBtn}
+        </div>
+      </article>`;
     }).join("");
-    content = `<section class="shop-group"><div class="item-grid">${cards || `<p class="empty">Зелий нет.</p>`}</div></section>`;
+    content = `<section class="shop-group"><div class="gear-rows">${rows || `<p class="empty">Зелий нет.</p>`}</div></section>`;
   } else {
     content = `<div class="empty" style="padding: 40px 20px; text-align: center; font-style: italic;">Выберите действие в диалоге с Элейн.</div>`;
   }
@@ -1896,16 +1917,41 @@ function battleHtml(st) {
   const estimatedDmg = estimateDamage(state, battle, view.attackZone, currentStyle, mainInst);
   const leftTab = view.battleLeftTab || "abilities";
 
-  const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
-  const itemsPanel = battleItems.length
-    ? battleItems.map((i) => {
+  // Боевые вкладки (Этап 9): «Приёмы» — тяжёлый удар, смена оружия и зелья;
+  // «Расходники» — боевые предметы (броски).
+  const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
+  const potionsPanel = potionItems.length
+    ? potionItems.map((i) => {
         const count = state.potions[i.id];
-        const isCombat = i.type === "combat";
-        const disabled = !isCombat && !canDrinkPotion(i.id);
-        const act = isCombat ? "use-battle-item" : "drink-battle";
-        return `<button class="btn small ghost" data-act="${act}" data-id="${i.id}" ${disabled ? "disabled" : ""} type="button" style="justify-content:flex-start; text-align:left; width: 100%; font-size: 11px; padding: 6px 8px;">${iconHtml(i.icon, 14)} ${i.name} ×${count}</button>`;
+        const disabled = !canDrinkPotion(i.id);
+        return `<button class="btn small ghost" data-act="drink-battle" data-id="${i.id}" ${disabled ? "disabled" : ""} type="button" style="justify-content:flex-start; text-align:left; width: 100%; font-size: 11px; padding: 6px 8px;">${iconHtml(i.icon, 14)} ${i.name} ×${count}</button>`;
       }).join("")
-    : `<p class="empty" style="margin: 0; font-size: 11px;">Нет предметов</p>`;
+    : `<p class="empty" style="margin: 0; font-size: 11px;">Нет зелий</p>`;
+
+  const leftPanel = leftTab === "abilities" ? `
+    <div class="deck-content">
+      <div class="stack-buttons" style="justify-content: flex-start;">
+        <button class="btn small primary" data-act="tech" ${(battle.rage >= 3 && state.mana >= TECH_COST) ? "" : "disabled"} type="button" title="Кураж ${battle.rage}/3 · Мана ${state.mana}/${TECH_COST}">💥 Тяжёлый удар</button>
+        <button class="btn small" data-act="switch-weapon" type="button">🔄 Сменить оружие</button>
+      </div>
+      <div class="deck-title" style="margin-top: 8px;">Зелья</div>
+      ${potionsPanel}
+      <div class="deck-tip hint">Питьё зелья заменит вашу атаку, но вы сохраните блок.</div>
+    </div>
+  ` : "";
+
+  const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
+  const itemsPanel = leftTab === "items" ? `
+    <div class="deck-content">
+      <div class="deck-title">Расходники</div>
+      ${battleItems.length
+        ? battleItems.map((i) => {
+            const count = state.potions[i.id];
+            return `<button class="btn small ghost" data-act="use-battle-item" data-id="${i.id}" type="button" style="justify-content:flex-start; text-align:left; width: 100%; font-size: 11px; padding: 6px 8px;">${iconHtml(i.icon, 14)} ${i.name} ×${count}</button>`;
+          }).join("")
+        : `<p class="empty" style="margin: 0; font-size: 11px;">Нет расходников</p>`}
+    </div>
+  ` : "";
 
   const controls = battle.over ? "" : `
     <div class="combat-deck">
@@ -1918,15 +1964,16 @@ function battleHtml(st) {
         <div class="deck-tip hint">${activeZoneTip ? esc(activeZoneTip) : "&nbsp;"}</div>
       </div>
 
-      <!-- ЦЕНТР: Блок -->
+      <!-- ЦЕНТР: Блок и приёмы/расходники -->
       <div class="deck-col">
         <div class="deck-title">Блок (${zones.limit})</div>
         <div class="zones">${zones.block}</div>
         <div class="deck-tabs">
           <button class="deck-tab${leftTab === "abilities" ? " active" : ""}" data-act="battle-left-tab" data-tab="abilities" type="button">Приёмы</button>
-          <button class="deck-tab${leftTab === "items" ? " active" : ""}" data-act="battle-left-tab" data-tab="items" type="button">Боевые</button>
+          <button class="deck-tab${leftTab === "items" ? " active" : ""}" data-act="battle-left-tab" data-tab="items" type="button">Расходники</button>
         </div>
-        <div class="deck-tip hint">&nbsp;</div>
+        ${leftPanel}
+        ${itemsPanel}
       </div>
 
       <!-- ПРАВАЯ КОЛОНКА: Прогноз и Размен -->

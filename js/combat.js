@@ -44,7 +44,9 @@ function variationLabel(enemy) {
   if (rarity && rarity.badge) parts.push(rarity.badge);
   if (enemy.modifier) {
     const mod = MOB_MODIFIERS[enemy.modifier];
-    if (mod) parts.push(`${mod.icon} ${mod.name}`);
+    // Иконки модификаторов могут не отрисовываться (пустой квадратик из
+    // неподдерживаемой эмодзи) — вместо них текстовая метка [Хилый].
+    if (mod) parts.push(`[${mod.name}]`);
   }
   if (enemy.ability) {
     const info = MOB_ABILITY_INFO[enemy.ability];
