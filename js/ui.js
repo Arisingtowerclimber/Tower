@@ -52,8 +52,9 @@ function iconHtml(icon, size = 32, fit = "contain") {
 // чтобы при отсутствии файла показать осмысленную заглушку.
 function iconFallbackEmoji(resolved) {
   const m = /([^/]+)\.(webp|png|jpe?g|svg)(\?|$)/i.exec(resolved);
-  const id = m ? m[1] : null;
-  const item = id && ITEMS[id] ? ITEMS[id] : null;
+  const fileId = m ? m[1] : null;
+  const itemId = fileId && ICON_ITEM_BY_FILE[fileId] ? ICON_ITEM_BY_FILE[fileId] : fileId;
+  const item = itemId && ITEMS[itemId] ? ITEMS[itemId] : null;
   if (item && item.iconFallback) return item.iconFallback;
   const slot = item ? item.slot : null;
   return (slot && SLOT_ICON[slot]) || "❔";

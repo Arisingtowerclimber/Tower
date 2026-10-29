@@ -1248,6 +1248,38 @@ for (const item of Object.values(ITEMS)) {
   item.icon = `assets/icons/${item.id}.webp`;
 }
 
+// Часть иконок сгенерирована под другими именами файлов (латы, кольчуга).
+// Сопоставляем id предмета с реальным именем файла в assets/icons/.
+// Записи, где ключ совпадает со значением, нужны предметам вне 1-го тира:
+// файл для них уже есть, а путь ещё не был прописан.
+const ICON_ALIASES = {
+  head_iron: "iron_helmet",
+  dented_plate: "iron_breastplate",
+  feet_iron: "iron_boots",
+  legs_iron: "iron_greaves",
+  kite_shield: "iron_shield",
+  shoulder_chain: "shoulders_chain",
+  wrist_chain: "wrist_chain",
+  legs_chain: "legs_chain",
+};
+
+for (const [itemId, fileId] of Object.entries(ICON_ALIASES)) {
+  const item = ITEMS[itemId];
+  if (!item) continue;
+  if (!item.iconFallback) {
+    item.iconFallback = typeof item.icon === "string" && !item.icon.startsWith("assets/")
+      ? item.icon
+      : SLOT_ICON[item.slot] || "❔";
+  }
+  item.icon = `assets/icons/${fileId}.webp`;
+}
+
+// Обратный поиск «имя файла → id предмета» — чтобы эмодзи-заглушка
+// находилась и для иконок с несовпадающим именем файла.
+const ICON_ITEM_BY_FILE = Object.fromEntries(
+  Object.entries(ICON_ALIASES).map(([itemId, fileId]) => [fileId, itemId])
+);
+
 // Текстовая (эмодзи) иконка предмета — для тостов и строк лога.
 function itemEmoji(item) {
   if (!item) return "";
