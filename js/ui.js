@@ -554,13 +554,17 @@ function hubHtml(st) {
 
 const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "stella", training: "ivan" };
 
+function npcStorySlide(npcId) {
+  const storyArr = DIALOGS[npcId]?.story;
+  const storyIndex = state.npcDialogueIndex[npcId] || 0;
+  return (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
+}
+
 function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
   const tab = view.shopTab;
   const npcName = NPC_NAMES[npcId] || npcId;
   
-  const storyIndex = state.npcDialogueIndex[npcId] || 0;
-  const storyArr = DIALOGS[npcId]?.story;
-  const currentSlide = (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
+  const currentSlide = npcStorySlide(npcId);
 
   if (currentSlide) {
     const optionsHtml = currentSlide.options.map((opt, idx) => 
@@ -1611,7 +1615,7 @@ function forgeHtml() {
   return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
     ${npcDialogueBar("ron", "🛒 Купить", "💰 Хочу продать")}
-    <div class="shop-grid"><div class="shop-main">${content}</div></div>
+    ${npcStorySlide("ron") ? "" : `<div class="shop-grid"><div class="shop-main">${content}</div></div>`}
   `;
 }
 
@@ -1630,7 +1634,7 @@ function jewelryHtml() {
     <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
     ${npcDialogueBar("elize", "🛒 Купить", "💰 Хочу продать")}
-    <div class="shop-grid"><div class="shop-main">${content}</div></div>
+    ${npcStorySlide("elize") ? "" : `<div class="shop-grid"><div class="shop-main">${content}</div></div>`}
   `;
 }
 
@@ -1685,7 +1689,7 @@ function alchemyHtml() {
     <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
     ${npcDialogueBar("elain", "🛒 Купить", "💰 Хочу продать")}
-    <div class="shop-grid single"><div class="shop-main">${content}</div></div>
+    ${npcStorySlide("elain") ? "" : `<div class="shop-grid single"><div class="shop-main">${content}</div></div>`}
   `;
 }
 
