@@ -1290,23 +1290,23 @@ const FLOORS = [
     cardImg: "assets/backgrounds/duskwood.webp",
     bg: "assets/backgrounds/duskwood.webp",
     mobs: [
-      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 140, atk: 20, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
+      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 126, atk: 24, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
         drops: [
           { id: "rust", chance: 0.35, min: 1, max: 2 },
           { id: "cloth", chance: 0.25, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 210, atk: 26, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
+      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 189, atk: 31, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
         drops: [
           { id: "leather", chance: 0.30, min: 1, max: 2 },
           { id: "wood", chance: 0.20, min: 1, max: 2 },
         ] }),
-      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 310, atk: 34, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
+      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 279, atk: 41, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "iron_ore", chance: 0.20, min: 1, max: 1 },
         ] }),
     ],
-    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1200, atk: 45, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
+    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1080, atk: 54, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
       drops: [
         { id: "gambeson", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "malachite", chance: 0.60, min: 2, max: 3 },
@@ -1318,21 +1318,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "⚙️", hp: 360, atk: 38, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "⚙️", hp: 324, atk: 46, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
         desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
           { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.3, min: 1, max: 2 },
           { id: "wood", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "⚙️", hp: 420, atk: 42, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
+      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "⚙️", hp: 378, atk: 50, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
         desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки бронзы, целясь в живот и грудь.",
         drops: [
           { id: "kobold_gear", chance: 0.4, min: 1, max: 2 },
           { id: "bronze_ingot", chance: 0.25, min: 1, max: 1 },
           { id: "rust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "kobold_sorcerer", name: "Кобольд-колдун", icon: "💀", hp: 480, atk: 46, def: 10, gold: 80, xp: 105, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+      enemy({ id: "kobold_sorcerer", name: "Кобольд-колдун", icon: "💀", hp: 432, atk: 55, def: 10, gold: 80, xp: 105, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
         desc: "Шипит сквозь острые зубы заклинания, от которых искры сыплются на камень. Бьёт по голове и животу, пока остальные отвлекают.",
         drops: [
           { id: "cave_mushroom", chance: 0.35, min: 1, max: 2 },
@@ -1340,7 +1340,7 @@ const FLOORS = [
           { id: "mushroom", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "👹", hp: 1920, atk: 74, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "👹", hp: 1728, atk: 89, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Огромный, перемазанный рудой кобольд с молотом в лапах. В ярости его удары разбрызгивают кровь по стенам шахты.",
       drops: [
         { id: "bronze_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1354,21 +1354,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/crypt.webp",
     bg: "assets/backgrounds/crypt.webp",
     mobs: [
-      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 560, atk: 52, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
+      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 504, atk: 62, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
         desc: "Восставший из старой могилы скелет, стиснувший ржавый клинок. Бьёт по корпусу и ногам, не зная ни боли, ни усталости.",
         drops: [
           { id: "bone", chance: 0.4, min: 1, max: 2 },
           { id: "grave_iron", chance: 0.25, min: 1, max: 2 },
           { id: "copper_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 630, atk: 55, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 567, atk: 66, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
         desc: "Полупрозрачный силуэт, что тянет к вам ледяные пальцы. Его шёпот ввинчивается в голову, а удары проходят сквозь броню.",
         drops: [
           { id: "rune_dust", chance: 0.35, min: 1, max: 2 },
           { id: "cursed_cloth", chance: 0.25, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 700, atk: 60, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"],
+      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 630, atk: 72, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"],
         desc: "Сгорбленный пожиратель падали с длинными когтями. Рвётся к животу и поясу, чтобы добраться до плоти.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 2 },
@@ -1376,7 +1376,7 @@ const FLOORS = [
           { id: "kobold_gear", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2800, atk: 96, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2520, atk: 115, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Павший паладин, чьи латы покрыты пеплом и копотью. В ярости его клинок крошит камень и кости.",
       drops: [
         { id: "steel_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1390,21 +1390,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/orc_camp.webp",
     bg: "assets/backgrounds/orc_camp.webp",
     mobs: [
-      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 920, atk: 76, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
+      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
         desc: "Свирепый налётчик, чья секира помнит десятки черепов. Рубит сверху, целясь в голову и грудь.",
         drops: [
           { id: "iron_chain", chance: 0.35, min: 1, max: 2 },
           { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
           { id: "bone", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 1000, atk: 80, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
+      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
         desc: "Шаман, обвешанный костями и амулетами. Его проклятия бьют в живот и пояс, пока он бормочет боевые молитвы.",
         drops: [
           { id: "blood_herb", chance: 0.35, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.25, min: 1, max: 2 },
           { id: "rune_dust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 1100, atk: 85, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
+      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
         desc: "Гора мяса и шрамов, вооружённая вырванным из земли валуном. Бьёт по груди и ногам — медленно, но смертельно.",
         drops: [
           { id: "mithril_ore", chance: 0.35, min: 1, max: 2 },
@@ -1412,7 +1412,7 @@ const FLOORS = [
           { id: "silver", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 4400, atk: 136, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 3960, atk: 163, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Вождь, чьи латы кованы из обломков осадных машин. В ярости он сминает строй одним ударом.",
       drops: [
         { id: "mithril_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1426,21 +1426,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/hell_plane.webp",
     bg: "assets/backgrounds/hell_plane.webp",
     mobs: [
-      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 1020, atk: 104, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
+      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
         desc: "Мелкий бес, объятый пламенем, что хихикает из дыма. Жалит в живот и пояс, пока вы ищете его в огне.",
         drops: [
           { id: "brimstone", chance: 0.35, min: 1, max: 2 },
           { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 1100, atk: 108, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], prefers: ["head", "chest"],
+      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], prefers: ["head", "chest"],
         desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
         drops: [
           { id: "hellstone", chance: 0.35, min: 1, max: 2 },
           { id: "demon_horn", chance: 0.25, min: 1, max: 2 },
           { id: "iron_chain", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1200, atk: 115, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
+      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
         desc: "Рогатый дьявол в багровых латах, вооружённый чёрным клинком. Бьёт в грудь и голову, наслаждаясь чужой болью.",
         drops: [
           { id: "demon_horn", chance: 0.35, min: 1, max: 2 },
@@ -1448,7 +1448,7 @@ const FLOORS = [
           { id: "mithril_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4800, atk: 184, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4320, atk: 221, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Владыка Бездны, чей трон выкован из проклятых душ. В ярости его удары рвут саму реальность.",
       drops: [
         { id: "hell_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
