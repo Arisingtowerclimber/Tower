@@ -2086,7 +2086,7 @@ function heroHtml(st) {
         </div>
       </section>
     </div>
-    <div class="danger-zone"><button class="btn tiny danger" data-act="reset" type="button">Сбросить прогресс</button></div>
+    <div class="danger-zone"><button class="btn tiny danger" data-act="reset" type="button">Сбросить прогресс</button><button class="btn tiny danger" data-act="dev-cheat" type="button" style="opacity: 0.5; margin-left: 10px;">Dev: Макс. Уровень</button></div>
   `;
 }
 
@@ -3785,6 +3785,26 @@ function onClick(event) {
       render();
       break;
     }
+    case "dev-cheat":
+      if (state) {
+        state.level = 99;
+        state.xp = 0;
+        state.points = 500;
+        state.talentPoints = 50;
+        state.attrs = { str: 50, agi: 50, end: 50, int: 50 };
+        state.gold = 999999;
+        state.resources = { iron_ore: 999, leather: 999, steel: 999, cold_iron_ingot: 999, wood: 999, cloth: 999 };
+        state.maxFloor = 5;
+        state.cleared = { 1: true, 2: true, 3: true, 4: true };
+        invalidateStats();
+        const st = stats();
+        state.hp = st.maxHp;
+        state.mana = st.maxMana;
+        saveState();
+        render();
+        toast("Dev-режим активирован: 99 уровень, 999999 золота, все этажи открыты.", "ok");
+      }
+      break;
     case "reset": if (platform.dialog.confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.shopFilterSlot = "all"; view.shopFilterType = "all"; view.shopFilterStyle = null; view.screen = "hub"; render(); } break;
     default: break;
   }
