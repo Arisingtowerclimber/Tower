@@ -1569,6 +1569,78 @@ function sellMultipleItems(itemIds) {
   return { ok: true, text: `Продано на ${total} золота.${note}` };
 }
 
+// ── Разборка и обмен (Этап 3) ──────────────────────────────────────────────
+
+// Разборка вещи на материалы: возвращает 50% ресурсов рецепта (с округлением вниз).
+function salvageItem(uid) {
+  const inst = getInstance(uid);
+  const item = inst ? ITEMS[inst.id] : null;
+  if (!inst || !item) return { ok: false, text: "Предмета нет." };
+  if (item.slot === "potion") return { ok: false, text: "Зелья нельзя разобрать." };
+  if (isEquipped(uid)) return { ok: false, text: "Сначала снимите предмет." };
+  const recipe = RECIPES.find((r) => r.result === inst.id);
+  if (!recipe) return { ok: false, text: "Эту вещь нельзя разобрать: рецепт неизвестен." };
+
+  state.owned = state.owned.filter((x) => x !== inst);
+  state.resources = state.resources || {};
+  const gained = [];
+  for (const [resId, need] of Object.entries(recipe.materials)) {
+    const amount = Math.floor(need / 2);
+    if (amount <= 0) continue;
+    state.resources[resId] = (state.resources[resId] || 0) + amount;
+    const res = ALL_RESOURCES.find((r) => r.id === resId);
+    gained.push(`${res ? res.name : resId} ×${amount}`);
+  }
+  invalidateStats();
+  saveState();
+  const note = gained.length ? ` Получено: ${gained.join(", ")}.` : "Материалы не вернулись: рецепт слишком дешёвый.";
+  return { ok: true, text: `Разобрано: ${getItemDisplayName(inst)}.${note}` };
+}
+
+// Обмен у Рона (Этап 3): 50 любых ресурсов 1-го этажа → 1 редкий ресурс.
+function exchangeResources(resId) {
+  const pool = FLOOR_RESOURCES[1] || [];
+  if (!pool.some((r) => r.id === resId)) return { ok: false, text: "Обменять можно только ресурсы первого этажа." };
+  if ((state.resources[resId] || 0) < EXCHANGE_AMOUNT) {
+    const name = (pool.find((r) => r.id === resId) || {}).name || resId;
+    return { ok: false, text: `${name}: нужно ${EXCHANGE_AMOUNT} штук, есть ${state.resources[resId] || 0}.` };
+  }
+  state.resources[resId] -= EXCHANGE_AMOUNT;
+  state.resources[EXCHANGE_TARGET_RES] = (state.resources[EXCHANGE_TARGET_RES] || 0) + 1;
+  saveState();
+  const tRes = ALL_RESOURCES.find((r) => r.id === EXCHANGE_TARGET_RES);
+  const srcRes = pool.find((r) => r.id === resId);
+  return { ok: true, text: `Обмен совершён: ${srcRes ? srcRes.name : resId} ×${EXCHANGE_AMOUNT} → ${tRes ? tRes.name : EXCHANGE_TARGET_RES} ×1.` };
+}
+
+// Кража у странствующего торговца (Этап 3): шанс зависит от Ловкости,
+// при провале страж забирает 20% золота и выставляет за дверь.
+function trySteal(entryId, stock) {
+  const entries = Array.isArray(stock) ? stock : [];
+  const entry = entries.find((e) => (e.kind === "gear" ? e.uid : e.id) === entryId);
+  if (!entry) return { ok: false, fail: false, text: "Этот товар уже исчез." };
+  const agi = state.attrs.agi + (stats().gearAttrs?.agi || 0);
+  const chance = Math.min(50, agi * 5);
+  if (Math.random() >= chance / 100) {
+    const penalty = Math.floor((state.gold || 0) * 0.2);
+    state.gold = Math.max(0, (state.gold || 0) - penalty);
+    saveState();
+    return { ok: false, fail: true, penalty, text: `Стража схватила вас за руку! Утрачено ${penalty} 💰, торговец выставил вас за дверь.` };
+  }
+  let name;
+  if (entry.kind === "potion") {
+    state.potions = state.potions || {};
+    state.potions[entry.id] = (state.potions[entry.id] || 0) + 1;
+    name = ITEMS[entry.id] ? ITEMS[entry.id].name : entry.name;
+  } else {
+    // Снаряжение уже числится в инвентаре (выставляется на продажу экземпляром).
+    name = entry.inst && ITEMS[entry.inst.id] ? ITEMS[entry.inst.id].name : "вещь";
+  }
+  state._invRev = (state._invRev || 0) + 1;
+  saveState();
+  return { ok: true, text: `Украдено: ${name}! Стража ничего не заметила.` };
+}
+
 function trainAttr(trainingId) {
   const training = TRAINING_MAP[trainingId]; if (!training) return { ok: false, text: "Такой тренировки здесь нет." };
   if (state.phase !== 0) return { ok: false, text: "Зал Охотников открыт только утром." };

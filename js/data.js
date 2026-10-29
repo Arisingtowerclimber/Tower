@@ -1400,6 +1400,10 @@ const FLOOR_RESOURCES = {
 
 const ALL_RESOURCES = Object.values(FLOOR_RESOURCES).flat();
 
+// ── Обмен ресурсов (Этап 3): у Рона 50 любых ресурсов 1-го этажа → 1 редкий ─
+const EXCHANGE_AMOUNT = 50;
+const EXCHANGE_TARGET_RES = "mithril_ore";
+
 // ── Сцены (Этап 2) ─────────────────────────────────────────────────────────
 // Текстовые события с выборами. Выпадают при исследовании (10%).
 // group — индексы мобов этажа для группового боя; actions — кнопки выбора.

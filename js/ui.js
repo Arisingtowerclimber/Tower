@@ -587,6 +587,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
         ${btn("buy", buyLabel)}
         ${sellLabel ? btn("sell", sellLabel) : ""}
         ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
+        ${npcId === "ron" ? btn("exchange", "🔁 Обмен") : ""}
         ${btn("quests", "📜 Есть задания?")}
         ${storyQuestBarBtn(npcId)}
       </div>
@@ -631,6 +632,7 @@ function sellPanelHtml(shopName) {
       <span class="sell-icon">${iconHtml(item.icon, 28)}</span>
       <span class="sell-name">${getItemDisplayName(inst)}<i class="hint"> · прочность ${durabilityOf(inst)}</i></span>
       <span class="price">${price} 💰</span>
+      <button class="btn small ghost" data-act="salvage" data-uid="${inst.uid}" ${RECIPES.some((r) => r.result === item.id) ? "" : "disabled"} title="Разобрать: вернуть половину материалов рецепта" type="button">🔨</button>
     </label>`;
   }).join("") : "";
 
@@ -1393,6 +1395,7 @@ function forgeHtml() {
     tab === "sell" ? sellPanelHtml("forge")
     : tab === "quests" ? npcQuestHtml("ron")
     : tab === "story" ? storyQuestPanelHtml("ron")
+    : tab === "exchange" ? exchangePanelHtml()
     : tab === "craft" ? craftPanelHtml("forge")
     : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? shopItemsHtml(
@@ -1539,7 +1542,24 @@ function invMenuHtml() {
   const slotNote = canEquip
     ? `<p class="hint">Слоты: ${slots.map((s) => SLOT_NAME[s] || s).join(", ")}.</p>`
     : `<p class="hint">Для этого предмета нет слота.</p>`;
-  return `<div class="doll-menu-backdrop" data-act="inv-menu-close"></div><div class="doll-menu" role="dialog"><div class="doll-menu-head"><h3>Предмет</h3><button class="doll-menu-close" data-act="inv-menu-close" type="button">✕</button></div><div class="inv-menu-preview">${iconHtml(item.icon, 40)}<span class="inv-menu-info"><b>${getItemDisplayName(inst)}</b><span class="chips"><span class="chip" style="border-color:${tier.color};color:${tier.color};">${tier.name}</span>${statsChips(item, inst)}</span><span class="hint">${item.desc}</span></span></div>${slotNote}<div class="inv-menu-actions"><button class="btn small" data-act="inv-equip" data-uid="${inst.uid}" ${canEquip ? "" : "disabled"} type="button">Надеть</button></div></div>`;
+  const salvageable = item.slot !== "potion" && RECIPES.some((r) => r.result === inst.id);
+  return `<div class="doll-menu-backdrop" data-act="inv-menu-close"></div><div class="doll-menu" role="dialog"><div class="doll-menu-head"><h3>Предмет</h3><button class="doll-menu-close" data-act="inv-menu-close" type="button">✕</button></div><div class="inv-menu-preview">${iconHtml(item.icon, 40)}<span class="inv-menu-info"><b>${getItemDisplayName(inst)}</b><span class="chips"><span class="chip" style="border-color:${tier.color};color:${tier.color};">${tier.name}</span>${statsChips(item, inst)}</span><span class="hint">${item.desc}</span></span></div>${slotNote}<div class="inv-menu-actions"><button class="btn small" data-act="inv-equip" data-uid="${inst.uid}" ${canEquip ? "" : "disabled"} type="button">Надеть</button><button class="btn small ghost" data-act="inv-salvage" data-uid="${inst.uid}" ${salvageable ? "" : "disabled"} title="${salvageable ? "Разобрать: вернуть половину материалов рецепта" : "Нет рецепта — разобрать нельзя"}" type="button">🔨 Разобрать</button></div></div>`;
+}
+
+// ── Обмен ресурсов (Этап 3): 50 ресурсов 1-го этажа → 1 редкий ─────────────
+function exchangePanelHtml() {
+  const tRes = ALL_RESOURCES.find((r) => r.id === EXCHANGE_TARGET_RES);
+  const rows = (FLOOR_RESOURCES[1] || []).map((res) => {
+    const have = state.resources[res.id] || 0;
+    const ok = have >= EXCHANGE_AMOUNT;
+    return `<div class="resource-row"><span>${iconHtml(res.icon, 24)} <b>${res.name}</b> <span class="chip">×${have}</span></span>
+      <button class="btn small primary" data-act="exchange-res" data-id="${res.id}" ${ok ? "" : "disabled"} type="button">Обменять ${EXCHANGE_AMOUNT} → 1 ${tRes ? tRes.name : EXCHANGE_TARGET_RES}</button></div>`;
+  }).join("");
+  return `<section class="shop-group">
+    <h2 class="group-title">🔁 Обмен</h2>
+    <p class="hint">Хлам с первого этажа годится только в переплавку: ${EXCHANGE_AMOUNT} единиц любого ресурса — и Рон отдаст ${tRes ? tRes.name.toLowerCase() : "редкий ресурс"} ×1.</p>
+    <div class="resource-list">${rows}</div>
+  </section>`;
 }
 
 function buybackPanelHtml(shop) {
@@ -2764,6 +2784,7 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
       return `<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.2);">
         <span style="flex:1; font-size:14px;">${label}</span>
         <b style="color:var(--gold2);">${entry.price} 💰</b>
+        <button class="btn small ghost" data-act="npc-action" data-npc-action="steal" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" type="button" title="Шанс зависит от Ловкости. Провал: страж заберёт 20% золота и выставит за дверь.">🫳 Украсть</button>
         <button class="btn small primary" data-act="npc-action" data-npc-action="buy" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" ${afford ? "" : "disabled"} type="button">Купить</button>
       </div>`;
     }).join("");
@@ -3051,6 +3072,20 @@ function onClick(event) {
       render();
       break;
     }
+    case "exchange-res": {
+      res = exchangeResources(el.dataset.id);
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "salvage":
+    case "inv-salvage": {
+      res = salvageItem(el.dataset.uid || el.dataset.id);
+      toast(res.text, res.ok ? "ok" : "warn");
+      if (res.ok) view.invItemUid = null;
+      render();
+      break;
+    }
     case "sell-toggle": {
       const id = el.dataset.id; if (!id) break;
       const idx = view.sellSelection.indexOf(id);
@@ -3248,6 +3283,23 @@ function onClick(event) {
           }
           closeNpcDialog();
         }
+        break;
+      }
+      
+      if (act === "steal") {
+        const r = trySteal(id, view.traderStock);
+        toast(r.text, r.ok ? "ok" : "warn");
+        if (r.ok && view.traderStock) {
+          view.traderStock = view.traderStock.filter((e) => (e.kind === "gear" ? e.uid : e.id) !== id);
+        }
+        if (!r.ok && r.fail) {
+          // Стража: выброшен из лавки, ассортимент попутчиков пропадает.
+          view.traderStock = null;
+          view.npcShopOpen = false;
+          closeNpcDialog();
+          break;
+        }
+        render();
         break;
       }
       
