@@ -39,6 +39,7 @@ function defaultState() {
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
     activeEvent: null, tempDebuffs: [], eventCooldown: 0,
     killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
+    activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
     knownRecipes: [],
     talentPoints: 0, talents: {},
@@ -283,6 +284,18 @@ function loadState() {
       state.weekQuests = { weekStartDay: 0, list: [] };
     }
     state.weekQuests.weekStartDay = Number.isFinite(state.weekQuests.weekStartDay) ? state.weekQuests.weekStartDay : 0;
+    // Сюжетные квесты: активные — { id, progress, status }, завершённые — идентификаторы.
+    if (!Array.isArray(state.activeStoryQuests)) state.activeStoryQuests = [];
+    state.activeStoryQuests = state.activeStoryQuests
+      .filter((q) => q && typeof q === "object" && STORY_QUEST_MAP[q.id])
+      .map((q) => {
+        const def = STORY_QUEST_MAP[q.id];
+        const target = def.objectives.kill ? 1 : def.objectives.count;
+        const progress = Number.isFinite(q.progress) ? Math.max(0, Math.min(target, Math.floor(q.progress))) : 0;
+        return { id: q.id, progress, status: q.status === "done" || q.status === "claimed" ? q.status : "active" };
+      });
+    if (!Array.isArray(state.completedStoryQuests)) state.completedStoryQuests = [];
+    state.completedStoryQuests = state.completedStoryQuests.filter((id) => STORY_QUEST_MAP[id]);
     delete state.quests;
     delete state.npcQuests;
     ensureWeekQuests();
@@ -727,6 +740,7 @@ function checkQuestProgress(mobId) {
     }
   }
   if (changed) saveState();
+  checkStoryQuestKill(mobId);
 }
 
 function claimNpcQuest(id) {
@@ -788,6 +802,171 @@ function weekQuestResourceGain(resId, amount) {
     }
   }
   if (changed) saveState();
+  checkStoryQuestResource(resId, amount);
+}
+
+// ── Сюжетные квесты (Этап 2) ───────────────────────────────────────────────
+// Активные хранятся как { id, progress, status } в state.activeStoryQuests;
+// для ресурсных заданий прогресс считается напрямую из state.resources.
+
+function findMobName(mobId) {
+  for (const f of FLOORS) {
+    const mob = (f.mobs || []).find((m) => m.id === mobId);
+    if (mob) return mob.name;
+    if (f.boss && f.boss.id === mobId) return f.boss.name;
+  }
+  return mobId;
+}
+
+function findResName(resId) {
+  for (const pool of Object.values(FLOOR_RESOURCES)) {
+    const res = pool.find((x) => x.id === resId);
+    if (res) return res.name;
+  }
+  return resId;
+}
+
+function storyQuestTarget(def) {
+  return def.objectives.kill ? 1 : def.objectives.count;
+}
+
+function storyQuestProgress(entry) {
+  const def = STORY_QUEST_MAP[entry.id];
+  if (!def) return { progress: 0, target: 0 };
+  const target = storyQuestTarget(def);
+  const progress = def.objectives.kill
+    ? Math.min(target, entry.progress || 0)
+    : Math.min(target, state.resources[def.objectives.res] || 0);
+  return { progress, target };
+}
+
+function availableStoryQuestForNpc(npcId) {
+  return STORY_QUESTS.find((q) =>
+    q.npc === npcId &&
+    (state.maxFloor || 1) >= (q.reqFloor || 1) &&
+    !state.completedStoryQuests.includes(q.id) &&
+    !state.activeStoryQuests.some((a) => a.id === q.id)
+  ) || null;
+}
+
+function activeStoryQuestForNpc(npcId) {
+  return state.activeStoryQuests.find((a) => {
+    const def = STORY_QUEST_MAP[a.id];
+    return def && def.npc === npcId;
+  }) || null;
+}
+
+function acceptStoryQuest(qId) {
+  const def = STORY_QUEST_MAP[qId];
+  if (!def) return { ok: false, text: "Задание не найдено." };
+  if (state.completedStoryQuests.includes(qId)) return { ok: false, text: "Это задание уже выполнено." };
+  if (state.activeStoryQuests.some((a) => a.id === qId)) return { ok: false, text: "Задание уже взято." };
+  state.activeStoryQuests.push({ id: qId, progress: 0, status: "active" });
+  saveState();
+  const targetTxt = def.objectives.kill
+    ? `убить: ${findMobName(def.objectives.kill)}`
+    : `собрать ${findResName(def.objectives.res)} ×${def.objectives.count}`;
+  return { ok: true, text: `Задание принято: ${targetTxt}.` };
+}
+
+function checkStoryQuestKill(mobId) {
+  let changed = false;
+  for (const entry of state.activeStoryQuests) {
+    const def = STORY_QUEST_MAP[entry.id];
+    if (!def || !def.objectives.kill || def.objectives.kill !== mobId) continue;
+    if (entry.status !== "active" || entry.progress >= 1) continue;
+    entry.progress = 1;
+    entry.status = "done";
+    changed = true;
+  }
+  if (changed) saveState();
+}
+
+function checkStoryQuestResource(resId, amount) {
+  if (!amount) return;
+  let changed = false;
+  for (const entry of state.activeStoryQuests) {
+    const def = STORY_QUEST_MAP[entry.id];
+    if (!def || !def.objectives.res || def.objectives.res !== resId) continue;
+    if (entry.status !== "active") continue;
+    const target = def.objectives.count;
+    const progress = Math.min(target, state.resources[resId] || 0);
+    entry.status = progress >= target ? "done" : "active";
+    changed = true;
+  }
+  if (changed) saveState();
+}
+
+function claimStoryQuest(qId) {
+  const def = STORY_QUEST_MAP[qId];
+  if (!def) return { ok: false, text: "Задание не найдено." };
+  const entry = state.activeStoryQuests.find((a) => a.id === qId);
+  if (!entry) return { ok: false, text: "Задание не взято." };
+  if (entry.status === "claimed") return { ok: false, text: "Награда уже получена." };
+  const { progress, target } = storyQuestProgress(entry);
+  if (progress < target) return { ok: false, text: "Задание ещё не выполнено." };
+
+  // Ресурсные задания списывают собранное.
+  if (def.objectives.res) {
+    state.resources[def.objectives.res] = Math.max(0, (state.resources[def.objectives.res] || 0) - target);
+  }
+
+  const reward = def.reward || {};
+  state.gold += reward.gold || 0;
+  const up = gainXp(reward.xp || 0);
+  const texts = [`+${reward.gold || 0} 💰`, `+${reward.xp || 0} ✦`];
+
+  if (reward.potions) {
+    state.potions["hp_small"] = (state.potions["hp_small"] || 0) + reward.potions;
+    texts.push(`+${reward.potions} 🧪`);
+  }
+  if (reward.item && ITEMS[reward.item]) {
+    const item = ITEMS[reward.item];
+    const count = reward.itemCount || 1;
+    if (item.slot === "potion") {
+      state.potions[reward.item] = (state.potions[reward.item] || 0) + count;
+      texts.push(`${item.icon} ${item.name} ×${count}`);
+    } else {
+      for (let i = 0; i < count; i++) addItemInstance(reward.item, DURABILITY_MAX, "rare");
+      texts.push(`${item.icon} ${item.name}${count > 1 ? ` ×${count}` : ""}`);
+    }
+  }
+  if (reward.recipe && RECIPE_MAP[reward.recipe] && !state.knownRecipes.includes(reward.recipe)) {
+    state.knownRecipes.push(reward.recipe);
+    texts.push(`📜 Рецепт: ${RECIPE_MAP[reward.recipe].desc}`);
+  }
+
+  // Репутация фракции NPC (стелла/иван не состоят во фракциях).
+  const faction = factionForNpc(def.npc);
+  let repNote = "";
+  let factionLevelUp = null;
+  const repGain = reward.rep || 1;
+  if (faction) {
+    const repBefore = state.reputation[faction.id] || 0;
+    const tierBefore = factionTier(repBefore).tier;
+    const repAfter = repBefore + repGain;
+    state.reputation[faction.id] = repAfter;
+    if (state.reputation[faction.id] >= FACTION_TIERS[2].min) state.factionPerksUnlocked[faction.id] = true;
+    const tierAfter = factionTier(repAfter).tier;
+    repNote = ` Репутация ${faction.name}: ${repAfter}.`;
+    if (tierAfter !== tierBefore) {
+      state.factionNotified[faction.id] = true;
+      factionLevelUp = {
+        faction: faction.id,
+        name: faction.name,
+        icon: faction.icon,
+        tier: tierAfter.name,
+        text: `${faction.icon} ${faction.name}: новый тир «${tierAfter.name}» — скидка ${Math.round(tierAfter.discount * 100)}%!`,
+      };
+    }
+  }
+
+  entry.status = "claimed";
+  state.activeStoryQuests = state.activeStoryQuests.filter((a) => a.id !== qId);
+  state.completedStoryQuests.push(qId);
+  saveState();
+  const levelText = up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : "";
+  return { ok: true, text: `Задание сдано: ${texts.join(", ")}. ${levelText}${repNote}`.trim(), factionLevelUp };
 }
 
 function exploreFloor(floorId) {

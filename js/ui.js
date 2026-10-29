@@ -588,6 +588,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
         ${sellLabel ? btn("sell", sellLabel) : ""}
         ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
         ${btn("quests", "📜 Есть задания?")}
+        ${storyQuestBarBtn(npcId)}
       </div>
     </div>
   `;
@@ -709,11 +710,13 @@ function hotelHtml() {
     ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${daysLeft} дн. Найм не сдвигает время.</span></div>`
     : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
 
-  const tab = view.shopTab === "quests" ? "quests" : "buy";
+  const tab = view.shopTab === "quests" ? "quests" : view.shopTab === "story" ? "story" : "buy";
   const content =
     tab === "quests"
       ? npcQuestHtml("stella")
-      : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
+      : tab === "story"
+        ? storyQuestPanelHtml("stella")
+        : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
          <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
          <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
@@ -733,7 +736,7 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
-  const tab = view.shopTab === "quests" ? "quests" : "buy";
+  const tab = view.shopTab === "quests" ? "quests" : view.shopTab === "story" ? "story" : "buy";
   const cap = trainingCap(state.level);
   const warning = state.phase === 0
     ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
@@ -741,6 +744,7 @@ function trainingHtml() {
 
   let content = "";
   if (tab === "quests") content = trainingQuestsListHtml();
+  else if (tab === "story") content = storyQuestPanelHtml("ivan");
   else if (tab === "buy") content = `${warning}<div class="training-grid">${TRAININGS.map((t) => {
     const avail = trainingAvailability(t); const current = state.attrs[t.attr]; const atCap = current >= cap;
     return `<article class="training-card${avail.ok ? "" : " disabled"}"><div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-attr">${ATTR_INFO.find((a) => a.id === t.attr).name}: ${current} / ${cap}</span></div></div><p class="item-desc">${t.desc}</p><div class="training-foot"><button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? `Тренироваться` : avail.reason}</button></div></article>`;
@@ -760,6 +764,7 @@ function trainingQuestsListHtml() {
 
 function questsModalHtml() {
   ensureWeekQuests();
+  const tab = view.questsTab === "story" ? "story" : "week";
   const list = state.weekQuests.list || [];
 
   const npcName = (id) => NPC_NAMES[id] || id;
@@ -794,17 +799,69 @@ function questsModalHtml() {
     `;
   }).join("");
 
+  const weekCards = `
+    <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
+      ${cards || `<p class="empty">На этой неделе предложений нет.</p>`}
+    </div>
+  `;
+
+  // Вкладка «Сюжетные»: статус каждого сюжетного задания.
+  const storyCards = STORY_QUESTS.map((def) => {
+    const entry = state.activeStoryQuests.find((a) => a.id === def.id);
+    const done = state.completedStoryQuests.includes(def.id);
+    const target = storyQuestTarget(def);
+    const progress = done ? target : (entry ? storyQuestProgress(entry).progress : 0);
+    const pct = Math.round((progress / target) * 100);
+
+    let statusHtml = `<span class="badge">Забрать у NPC</span>`;
+    if (entry) statusHtml = progress >= target
+      ? `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(npcName(def.npc).split(",")[0])})</span>`
+      : `<span class="badge">В работе</span>`;
+    else if (done) statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Выполнено</span>`;
+
+    return `
+      <article class="quest-card quest-card-wide${done ? " claimed" : entry && progress >= target ? " done" : ""}">
+        <div class="quest-body">
+          <div class="quest-info">
+            <div class="quest-title" style="display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline;">
+              <h3 style="margin: 0;">📖 ${esc(def.title)}</h3>
+              <span class="hint" style="white-space: nowrap;">Дает: <b>${esc(npcName(def.npc))}</b></span>
+            </div>
+            <span class="hint">${storyQuestObjectivesText(def)} · Награда: ${storyQuestRewardText(def)}</span>
+          </div>
+          <div class="quest-progress-wrap">
+            <div class="bar"><span style="width:${pct}%"></span></div>
+            <span class="quest-count">${progress} / ${target}</span>
+          </div>
+        </div>
+        <div class="quest-side" style="min-width: 160px;">
+          ${statusHtml}
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  const content = tab === "week"
+    ? weekCards
+    : `<div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">${storyCards}</div>`;
+  const tabLabel = tab === "week" ? "Недельные заказы" : "Сюжетные задания";
+  const hint = tab === "week"
+    ? `<p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Взять — у NPC лично.</p>`
+    : `<p class="hint" style="margin: 0 0 12px;">Главные задания истории. Взять и сдать — лично у NPC; заблокировано, пока не достигнут нужный этаж.</p>`;
+
   return `
     <div class="doll-menu-backdrop" data-act="quests-close"></div>
     <div class="doll-menu quest-modal" role="dialog">
       <div class="doll-menu-head">
-        <h3>Журнал · Недельные заказы</h3>
+        <h3>Журнал · ${tabLabel}</h3>
         <button class="doll-menu-close" data-act="quests-close" type="button">✕</button>
       </div>
-      <p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Взять — у NPC лично.</p>
-      <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
-        ${cards || `<p class="empty">На этой неделе предложений нет.</p>`}
+      <div class="shop-tabs" style="margin-bottom: 12px;">
+        <button class="shop-tab${tab === "week" ? " active" : ""}" data-act="quests-tab" data-tab="week" type="button">📅 Недельные</button>
+        <button class="shop-tab${tab === "story" ? " active" : ""}" data-act="quests-tab" data-tab="story" type="button">📜 Сюжетные</button>
       </div>
+      ${hint}
+      ${content}
     </div>
   `;
 }
@@ -976,6 +1033,106 @@ function npcQuestHtml(npcId) {
       </article>
     </section>
   `;
+}
+
+// ── Сюжетные квесты (Этап 2): панель у NPC и кнопка диалога ────────────────
+function storyQuestObjectivesText(def) {
+  return def.objectives.kill
+    ? `Убить: ${findMobName(def.objectives.kill)}`
+    : `Собрать: ${findResName(def.objectives.res)} ×${def.objectives.count}`;
+}
+
+function storyQuestRewardText(def) {
+  const r = def.reward || {};
+  const parts = [`💰 ${r.gold || 0}`, `✦ ${r.xp || 0}`];
+  if (r.rep) parts.push(`⭐ +${r.rep}`);
+  if (r.potions) parts.push(`🧪 +${r.potions}`);
+  if (r.item && ITEMS[r.item]) parts.push(`${ITEMS[r.item].icon} ${ITEMS[r.item].name}${(r.itemCount || 1) > 1 ? ` ×${r.itemCount}` : ""}`);
+  if (r.recipe && RECIPE_MAP[r.recipe]) parts.push(`📜 ${RECIPE_MAP[r.recipe].desc}`);
+  return parts.join(" · ");
+}
+
+// Кнопка «📖 Сюжет» в полосе диалога NPC — только если есть сюжетное задание.
+function storyQuestBarBtn(npcId) {
+  if (!availableStoryQuestForNpc(npcId) && !activeStoryQuestForNpc(npcId)) return "";
+  const inWork = !!activeStoryQuestForNpc(npcId);
+  return `<button class="shop-tab" data-act="shop-tab" data-tab="story" data-npc="${npcId}" type="button" style="text-align: center;">📖 Сюжет${inWork ? " ✓" : ""}</button>`;
+}
+
+function storyQuestPanelHtml(npcId) {
+  const npcName = NPC_NAMES[npcId] || npcId;
+  const wrap = (inner) => `<section class="shop-group" style="width: 100%; max-width: 100%;">${inner}</section>`;
+
+  const def = availableStoryQuestForNpc(npcId);
+  const entry = activeStoryQuestForNpc(npcId);
+
+  // Уже выполнено: карточка с финальным статусом.
+  const completed = STORY_QUESTS.filter((q) => q.npc === npcId && state.completedStoryQuests.includes(q.id));
+  if (!def && !entry) {
+    if (completed.length) {
+      return wrap(`<article class="quest-card quest-card-wide claimed">
+        <div class="quest-body"><div class="quest-info">
+          <div class="quest-title" style="display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline;">
+            <h3 style="margin:0;">📖 ${esc(completed[0].title)}</h3>
+            <span class="hint">Дал: <b>${esc(npcName)}</b></span>
+          </div>
+        </div></div>
+        <div class="quest-side" style="min-width:160px;">
+          <span class="badge" style="border-color: var(--line2); color: var(--dim);">Выполнено</span>
+        </div>
+      </article>`);
+    }
+    return wrap(`<p class="empty">Сюжетных заданий у меня для вас нет.</p>`);
+  }
+
+  // Доступно новое задание.
+  if (def) {
+    return wrap(`<article class="quest-card quest-card-wide">
+      <div class="quest-body">
+        <div class="quest-info">
+          <div class="quest-title" style="display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline;">
+            <h3 style="margin:0;">📖 ${esc(def.title)}</h3>
+            <span class="hint">Дает: <b>${esc(npcName)}</b></span>
+          </div>
+          <p class="item-desc">${esc(def.text)}</p>
+          <div class="chips">
+            <span class="chip">${storyQuestObjectivesText(def)}</span>
+            <span class="chip">Награда: ${storyQuestRewardText(def)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="quest-side" style="min-width:140px;">
+        <button class="btn small primary" data-act="accept-story-quest" data-id="${def.id}" type="button" style="white-space: nowrap;">Взять задание</button>
+      </div>
+    </article>`);
+  }
+
+  // Задание в работе (возможно, готово к сдаче).
+  const qdef = STORY_QUEST_MAP[entry.id];
+  const { progress, target } = storyQuestProgress(entry);
+  const pct = Math.round((progress / target) * 100);
+  const done = progress >= target;
+  const button = done
+    ? `<button class="btn small primary" data-act="claim-story-quest" data-id="${entry.id}" type="button" style="white-space: nowrap;">Сдать</button>`
+    : `<button class="btn small" disabled type="button" style="white-space: nowrap;">В работе</button>`;
+  return wrap(`<article class="quest-card quest-card-wide${done ? " done" : ""}">
+    <div class="quest-body">
+      <div class="quest-info">
+        <div class="quest-title" style="display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline;">
+          <h3 style="margin:0;">📖 ${esc(qdef.title)}</h3>
+          <span class="hint">Дал: <b>${esc(npcName)}</b></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; width:100%;">
+          <div class="bar" style="flex:1; height:8px; margin:0;"><span style="width:${pct}%"></span></div>
+          <span class="quest-count" style="font-size:12px; white-space:nowrap;">${progress} / ${target}</span>
+        </div>
+      </div>
+    </div>
+    <div class="quest-side" style="min-width:140px;">
+      <span class="price">${storyQuestRewardText(qdef)}</span>
+      ${button}
+    </div>
+  </article>`);
 }
 
 // группы слотов для верхней панели фильтров магазина (Этап 8)
@@ -1224,6 +1381,7 @@ function forgeHtml() {
   const content =
     tab === "sell" ? sellPanelHtml("forge")
     : tab === "quests" ? npcQuestHtml("ron")
+    : tab === "story" ? storyQuestPanelHtml("ron")
     : tab === "craft" ? craftPanelHtml("forge")
     : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? shopItemsHtml(
@@ -1243,6 +1401,7 @@ function jewelryHtml() {
   const content =
     tab === "sell" ? sellPanelHtml("jewelry")
     : tab === "quests" ? npcQuestHtml("elize")
+    : tab === "story" ? storyQuestPanelHtml("elize")
     : tab === "craft" ? craftPanelHtml("jewelry")
     : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? shopItemsHtml([{ id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] }], "jewelry", "jewelry")
@@ -1264,6 +1423,8 @@ function alchemyHtml() {
     content = sellPanelHtml("alchemy");
   } else if (tab === "quests") {
     content = npcQuestHtml("elain");
+  } else if (tab === "story") {
+    content = storyQuestPanelHtml("elain");
   } else if (tab === "upgrade") {
     content = upgradePanelHtml();
   } else if (tab === "buy") {
@@ -2454,6 +2615,12 @@ function firstMeetModalHtml(npcId) {
     </div>
   `;
 }
+// Кнопка «📖 Сюжет» в модалке разговора: открывает экран NPC на вкладке story.
+function storyQuestTalkBtnHtml(npcId) {
+  if (!availableStoryQuestForNpc(npcId) && !activeStoryQuestForNpc(npcId)) return "";
+  return `<button class="btn ghost" data-act="npc-talk-story" data-npc="${npcId}" type="button">📖 Сюжет</button>`;
+}
+
 function npcDialogHtml(npcId) {
   const target = NPC_TALK_TARGETS[npcId];
   if (!target) return "";
@@ -2481,6 +2648,7 @@ function npcDialogHtml(npcId) {
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
           <button class="btn primary" data-act="npc-talk-shop" data-npc="${npcId}" type="button">${target.shopLabel}</button>
           ${questButton}
+          ${storyQuestTalkBtnHtml(npcId)}
           ${DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length ? `<button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" type="button">🗣 Поболтать</button>` : ""}
           <button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>
         </div>
@@ -2917,6 +3085,44 @@ function onClick(event) {
         Sfx.play("levelup");
       }
       render();
+      break;
+    }
+    case "quests-tab": {
+      view.questsTab = el.dataset.tab === "story" ? "story" : "week";
+      render();
+      break;
+    }
+    case "accept-story-quest": {
+      res = acceptStoryQuest(el.dataset.id);
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "claim-story-quest": {
+      const def = STORY_QUEST_MAP[id];
+      res = claimStoryQuest(id);
+      if (res.ok) {
+        if (def) res = { ...res, text: `${res.text} ${getRandomPhrase(def.npc, "quest_complete")}` };
+        if (res.factionLevelUp && state.factionNotified && state.factionNotified[res.factionLevelUp.faction] !== undefined) {
+          state.factionNotified[res.factionLevelUp.faction] = false;
+          saveState();
+        }
+        if (res.text.includes("Новый уровень")) {
+          view.levelUp = state.level;
+          Sfx.play("levelup");
+        }
+      }
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "npc-talk-story": {
+      const npcId = el.dataset.npc;
+      const target = NPC_TALK_TARGETS[npcId];
+      if (!target) break;
+      view.talkNpc = null; view.talkNpcText = null;
+      view.shopTab = "story";
+      go(target.screen);
       break;
     }
     case "create-portrait": { const c = view.create; if (c && PORTRAIT_MAP[el.dataset.portrait]) { c.portrait = el.dataset.portrait; render(); } break; }

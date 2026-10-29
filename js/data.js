@@ -1304,6 +1304,61 @@ const QUEST_MOBS = FLOORS.flatMap((floor) =>
   floor.mobs.map((mob) => ({ ...mob, floorId: floor.id }))
 );
 
+// ── Сюжетные квесты (глобальное обновление) ─────────────────────────────────
+// Отдельно от недельных: выдаёт конкретный NPC, когда state.maxFloor >= reqFloor.
+// Один раз за прохождение (id уходит в completedStoryQuests после сдачи).
+// objectives: { kill: "mobId" } или { res: "resId", count: N }.
+// reward: { gold, xp, rep, item, itemCount, recipe, potions } — всё опционально.
+const STORY_QUESTS = [
+  {
+    id: "sq_ron_mithril_ore",
+    npc: "ron",
+    reqFloor: 4,
+    title: "Мифрил для Рона",
+    text: "Слышал, в Лагере Орков жилы мифрила блестят на солнце. Принеси 5 мифриловой руды — я сакую из неё что-то стоящее и заплачу щедро.",
+    objectives: { res: "mithril_ore", count: 5 },
+    reward: { gold: 1000, xp: 400, rep: 5, recipe: "recipe_mithril_sword" },
+  },
+  {
+    id: "sq_elain_cave_mushroom",
+    npc: "elain",
+    reqFloor: 2,
+    title: "Грибы из глубин",
+    text: "Пещерные грибы из Шахт Кобольдов — основа половины моих отваров, но мои запасы кончились. Принеси 4 штуки, и я не останусь в долгу.",
+    objectives: { res: "cave_mushroom", count: 4 },
+    reward: { gold: 300, xp: 200, rep: 3, item: "hp_big", itemCount: 2 },
+  },
+  {
+    id: "sq_elize_rune_dust",
+    npc: "elize",
+    reqFloor: 3,
+    title: "Рунная пыль для оправы",
+    text: "Неупокоенные призраки таскают при себе рунную пыль. Мне нужно 3 щепотки — хочу опробовать новую оправу. Только не рассыпь её по пути.",
+    objectives: { res: "rune_dust", count: 3 },
+    reward: { gold: 500, xp: 300, rep: 3, item: "ring_silver" },
+  },
+  {
+    id: "sq_stella_crypt_ghoul",
+    npc: "stella",
+    reqFloor: 3,
+    title: "Спокойствие для постояльцев",
+    text: "Неупокоенные из Древнего Склепа пугают постояльцев, а упыри и того хуже. Справься с упырём — и я буду встречать тебя как собственного героя.",
+    objectives: { kill: "crypt_ghoul" },
+    reward: { gold: 350, xp: 250, item: "hp_big", itemCount: 2 },
+  },
+  {
+    id: "sq_ivan_goblin_chief",
+    npc: "ivan",
+    reqFloor: 1,
+    title: "По головам Гоблинов",
+    text: "Вождь Гоблинов треплет караваны возле Йорстеда. Сруби ему башку — и я поставлю тебя в пример каждому новобранцу.",
+    objectives: { kill: "goblin_chief" },
+    reward: { gold: 600, xp: 500, potions: 2 },
+  },
+];
+
+const STORY_QUEST_MAP = Object.fromEntries(STORY_QUESTS.map((q) => [q.id, q]));
+
 const FLOOR_RESOURCES = {
   1: [
     { id: "rust", name: "Ржавый хлам", icon: "rust", minAmount: 1, maxAmount: 3, sellPrice: 5, npc: "ron" },
