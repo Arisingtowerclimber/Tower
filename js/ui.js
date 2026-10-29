@@ -1711,7 +1711,7 @@ function dollSlotHtml(slotId) {
 }
 function paperDollHtml() {
   const left = DOLL_LEFT.map(dollSlotHtml).join(""); const right = DOLL_RIGHT.map(dollSlotHtml).join(""); const count = Object.values(state.equipped).filter(Boolean).length;
-  return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b>${state.currentTitle ? `<span class="hero-title">${esc(state.currentTitle)}</span>` : ""}<span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span></div></div><div class="doll-col">${right}</div></div>`;
+  return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b>${state.currentTitle ? `<span class="hero-title">${esc(state.currentTitle)}</span>` : ""}<span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span><div class="doll-actions"><button class="btn small primary" data-act="talents-open" type="button">🌟 Таланты</button><button class="btn small ghost" data-act="title-open" type="button">👑 Сменить титул</button></div></div></div><div class="doll-col">${right}</div></div>`;
 }
 
 function dollMenuHtml() {
@@ -2054,16 +2054,6 @@ function heroHtml(st) {
           ${heroInventoryHtml()}
         </div>
       </section>
-    </div>
-    <div class="hero-actions-bar">
-      <button class="hero-action-btn" data-act="talents-open" type="button">
-        <span class="hero-action-icon">🌟</span>
-        <span class="hero-action-label">Таланты</span>
-      </button>
-      <button class="hero-action-btn" data-act="title-open" type="button">
-        <span class="hero-action-icon">🏅</span>
-        <span class="hero-action-label">Сменить титул</span>
-      </button>
     </div>
     <div class="danger-zone"><button class="btn tiny danger" data-act="reset" type="button">Сбросить прогресс</button></div>
   `;
