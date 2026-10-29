@@ -15,7 +15,7 @@ const view = {
   invItemUid: null,
   invFilter: "all",
   invSearch: "",
-  alchemyTab: "potions",
+  alchemyTab: "potions", alchemyFilter: "all",
   heroBackScreen: "hub",
   ambush: null,
   storyJustPlayed: false,
@@ -1267,12 +1267,25 @@ function alchemyHtml() {
   } else if (tab === "upgrade") {
     content = upgradePanelHtml();
   } else if (tab === "buy") {
-    const rows = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
+    const filter = view.alchemyFilter || "all";
+    const potions = Object.values(ITEMS).filter((i) => i.slot === "potion");
+    const items = potions.filter((item) => {
+      if (filter === "hp") return item.effect === "hp";
+      if (filter === "mana") return item.effect === "mana";
+      if (filter === "combat") return item.type === "combat";
+      return true;
+    });
+    const filterBtn = (id, label) =>
+      `<button class="shop-filter-btn${filter === id ? " active" : ""}" data-act="alchemy-filter" data-filter="${id}" type="button">${label}</button>`;
+    const filters = `<div class="shop-filters">
+      ${filterBtn("all", "Все")}
+      ${filterBtn("hp", "Лечение")}
+      ${filterBtn("mana", "Мана")}
+      ${filterBtn("combat", "Боевые")}
+    </div>`;
+    const rows = items.map((item) => {
       const count = state.potions[item.id] || 0;
-      const isCombat = item.type === "combat";
-      const full = !isCombat && (item.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana);
       const p = priceFor(item, "alchemy");
-      const drinkBtn = isCombat ? "" : `<button class="btn small ghost" data-act="drink" data-id="${item.id}" ${count <= 0 || full ? "disabled" : ""} type="button">Выпить</button>`;
       return `<article class="gear-row${count > 0 ? " owned" : ""}">
         <div class="gear-row-icon">${iconHtml(item.icon, 34)}</div>
         <div class="gear-row-main">
@@ -1282,11 +1295,10 @@ function alchemyHtml() {
         </div>
         <div class="gear-row-side">
           <button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить · ${p.price} 💰</button>
-          ${drinkBtn}
         </div>
       </article>`;
     }).join("");
-    content = `<section class="shop-group"><div class="gear-rows">${rows || `<p class="empty">Зелий нет.</p>`}</div></section>`;
+    content = `<section class="shop-group">${filters}<div class="gear-rows">${rows || `<p class="empty">Под этот фильтр товаров нет.</p>`}</div></section>`;
   } else {
     content = `<div class="empty" style="padding: 40px 20px; text-align: center; font-style: italic;">Выберите действие в диалоге с Элейн.</div>`;
   }
@@ -2823,9 +2835,14 @@ function onClick(event) {
       view.shopFilterType = "all";
       view.shopFilterStyle = null;
       view.shopFilterArmor = null;
+      view.alchemyFilter = "all";
       render();
       break;
     }
+    case "alchemy-filter":
+      view.alchemyFilter = el.dataset.filter || "all";
+      render();
+      break;
     case "shop-filter-slot":
       view.shopFilterSlot = el.dataset.slot || "all";
       view.shopFilterType = "all"; // при смене слота сбрасываем подкатегорию
