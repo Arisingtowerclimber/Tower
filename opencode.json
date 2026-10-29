@@ -1,0 +1,9 @@
+{
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 900000
+  },
+  "autoupdate": false,
+  "snapshot": false
+}
