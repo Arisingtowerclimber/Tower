@@ -642,7 +642,7 @@ const ARCHETYPES = [
     id: "assassin",
     name: "Убийца",
     icon: "🗡️",
-    desc: "Смерть с двух рук: клинок в левой ладони бьёт вполсилы — на 50% урона. Скользит между ударами, предел уворота 45%. Щиты не для него, а плоть на 10% слабее.",
+    desc: "Смерть с двух рук: клинок в левой ладони бьёт вполсилы — на 50% урона. Скользит между ударами, предел уворота 60%. Щиты не для него, а плоть на 10% слабее.",
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 60, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
