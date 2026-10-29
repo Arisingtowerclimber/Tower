@@ -757,6 +757,83 @@ const ITEMS = {
   smoke_bomb: { id: "smoke_bomb", name: "Дымовая бомба", icon: "💨", type: "combat", effect: "smoke", price: 30, desc: "Враг пропускает следующий удар.", slot: "potion" },
   fire_flask: { id: "fire_flask", name: "Греческий огонь", icon: "🔥", type: "combat", effect: "fire", damage: 20, price: 40, desc: "Наносит 20 урона, игнорируя броню.", slot: "potion" },
   poison_vial: { id: "poison_vial", name: "Флакон с ядом", icon: "🧪", type: "combat", effect: "poison", damage: 5, turns: 3, price: 35, desc: "Наносит 5 урона в течение 3 ходов.", slot: "potion", shopTier: 1 },
+// === ITEMS: Бронза (этаж 2) ===
+  bronze_sword: { id: "bronze_sword", name: "Бронзовый меч", slot: "mainhand", icon: "🗡️", atk: 30, crit: 4, dodge: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 12, bludgeoning: 0 }, price: 130, shopTier: 2, desc: "Тусклая бронза, выкованная в глубине шахты, — режет не хуже стали." },
+  bronze_axe: { id: "bronze_axe", name: "Бронзовый топор", slot: "mainhand", icon: "🪓", atk: 34, crit: 2, dodge: 2, weaponType: "axe", handed: "1h", damage: { slashing: 26, piercing: 0, bludgeoning: 8 }, price: 150, shopTier: 2, desc: "Лёгкий топор с бронзовым лезвием, что входит в кость с одного замаха." },
+  bronze_mace: { id: "bronze_mace", name: "Бронзовая булава", slot: "mainhand", icon: "🏏", atk: 38, crit: 2, dodge: 2, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 35 }, price: 170, shopTier: 2, desc: "Шиповатое бронзовое навершие дробит шлемы и черепа одинаково легко." },
+
+  bronze_shield: { id: "bronze_shield", name: "Бронзовый щит", slot: "offhand", icon: "🛡️", def: 4, block: 1, dodge: 2, armorType: "leather", price: 90, shopTier: 2, desc: "Лёгкий бронзовый щит, за которым проще уйти от удара." },
+
+  bronze_head: gearItem("bronze_head", "Бронзовый шлем", "head", "⛑️", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Бронзовый шлем рудокопа, что гасит и камнепад, и удар."),
+  bronze_chest: gearItem("bronze_chest", "Бронзовый нагрудник", "chest", "🥋", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из звонкой бронзы, лёгкий настолько, что не мешает уклоняться."),
+  bronze_hands: gearItem("bronze_hands", "Бронзовые перчатки", "hands", "🧤", 60, 2, { def: 4, hp: 40, dodge: 3, armorType: "leather" }, "Бронзовые перчатки, оставляющие пальцы свободными для кирки."),
+  bronze_feet: gearItem("bronze_feet", "Бронзовые сапоги", "feet", "🥾", 70, 2, { def: 5, hp: 45, dodge: 3, armorType: "leather" }, "Лёгкие бронзовые сапоги, в которых шаг становится тише."),
+
+  bronze_ring: gearItem("bronze_ring", "Бронзовое кольцо", "ring", "💍", 60, 2, { crit: 2 }, "Простое бронзовое кольцо, отполированное до зеркального блеска."),
+  bronze_neck: gearItem("bronze_neck", "Бронзовый амулет", "neck", "📿", 65, 2, { dodge: 2 }, "Амулет из бронзы, чей тихий звон отводит беду."),
+// === ITEMS: Сталь (этаж 3) ===
+  steel_knight_sword: { id: "steel_knight_sword", name: "Рыцарский стальной меч", slot: "mainhand", icon: "⚔️", atk: 42, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 16, bludgeoning: 0 }, price: 220, shopTier: 2, desc: "Прямой рыцарский клинок из холодной стали." },
+  steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 2, desc: "Двуручник, чей клинок длиннее человеческой тени." },
+  steel_sledge: { id: "steel_sledge", name: "Стальная кувалда", slot: "mainhand", icon: "🔨", atk: 58, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 55 }, price: 380, shopTier: 2, desc: "Кузнечная кувалда, перекованная в орудие для черепов." },
+
+  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, armorType: "plate", price: 180, shopTier: 2, desc: "Стальной щит, за которым можно переждать целый бой." },
+
+  steel_head: gearItem("steel_head", "Стальной шлем", "head", "⛑️", 150, 2, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
+  steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "🛡️", 300, 2, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
+  steel_legs: gearItem("steel_legs", "Стальные поножи", "legs", "👖", 240, 2, { def: 12, hp: 100, armorType: "plate" }, "Стальные поножи, в которых шаг становится гулким."),
+  steel_feet: gearItem("steel_feet", "Стальные сапоги", "feet", "🥾", 200, 2, { def: 10, hp: 90, armorType: "plate" }, "Стальные сапоги, что вбивают врага в землю."),
+
+  steel_ring: gearItem("steel_ring", "Стальное кольцо", "ring", "💍", 150, 2, { crit: 3 }, "Стальное кольцо, холодящее палец перед точным ударом."),
+  steel_trinket: gearItem("steel_trinket", "Стальной талисман", "trinket", "🔮", 140, 2, { hp: 60 }, "Талисман из стали, дающий телу вторую прочность."),
+// === ITEMS: Мифрил (этаж 4) ===
+  mithril_sword: { id: "mithril_sword", name: "Мифриловый меч", slot: "mainhand", icon: "🗡️", atk: 62, crit: 5, weaponType: "sword", handed: "1h", damage: { slashing: 38, piercing: 24, bludgeoning: 0 }, price: 480, shopTier: 3, desc: "Клинок из мифрила, что поёт в воздухе, предсказывая крит." },
+  mithril_halberd: { id: "mithril_halberd", name: "Мифриловая алебарда", slot: "mainhand", icon: "🪓", atk: 70, crit: 4, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 34, bludgeoning: 6 }, price: 560, shopTier: 3, desc: "Мифриловая алебарда — копьё и топор в одном древке." },
+  mithril_axe: { id: "mithril_axe", name: "Мифриловая секира", slot: "mainhand", icon: "🪓", atk: 78, crit: 3, weaponType: "axe", handed: "2h", damage: { slashing: 58, piercing: 0, bludgeoning: 20 }, price: 640, shopTier: 3, desc: "Двуручная секира из мифрила, рассекающая воздух и броню." },
+
+  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, armorType: "plate", price: 320, shopTier: 3, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
+
+  mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "💠", 320, 3, { def: 12, hp: 100, crit: 2, armorType: "chain" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
+  mithril_chest: gearItem("mithril_chest", "Мифриловая кольчуга", "chest", "🥋", 560, 3, { def: 16, hp: 130, crit: 3, armorType: "chain" }, "Мифриловая кольчуга, лёгкая настолько, что не замедляет руку."),
+  mithril_hands: gearItem("mithril_hands", "Мифриловые перчатки", "hands", "🧤", 300, 3, { def: 12, hp: 100, crit: 3, armorType: "chain" }, "Мифриловые перчатки, в которых пальцы точны до дрожи."),
+  mithril_legs: gearItem("mithril_legs", "Мифриловые поножи", "legs", "👖", 420, 3, { def: 14, hp: 115, crit: 2, armorType: "chain" }, "Мифриловые поножи, что невесомы на ноге."),
+
+  mithril_ring: gearItem("mithril_ring", "Мифриловое кольцо", "ring", "💍", 350, 3, { crit: 4 }, "Кольцо из мифрила, обострившее глаз до предела."),
+  mithril_trinket: gearItem("mithril_trinket", "Мифриловый амулет", "trinket", "🔮", 340, 3, { crit: 3 }, "Мифриловый амулет, что шепчет, куда бить."),
+// === ITEMS: Адский камень (этаж 5) ===
+  hell_great_sword: { id: "hell_great_sword", name: "Двуручник из адского камня", slot: "mainhand", icon: "⚔️", atk: 92, dodge: -2, weaponType: "sword", handed: "2h", damage: { slashing: 58, piercing: 34, bludgeoning: 0 }, price: 780, shopTier: 4, desc: "Двуручник, выкованный из адского камня и закалённый в крови." },
+  hell_halberd: { id: "hell_halberd", name: "Алебарда из адского камня", slot: "mainhand", icon: "🪓", atk: 100, dodge: -3, weaponType: "spear", handed: "2h", damage: { slashing: 40, piercing: 50, bludgeoning: 10 }, price: 880, shopTier: 4, desc: "Адская алебарда, чей крюк рвёт и плоть, и реальность." },
+  hell_maul: { id: "hell_maul", name: "Молот из адского камня", slot: "mainhand", icon: "🔨", atk: 110, dodge: -4, weaponType: "mace", handed: "2h", damage: { slashing: 5, piercing: 0, bludgeoning: 105 }, price: 980, shopTier: 4, desc: "Молот из адского камня, от которого трещит сама земля." },
+
+  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, armorType: "plate", price: 600, shopTier: 4, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
+
+  hell_head: gearItem("hell_head", "Шлем из адского камня", "head", "👹", 600, 4, { def: 16, hp: 130, armorType: "plate" }, "Шлем из адского камня, из глазниц которого сочится дым."),
+  hell_chest: gearItem("hell_chest", "Кираса из адского камня", "chest", "🛡️", 850, 4, { def: 20, hp: 160, armorType: "plate" }, "Кираса из адского камня, что жжёт того, кто ударит по ней."),
+  hell_legs: gearItem("hell_legs", "Поножи из адского камня", "legs", "👖", 750, 4, { def: 18, hp: 145, armorType: "plate" }, "Поножи из адского камня, чей вес давит на землю."),
+  hell_feet: gearItem("hell_feet", "Сапоги из адского камня", "feet", "🥾", 650, 4, { def: 16, hp: 130, armorType: "plate" }, "Сапоги из адского камня, оставляющие тлеющие следы."),
+
+  hell_ring: gearItem("hell_ring", "Кольцо из адского камня", "ring", "💍", 550, 4, { crit: 4, hp: 30 }, "Кольцо из адского камня, что питает удар жизнью."),
+  hell_trinket: gearItem("hell_trinket", "Амулет из адского камня", "trinket", "🔮", 580, 4, { crit: 3, hp: 50 }, "Амулет из адского камня, что делает тело крепче и удар точнее."),
+// === ITEMS: Сеты (Рудокоп / Страж склепа / Адский клинок) ===
+  // — Рудокоп (бронза, leather, этаж 2) —
+  set_miner_head: gearItem("set_miner_head", "Шлем рудокопа", "head", "⛑️", 90, 2, { def: 4, hp: 40, dodge: 2, armorType: "leather", rarity: "legendary", unique: "lucky" }, "Шлем рудокопа с тусклой лампой — говорят, он приносит удачу."),
+  set_miner_chest: gearItem("set_miner_chest", "Доспех рудокопа", "chest", "🦺", 150, 2, { def: 8, hp: 70, dodge: 2, armorType: "leather" }, "Кожаный доспех рудокопа, пропитанный рудной пылью и потом."),
+  set_miner_legs: gearItem("set_miner_legs", "Штаны рудокопа", "legs", "👖", 120, 2, { def: 6, hp: 55, dodge: 3, armorType: "leather" }, "Штаны рудокопа, усиленные на коленях для долгой работы."),
+  set_miner_hands: gearItem("set_miner_hands", "Перчатки рудокопа", "hands", "🧤", 80, 2, { def: 4, hp: 40, dodge: 4, armorType: "leather" }, "Перчатки рудокопа, в которых кирка не выскальзывает."),
+  set_miner_feet: gearItem("set_miner_feet", "Сапоги рудокопа", "feet", "🥾", 90, 2, { def: 5, hp: 45, dodge: 4, armorType: "leather" }, "Сапоги рудокопа с подошвой, что держит на осыпи."),
+
+  // — Страж склепа (сталь, plate, этаж 3) —
+  set_guard_head: gearItem("set_guard_head", "Шлем стража склепа", "head", "🪖", 180, 2, { def: 12, hp: 100, block: 1, armorType: "plate" }, "Шлем стража склепа, из-под которого не видно глаз."),
+  set_guard_chest: gearItem("set_guard_chest", "Латы стража склепа", "chest", "🛡️", 360, 2, { def: 16, hp: 130, block: 1, armorType: "plate", rarity: "legendary", unique: "thorns" }, "Латы стража склепа, чьи шипы возвращают удар обидчику."),
+  set_guard_legs: gearItem("set_guard_legs", "Поножи стража склепа", "legs", "👖", 280, 2, { def: 14, hp: 115, block: 1, armorType: "plate" }, "Поножи стража склепа, кованные для вечной стражи."),
+  set_guard_hands: gearItem("set_guard_hands", "Рукавицы стража склепа", "hands", "🧤", 220, 2, { def: 10, hp: 90, block: 1, armorType: "plate" }, "Рукавицы стража склепа, что держат клинок даже после смерти."),
+  set_guard_feet: gearItem("set_guard_feet", "Сапоги стража склепа", "feet", "🥾", 240, 2, { def: 12, hp: 95, block: 1, armorType: "plate" }, "Сапоги стража склепа, что не скользят на могильных плитах."),
+
+  // — Адский клинок (адский камень, plate, этаж 5) —
+  set_hellblade_head: gearItem("set_hellblade_head", "Шлем адского клинка", "head", "👹", 700, 4, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate" }, "Шлем адского клинка, увенчанный рогами."),
+  set_hellblade_chest: gearItem("set_hellblade_chest", "Кираса адского клинка", "chest", "🛡️", 950, 4, { def: 20, hp: 160, dodge: -4, crit: 4, armorType: "plate", rarity: "legendary", unique: "lifesteal" }, "Кираса адского клинка, что пьёт кровь врагов, даря силу."),
+  set_hellblade_legs: gearItem("set_hellblade_legs", "Поножи адского клинка", "legs", "👖", 820, 4, { def: 18, hp: 145, dodge: -3, crit: 3, armorType: "plate" }, "Поножи адского клинка, тяжёлые, как грехи их владельца."),
+  set_hellblade_hands: gearItem("set_hellblade_hands", "Рукавицы адского клинка", "hands", "🧤", 720, 4, { def: 16, hp: 120, dodge: -2, crit: 2, armorType: "plate" }, "Рукавицы адского клинка, что зажимают клинок до хруста."),
+  set_hellblade_feet: gearItem("set_hellblade_feet", "Сапоги адского клинка", "feet", "🥾", 740, 4, { def: 16, hp: 125, dodge: -3, crit: 2, armorType: "plate" }, "Сапоги адского клинка, оставляющие в камне трещины."),
 };
 
 // armorType старой gearItem()-брони (голова/плечи/спина/руки/пояс/ноги/ступни).
@@ -795,6 +872,7 @@ const MOB_ICONS = {
   fallen: "🗡️",
   whisper: "🔮",
   lord: "👑",
+  demon_lord: "👹",
 };
 
 const RESOURCE_ICONS = {
@@ -832,9 +910,7 @@ function resolveIcon(icon) {
 }
 
 function shopFloorFor(item) {
-  if (item.shopTier <= 1) return 1;
-  if (item.shopTier === 2) return 2;
-  return 4;
+  return Math.max(1, Math.min(5, item.shopTier || 1));
 }
 
 function enemy(def) {
@@ -869,141 +945,148 @@ const FLOORS = [
         { id: "malachite", chance: 0.60, min: 2, max: 3 },
       ] }),
   },
-  { id: 2, name: "Древний Склеп", subtitle: "Лишенные покоя не ведают жалости", icon: "💀",
-    desc: "Даже свет факела кажется маленькой искрой и выхватывает из темноты лишь сырые каменные стены...",
-    cardImg: "assets/backgrounds/crypt.webp", 
-    bg: "assets/backgrounds/crypt.webp", 
+  // === FLOORS[1] — Кобольды (шахты) ===
+  { id: 2, name: "Шахты Кобольдов", subtitle: "Под землёй стучат кирки, и стук всё ближе", icon: "⚙️",
+    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы бронзы. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и шипение колдовских заклинаний.",
+    cardImg: "assets/backgrounds/mines.webp",
+    bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ 
-        id: "skeleton_warrior", 
-        name: "Скелет-воин", 
-        icon: "skeleton_warrior", // <-- ИЗМЕНЕНО
-        hp: 350, atk: 36, def: 12, gold: 60, xp: 84, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"], desc: "Восставший из старой могилы...",
+      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "⚙️", hp: 360, atk: 38, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+        desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
-          { id: "bone", chance: 0.40, min: 1, max: 2 },
-          { id: "rust", chance: 0.20, min: 1, max: 3 },
-        ] 
-      }),
-      enemy({ 
-        id: "unquiet_ghost", 
-        name: "Неупокоенный призрак", 
-        icon: "unquiet_ghost", // <-- ИЗМЕНЕНО
-        hp: 400, atk: 42, def: 6, gold: 65, xp: 90, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"], desc: "Полупрозрачный силуэт...",
-        drops: [
-          { id: "bone", chance: 0.30, min: 1, max: 2 },
-          { id: "herb", chance: 0.20, min: 1, max: 2 },
-        ] 
-      }),
-      enemy({ 
-        id: "crypt_ghoul", 
-        name: "Свежий Упырь", 
-        icon: "crypt_ghoul", // <-- ИЗМЕНЕНО
-        hp: 480, atk: 48, def: 16, gold: 75, xp: 105, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"], desc: "Пожиратель падали...",
-        drops: [
-          { id: "bone", chance: 0.35, min: 1, max: 3 },
-          { id: "leather", chance: 0.20, min: 1, max: 2 },
-        ] 
-      }),
-    ],
-    boss: enemy({ 
-      id: "dark_knight", 
-      name: "Темный Рыцарь", 
-      icon: "dark_knight", // <-- ИЗМЕНЕНО
-      hp: 2100, atk: 64, def: 28, gold: 450, xp: 480, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Павший паладин...",
-      drops: [
-        { id: "head_iron", chance: 1.0, min: 1, max: 1 },
-        { id: "steel", chance: 0.40, min: 1, max: 2 }, 
-      ] 
-    }),
-  },
-  { id: 3, name: "Затопленный ярус", subtitle: "Вода по колено, и в ней кто-то двигается", icon: "🌊",
-    desc: "Вода стоит по колено, отражая тусклый свет факелов. Из-под поверхности тянутся руки, а в тёмной глубине что-то тяжело ворочается.",
-    bg: "assets/backgrounds/floor3.webp",
-    mobs: [
-      enemy({ id: "drowned", name: "Утопленник", icon: "drowned", hp: 110, atk: 27, def: 7, gold: 30, xp: 44, prefers: ["head", "chest"], desc: "Тянется к горлу обеими руками.",
-        drops: [
-          { id: "algae", chance: 0.35, min: 1, max: 2 },
-          { id: "iron", chance: 0.20, min: 1, max: 1 },
-          { id: "wood", chance: 0.20, min: 1, max: 3 },
-          { id: "cloth", chance: 0.20, min: 1, max: 3 },
-          { id: "leather", chance: 0.20, min: 1, max: 3 },
-          { id: "iron_ore", chance: 0.20, min: 1, max: 3 },
+          { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
+          { id: "tin_ore", chance: 0.3, min: 1, max: 2 },
+          { id: "wood", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "crab", name: "Панцирный краб", icon: "crab", hp: 140, atk: 21, def: 14, gold: 32, xp: 46, armorType: "plate", prefers: ["legs"], desc: "Почти не пробивается, зато бьёт по ногам.",
+      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "⚙️", hp: 420, atk: 42, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
+        desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки бронзы, целясь в живот и грудь.",
         drops: [
-          { id: "topaz", chance: 0.30, min: 1, max: 1 },
-          { id: "iron", chance: 0.20, min: 1, max: 2 },
-          { id: "wood", chance: 0.20, min: 1, max: 3 },
-          { id: "cloth", chance: 0.20, min: 1, max: 3 },
-          { id: "leather", chance: 0.20, min: 1, max: 3 },
-          { id: "iron_ore", chance: 0.20, min: 1, max: 3 },
+          { id: "kobold_gear", chance: 0.4, min: 1, max: 2 },
+          { id: "bronze_ingot", chance: 0.25, min: 1, max: 1 },
+          { id: "rust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "eel", name: "Электрический угорь", icon: "eel", hp: 95, atk: 36, def: 5, gold: 28, xp: 42, prefers: ["waist", "belly"], desc: "Бьёт разрядом в бок, пока вы ждёте удара сверху.",
+      enemy({ id: "kobold_sorcerer", name: "Кобольд-колдун", icon: "💀", hp: 480, atk: 46, def: 10, gold: 80, xp: 105, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+        desc: "Шипит сквозь острые зубы заклинания, от которых искры сыплются на камень. Бьёт по голове и животу, пока остальные отвлекают.",
         drops: [
-          { id: "topaz", chance: 0.35, min: 1, max: 2 },
-          { id: "algae", chance: 0.20, min: 1, max: 1 },
-          { id: "wood", chance: 0.20, min: 1, max: 3 },
-          { id: "cloth", chance: 0.20, min: 1, max: 3 },
-          { id: "leather", chance: 0.20, min: 1, max: 3 },
-          { id: "iron_ore", chance: 0.20, min: 1, max: 3 },
+          { id: "cave_mushroom", chance: 0.35, min: 1, max: 2 },
+          { id: "copper_ore", chance: 0.25, min: 1, max: 2 },
+          { id: "mushroom", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "gatekeeper", name: "Хранитель шлюза", icon: "gatekeeper", hp: 600, atk: 39, def: 11, gold: 240, xp: 280, armorType: "plate", prefers: ["chest", "legs"], boss: true, enrage: true, desc: "Щупальца перекрывают проход, а вода поднимается.",
+    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "👹", hp: 1920, atk: 74, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+      desc: "Огромный, перемазанный рудой кобольд с молотом в лапах. В ярости его удары разбрызгивают кровь по стенам шахты.",
       drops: [
-        { id: "kite_shield", chance: 1.0, min: 1, max: 1 },
-        { id: "topaz", chance: 0.60, min: 2, max: 3 },
+        { id: "bronze_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "bronze_ingot", chance: 0.6, min: 2, max: 3 },
+        { id: "copper_ore", chance: 0.5, min: 2, max: 3 },
       ] }),
   },
-  { id: 4, name: "Кристальный ярус", subtitle: "Свет преломляется и режет глаза", icon: "💎",
-    desc: "Стены покрыты кристаллами, которые ловят каждый луч света. Тишина здесь звенит, а отражения в гранях двигаются чуть медленнее, чем вы.",
-    bg: "assets/backgrounds/floor4.webp",
+  // === FLOORS[2] — Нежить (склеп) ===
+  { id: 3, name: "Древний Склеп", subtitle: "Лишённые покоя не ведают жалости", icon: "💀",
+    desc: "Даже свет факела кажется маленькой искрой и выхватывает из темноты лишь сырые каменные стены. Здесь не спят те, кто давно должен был рассыпаться в прах.",
+    cardImg: "assets/backgrounds/crypt.webp",
+    bg: "assets/backgrounds/crypt.webp",
     mobs: [
-      enemy({ id: "golem", name: "Кристальный голем", icon: "golem", hp: 900, atk: 72, def: 34, gold: 144, xp: 204, armorType: "plate", prefers: ["chest"], desc: "Медленный, но каждый удар как обвал.",
+      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 560, atk: 52, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
+        desc: "Восставший из старой могилы скелет, стиснувший ржавый клинок. Бьёт по корпусу и ногам, не зная ни боли, ни усталости.",
         drops: [
-          { id: "steel", chance: 0.35, min: 1, max: 2 },
-          { id: "ruby", chance: 0.20, min: 1, max: 1 },
+          { id: "bone", chance: 0.4, min: 1, max: 2 },
+          { id: "grave_iron", chance: 0.25, min: 1, max: 2 },
+          { id: "copper_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "shard", name: "Осколочный двойник", icon: "shard", hp: 675, atk: 90, def: 18, gold: 132, xp: 192, armorType: "plate", prefers: ["head", "waist"], desc: "Повторяет ваши движения с задержкой в полсекунды.",
+      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 630, atk: 55, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+        desc: "Полупрозрачный силуэт, что тянет к вам ледяные пальцы. Его шёпот ввинчивается в голову, а удары проходят сквозь броню.",
         drops: [
-          { id: "crystal_herb", chance: 0.30, min: 1, max: 2 },
-          { id: "steel", chance: 0.20, min: 1, max: 1 },
+          { id: "rune_dust", chance: 0.35, min: 1, max: 2 },
+          { id: "cursed_cloth", chance: 0.25, min: 1, max: 2 },
+          { id: "tin_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "wisp", name: "Луч света", icon: "wisp", hp: 600, atk: 102, def: 14, gold: 126, xp: 186, prefers: ["belly", "legs"], desc: "Бьёт снизу, туда, где обычно не ждут.",
+      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 700, atk: 60, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"],
+        desc: "Сгорбленный пожиратель падали с длинными когтями. Рвётся к животу и поясу, чтобы добраться до плоти.",
         drops: [
-          { id: "ruby", chance: 0.30, min: 1, max: 1 },
-          { id: "crystal_herb", chance: 0.20, min: 1, max: 2 },
+          { id: "bone", chance: 0.35, min: 1, max: 2 },
+          { id: "grave_iron", chance: 0.25, min: 1, max: 2 },
+          { id: "kobold_gear", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "sentinel", name: "Кристальный страж", icon: "sentinel", hp: 4300, atk: 108, def: 30, gold: 1260, xp: 1380, armorType: "plate", prefers: ["head", "chest"], boss: true, enrage: true, desc: "В его гранях отражается ваше же оружие.",
+    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2800, atk: 96, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+      desc: "Павший паладин, чьи латы покрыты пеплом и копотью. В ярости его клинок крошит камень и кости.",
       drops: [
-        { id: "head_crystal", chance: 1.0, min: 1, max: 1 },
-        { id: "ruby", chance: 0.60, min: 2, max: 3 },
+        { id: "steel_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "grave_iron", chance: 0.6, min: 2, max: 3 },
+        { id: "rune_dust", chance: 0.5, min: 1, max: 2 },
       ] }),
   },
-  { id: 5, name: "Шпиль", subtitle: "Ветер, темнота и чей-то шёпот", icon: "🗼",
-    desc: "Вершина Башни. Ветер вырывается из щелей, а темнота кажется гуще, чем должна быть. Где-то наверху ждёт Владыка.",
-    bg: "assets/backgrounds/floor5.webp",
+  // === FLOORS[3] — Орки и огры ===
+  { id: 4, name: "Лагерь Орков", subtitle: "Пахнет костром, дёгтем и свежей кровью", icon: "🐗",
+    desc: "Военный лагерь, где орки готовят осаду, а огры выворачивают из земли валуны. Дым костров застилает небо, и в этом дыму движутся могучие тени.",
+    cardImg: "assets/backgrounds/orc_camp.webp",
+    bg: "assets/backgrounds/orc_camp.webp",
     mobs: [
-      enemy({ id: "shadow", name: "Тень", icon: "shadow", hp: 1100, atk: 102, def: 26, gold: 186, xp: 276, prefers: ["legs", "waist"], desc: "Не отбрасывает тени, потому что сама — тень.",
+      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 920, atk: 76, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
+        desc: "Свирепый налётчик, чья секира помнит десятки черепов. Рубит сверху, целясь в голову и грудь.",
         drops: [
-          { id: "shadow_herb", chance: 0.35, min: 1, max: 2 },
-          { id: "obsidian", chance: 0.20, min: 1, max: 1 },
+          { id: "iron_chain", chance: 0.35, min: 1, max: 2 },
+          { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
+          { id: "bone", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "fallen", name: "Падший рыцарь", icon: "fallen", hp: 1450, atk: 120, def: 42, gold: 225, xp: 315, prefers: ["head", "chest"], desc: "Держит строй даже без строя.",
+      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 1000, atk: 80, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
+        desc: "Шаман, обвешанный костями и амулетами. Его проклятия бьют в живот и пояс, пока он бормочет боевые молитвы.",
         drops: [
-          { id: "obsidian", chance: 0.30, min: 1, max: 2 },
-          { id: "diamond", chance: 0.20, min: 1, max: 1 },
+          { id: "blood_herb", chance: 0.35, min: 1, max: 2 },
+          { id: "war_crystal", chance: 0.25, min: 1, max: 2 },
+          { id: "rune_dust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "whisper", name: "Шёпот башни", icon: "whisper", hp: 925, atk: 132, def: 22, gold: 204, xp: 294, prefers: ["belly", "waist"], desc: "Бьёт туда, куда вы уже не смотрите.",
+      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 1100, atk: 85, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
+        desc: "Гора мяса и шрамов, вооружённая вырванным из земли валуном. Бьёт по груди и ногам — медленно, но смертельно.",
         drops: [
-          { id: "diamond", chance: 0.30, min: 1, max: 1 },
-          { id: "shadow_herb", chance: 0.20, min: 1, max: 2 },
+          { id: "mithril_ore", chance: 0.35, min: 1, max: 2 },
+          { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
+          { id: "silver", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "lord", name: "Владыка Башни", icon: "lord", hp: 5600, atk: 132, def: 38, gold: 2700, xp: 2850, armorType: "plate", prefers: ["head", "chest"], boss: true, enrage: true, desc: "Он ждал вас на самом верху. Похоже, очень давно.",
+    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 4400, atk: 136, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+      desc: "Вождь, чьи латы кованы из обломков осадных машин. В ярости он сминает строй одним ударом.",
       drops: [
-        { id: "rune_blade", chance: 1.0, min: 1, max: 1 },
-        { id: "diamond", chance: 0.60, min: 2, max: 3 },
+        { id: "mithril_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "war_crystal", chance: 0.6, min: 2, max: 3 },
+        { id: "mithril_ore", chance: 0.5, min: 1, max: 2 },
+      ] }),
+  },
+// === FLOORS[4] — Демонический план ===
+  { id: 5, name: "Демонический План", subtitle: "Разрыв в реальности, и из него течёт сера", icon: "🔥",
+    desc: "Здесь реальность рвётся, как гнилая ткань, обнажая пылающий план. Сера хрустит под ногами, а воздух плавится от жара — где-то впереди ждёт Владыка Бездны.",
+    cardImg: "assets/backgrounds/hell_plane.webp",
+    bg: "assets/backgrounds/hell_plane.webp",
+    mobs: [
+      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 1020, atk: 104, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
+        desc: "Мелкий бес, объятый пламенем, что хихикает из дыма. Жалит в живот и пояс, пока вы ищете его в огне.",
+        drops: [
+          { id: "brimstone", chance: 0.35, min: 1, max: 2 },
+          { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
+          { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
+        ] }),
+      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 1100, atk: 108, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], prefers: ["head", "chest"],
+        desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
+        drops: [
+          { id: "hellstone", chance: 0.35, min: 1, max: 2 },
+          { id: "demon_horn", chance: 0.25, min: 1, max: 2 },
+          { id: "iron_chain", chance: 0.2, min: 1, max: 2 },
+        ] }),
+      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1200, atk: 115, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
+        desc: "Рогатый дьявол в багровых латах, вооружённый чёрным клинком. Бьёт в грудь и голову, наслаждаясь чужой болью.",
+        drops: [
+          { id: "demon_horn", chance: 0.35, min: 1, max: 2 },
+          { id: "void_crystal", chance: 0.25, min: 1, max: 2 },
+          { id: "mithril_ore", chance: 0.2, min: 1, max: 2 },
+        ] }),
+    ],
+    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4800, atk: 184, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+      desc: "Владыка Бездны, чей трон выкован из проклятых душ. В ярости его удары рвут саму реальность.",
+      drops: [
+        { id: "hell_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "void_crystal", chance: 0.6, min: 2, max: 3 },
+        { id: "hellstone", chance: 0.5, min: 1, max: 2 },
       ] }),
   },
 ];
@@ -1028,33 +1111,34 @@ const FLOOR_RESOURCES = {
     { id: "wood", name: "Кривая доска", icon: "wood", minAmount: 1, maxAmount: 3, sellPrice: 4, npc: "ron" },
     { id: "cloth", name: "Обрывок ткани", icon: "cloth", minAmount: 1, maxAmount: 3, sellPrice: 5, npc: "elain" },
   ],
+// === FLOOR_RESOURCES[2..5] ===
   2: [
-    { id: "bone", name: "Кости", icon: "bone", minAmount: 1, maxAmount: 3, sellPrice: 10, npc: "ron" },
-    { id: "herb", name: "Склероций", icon: "herb", minAmount: 1, maxAmount: 3, sellPrice: 12, npc: "elain" },
-    { id: "silver", name: "Серебро", icon: "assets/resources/silver.webp", minAmount: 1, maxAmount: 3, sellPrice: 15, npc: "elize" },
-    { id: "leather", name: "Кусок кожи", icon: "leather", minAmount: 1, maxAmount: 3, sellPrice: 9, npc: "elize" },
-    { id: "iron_ore", name: "Железная руда", icon: "assets/resources/iron.webp", minAmount: 1, maxAmount: 3, sellPrice: 14, npc: "ron" },
+    { id: "copper_ore", name: "Медная руда", icon: "🟠", minAmount: 1, maxAmount: 3, sellPrice: 18, npc: "ron" },
+    { id: "tin_ore", name: "Оловянная руда", icon: "⚪", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "ron" },
+    { id: "kobold_gear", name: "Шестерёнка", icon: "⚙️", minAmount: 1, maxAmount: 3, sellPrice: 22, npc: "elize" },
+    { id: "cave_mushroom", name: "Пещерный гриб", icon: "🍄", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "elain" },
+    { id: "bronze_ingot", name: "Бронзовый слиток", icon: "🟫", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "ron" },
   ],
   3: [
-    { id: "iron", name: "Ржавое железо", icon: "iron", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "ron" },
-    { id: "algae", name: "Водоросли", icon: "algae", minAmount: 1, maxAmount: 3, sellPrice: 22, npc: "elain" },
-    { id: "topaz", name: "Топаз", icon: "topaz", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "elize" },
-    { id: "coral", name: "Коралл", icon: "coral", minAmount: 1, maxAmount: 3, sellPrice: 24, npc: "elize" },
-    { id: "scale", name: "Чешуя", icon: "scale", minAmount: 1, maxAmount: 3, sellPrice: 26, npc: "ron" },
+    { id: "bone", name: "Кости", icon: "🦴", minAmount: 1, maxAmount: 3, sellPrice: 12, npc: "ron" },
+    { id: "grave_iron", name: "Могильное железо", icon: "⚔️", minAmount: 1, maxAmount: 3, sellPrice: 28, npc: "ron" },
+    { id: "rune_dust", name: "Рунная пыль", icon: "✨", minAmount: 1, maxAmount: 3, sellPrice: 32, npc: "elain" },
+    { id: "silver", name: "Серебро", icon: "💍", minAmount: 1, maxAmount: 3, sellPrice: 15, npc: "elize" },
+    { id: "cursed_cloth", name: "Проклятая ткань", icon: "🧵", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "elain" },
   ],
   4: [
-    { id: "steel", name: "Сталь", icon: "steel", minAmount: 1, maxAmount: 3, sellPrice: 30, npc: "ron" },
-    { id: "crystal_herb", name: "Кристальная трава", icon: "crystal_herb", minAmount: 1, maxAmount: 3, sellPrice: 35, npc: "elain" },
-    { id: "ruby", name: "Рубин", icon: "ruby", minAmount: 1, maxAmount: 3, sellPrice: 40, npc: "elize" },
-    { id: "crystal_shard", name: "Осколок кристалла", icon: "crystal_shard", minAmount: 1, maxAmount: 3, sellPrice: 38, npc: "elize" },
-    { id: "essence", name: "Эссенция света", icon: "essence", minAmount: 1, maxAmount: 3, sellPrice: 42, npc: "elain" },
+    { id: "mithril_ore", name: "Мифриловая руда", icon: "🔵", minAmount: 1, maxAmount: 3, sellPrice: 35, npc: "ron" },
+    { id: "orc_tusk", name: "Клык орка", icon: "🦷", minAmount: 1, maxAmount: 3, sellPrice: 32, npc: "ron" },
+    { id: "blood_herb", name: "Кровавая трава", icon: "🌿", minAmount: 1, maxAmount: 3, sellPrice: 38, npc: "elain" },
+    { id: "war_crystal", name: "Боевой кристалл", icon: "🔮", minAmount: 1, maxAmount: 3, sellPrice: 40, npc: "elize" },
+    { id: "iron_chain", name: "Железная цепь", icon: "⛓️", minAmount: 1, maxAmount: 3, sellPrice: 42, npc: "ron" },
   ],
   5: [
-    { id: "obsidian", name: "Обсидиан", icon: "obsidian", minAmount: 1, maxAmount: 3, sellPrice: 50, npc: "ron" },
-    { id: "shadow_herb", name: "Тенецвет", icon: "shadow_herb", minAmount: 1, maxAmount: 3, sellPrice: 55, npc: "elain" },
-    { id: "diamond", name: "Алмаз", icon: "diamond", minAmount: 1, maxAmount: 3, sellPrice: 60, npc: "elize" },
-    { id: "void_dust", name: "Прах пустоты", icon: "void_dust", minAmount: 1, maxAmount: 3, sellPrice: 58, npc: "ron" },
-    { id: "dragon_scale", name: "Чешуя дракона", icon: "dragon_scale", minAmount: 1, maxAmount: 3, sellPrice: 65, npc: "elize" },
+    { id: "hellstone", name: "Адский камень", icon: "🪨", minAmount: 1, maxAmount: 3, sellPrice: 55, npc: "ron" },
+    { id: "brimstone", name: "Сера", icon: "🟡", minAmount: 1, maxAmount: 3, sellPrice: 58, npc: "elain" },
+    { id: "demon_horn", name: "Рог демона", icon: "🐏", minAmount: 1, maxAmount: 3, sellPrice: 60, npc: "elize" },
+    { id: "void_crystal", name: "Кристалл пустоты", icon: "🔮", minAmount: 1, maxAmount: 3, sellPrice: 62, npc: "elize" },
+    { id: "infernal_ash", name: "Адский пепел", icon: "🌫️", minAmount: 1, maxAmount: 3, sellPrice: 58, npc: "elain" },
   ],
 };
 
@@ -1085,18 +1169,6 @@ const FLOOR_SCENES = {
         { id: "dig", label: "⛏ Спуститься" },
       ],
       group: [0, 1],
-    },
-  ],
-  2: [
-    {
-      id: "strange_grave",
-      title: "Странная могила",
-      text: "Среди старых ниш стоит могила без имени. Земля взрыта свежо — чей-то труд или чья-то приманка. Можно пройти мимо, а можно порыться в рыхлой земле.",
-      actions: [
-        { id: "leave", label: "🚶 Пойти дальше" },
-        { id: "dig", label: "⛏ Порыскать" },
-      ],
-      group: [0, 2],
     },
   ],
 };
