@@ -762,7 +762,6 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
-  ensureHuntContracts();
   const cap = trainingCap(state.level);
   const warning = state.phase === 0
     ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
@@ -817,29 +816,30 @@ function findMobIcon(mobId) {
 }
 
 function huntBoardHtml() {
-  ensureHuntContracts();
-  const cards = state.huntContracts.list.map((c) => {
-    const def = huntContractDef(c.id);
-    if (!def) return "";
-    const isWeekly = def.type === "weekly";
-    const title = isWeekly ? "Недельный заказ Ивана" : "Контракт на охоту";
-    const goal = `Истребить ${def.target} × ${findMobName(def.mobId)} — ${huntFloorName(def.floorId)}`;
-    const pct = Math.max(0, Math.min(100, Math.round((c.progress / def.target) * 100)));
+  ensureWeekQuests();
+  // Доска и журнал — один и тот же state.weekQuests.list.
+  const cards = state.weekQuests.list
+    .filter((q) => q.type === "kill" || q.type === "hunt")
+    .map((q) => {
+      const isWeekly = q.type === "kill";
+      const title = isWeekly ? "Недельный заказ Ивана" : "Контракт на охоту";
+      const goal = `Истребить ${q.target} × ${q.mobName || findMobName(q.mobId)} — ${huntFloorName(q.floorId)}`;
+      const pct = Math.max(0, Math.min(100, Math.round((q.progress / q.target) * 100)));
 
-    let button;
-    if (c.status === "offered") button = `<button class="btn small primary" data-act="hunt-accept" data-id="${def.id}" type="button">Взять</button>`;
-    else if (c.status === "active") button = `<button class="btn small" disabled type="button">В работе (${c.progress}/${def.target})</button>`;
-    else if (c.status === "done") button = `<button class="btn small primary" data-act="hunt-claim" data-id="${def.id}" type="button">Сдать</button>`;
-    else button = `<button class="btn small" disabled type="button">Сдано</button>`;
+      let button;
+      if (q.status === "offered") button = `<button class="btn small primary" data-act="hunt-accept" data-id="${q.id}" type="button">Взять</button>`;
+      else if (q.status === "active") button = `<button class="btn small" disabled type="button">В работе (${q.progress}/${q.target})</button>`;
+      else if (q.status === "done") button = `<button class="btn small primary" data-act="hunt-claim" data-id="${q.id}" type="button">Сдать</button>`;
+      else button = `<button class="btn small" disabled type="button">Сдано</button>`;
 
-    const badge = isWeekly
-      ? `<span class="badge board-badge weekly">📌 Заказ недели</span>`
-      : `<span class="badge board-badge">📌 Контракт</span>`;
+      const badge = isWeekly
+        ? `<span class="badge board-badge weekly">📌 Заказ недели</span>`
+        : `<span class="badge board-badge">📌 Контракт</span>`;
 
-    return `<article class="contract-card${isWeekly ? " weekly" : ""}${c.status === "claimed" ? " claimed" : c.status === "done" ? " done" : ""}">
+      return `<article class="contract-card${isWeekly ? " weekly" : ""}${q.status === "claimed" ? " claimed" : q.status === "done" ? " done" : ""}">
       <div class="contract-pin" aria-hidden="true"></div>
       <div class="contract-head">
-        <span class="contract-icon">${iconHtml(findMobIcon(def.mobId), 36)}</span>
+        <span class="contract-icon">${iconHtml(q.mobIcon || findMobIcon(q.mobId), 36)}</span>
         <div>
           <span class="contract-kicker">${isWeekly ? "От капитана" : "Доска Гильдии"}</span>
           <h3>${esc(title)}</h3>
@@ -847,17 +847,17 @@ function huntBoardHtml() {
         ${badge}
       </div>
       <p class="contract-goal">🎯 ${esc(goal)}</p>
-      <p class="item-desc">${esc(def.desc || "")}</p>
+      <p class="item-desc">${esc(q.desc || "")}</p>
       <div class="contract-progress">
         <div class="bar"><span style="width:${pct}%"></span></div>
-        <span class="quest-count">${c.progress} / ${def.target}</span>
+        <span class="quest-count">${q.progress} / ${q.target}</span>
       </div>
       <div class="contract-foot">
-        <span class="price">💰 ${def.gold} · ✦ ${def.xp} · 🏹 +${def.rep || 1} реп.</span>
+        <span class="price">💰 ${q.gold} · ✦ ${q.xp} · 🏹 +${q.rep || 1} реп.</span>
         ${button}
       </div>
     </article>`;
-  }).join("");
+    }).join("");
 
   return `
     <section class="shop-group hunt-board">
@@ -938,13 +938,18 @@ function questsModalHtml() {
   const list = state.weekQuests.list || [];
 
   const npcName = (id) => NPC_NAMES[id] || id;
+  const questGiver = (q) => (q.type === "hunt" ? "Гильдия Охотников" : (NPC_NAMES[q.npc] || q.npc || "Гильдия Охотников"));
   
   const cards = list.map((q) => {
-    const title = q.type === "kill" ? `Убить: ${q.mobName}` : `Собрать: ${q.resName}`;
+    const title = q.type === "kill"
+      ? `Убить: ${q.mobName}`
+      : q.type === "hunt"
+        ? `Истребить: ${q.mobName}`
+        : `Собрать: ${q.resName}`;
 
     let statusHtml = `<span class="badge">Предложение недели</span>`;
     if (q.status === "active") statusHtml = `<span class="badge">В работе</span>`;
-    else if (q.status === "done") statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(npcName(q.npc).split(",")[0])})</span>`;
+    else if (q.status === "done") statusHtml = `<span class="badge" style="border-color: var(--gold); color: var(--gold);">Готово (сдать: ${esc(questGiver(q).split(",")[0])})</span>`;
     else if (q.status === "claimed") statusHtml = `<span class="badge" style="border-color: var(--line2); color: var(--dim);">Получено</span>`;
 
     return `
@@ -953,7 +958,7 @@ function questsModalHtml() {
           <div class="quest-info">
             <div class="quest-title" style="display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline;">
               <h3 style="margin: 0;">${title}</h3>
-              <span class="hint" style="white-space: nowrap;">Наниматель: <b>${esc(npcName(q.npc))}</b></span>
+              <span class="hint" style="white-space: nowrap;">Наниматель: <b>${esc(questGiver(q))}</b></span>
             </div>
           </div>
           <div class="quest-progress-wrap">
@@ -1016,7 +1021,7 @@ function questsModalHtml() {
     : `<div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">${storyCards}</div>`;
   const tabLabel = tab === "week" ? "Недельные заказы" : "Сюжетные задания";
   const hint = tab === "week"
-    ? `<p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Взять — у NPC лично.</p>`
+    ? `<p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Заказы NPC берутся лично, контракты — на Доске объявлений в Зале Охотников.</p>`
     : `<p class="hint" style="margin: 0 0 12px;">Главные задания истории. Взять и сдать — лично у NPC; заблокировано, пока не достигнут нужный этаж.</p>`;
 
   return `
@@ -3557,8 +3562,8 @@ function onClick(event) {
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "train": res = trainAttr(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "hunt-accept": res = acceptHuntContract(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "hunt-claim": res = claimHuntContract(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "hunt-accept": res = acceptWeekQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "hunt-claim": res = claimNpcQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "timmy-open": view.timmyTip = randomTimmyTip(); render(); break;
     case "timmy-close": view.timmyTip = null; render(); break;
     case "buy": res = buyItem(id, el.dataset.shop || "forge"); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
