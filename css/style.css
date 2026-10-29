@@ -1229,6 +1229,30 @@ kbd {
 .inv-slot.rarity-epic, .doll-item.rarity-epic, .gear-card.rarity-epic, .resource-row.rarity-epic, .doll-slot.rarity-epic { border-color: #9c27b0; }
 .inv-slot.rarity-legendary, .doll-item.rarity-legendary, .gear-card.rarity-legendary, .resource-row.rarity-legendary, .doll-slot.rarity-legendary { border-color: #ff9800; }
 
+.inv-slot.equipped-item { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(217, 169, 75, 0.25); }
+.inv-slot.equipped-item:hover { border-color: var(--gold2); }
+.equipped-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 2px 5px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: #241a0e;
+  color: var(--gold2);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Редкость добычи в окне победы: цвет текста по редкости предмета. */
+.result-loot .rarity-uncommon { color: #4caf50; }
+.result-loot .rarity-rare { color: #2196f3; }
+.result-loot .rarity-epic { color: #9c27b0; }
+.result-loot .rarity-legendary { color: #ff9800; }
+
 .chip.affix { border-color: rgba(242, 204, 122, 0.5); color: var(--gold2); }
 .chip.unique { border-color: #ff9800; color: #ff9800; }
 .attr-gear { font-style: normal; margin-left: 4px; font-size: 10px; color: var(--dim); }

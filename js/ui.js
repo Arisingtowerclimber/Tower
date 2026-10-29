@@ -577,7 +577,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
           </div>
           <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
             ${optionsHtml}
-            <button class="btn ghost" data-act="story-leave" data-npc="${npcId}" type="button" style="align-self: flex-start; margin-top: 8px;">Уйти</button>
+            <button class="btn ghost" data-act="story-leave" data-npc="${npcId}" type="button" style="width: 100%; text-align: left;">Уйти</button>
           </div>
         </div>
       </div>
@@ -742,8 +742,7 @@ function hotelHtml() {
       ? npcQuestHtml("stella")
       : tab === "story"
         ? storyQuestPanelHtml("stella")
-        : `<div class="hotel-status"><span>🛏️ Номер: ${HOTEL_PRICE} 💰 · до утра</span></div>
-         <section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><span class="price">${HOTEL_PRICE} 💰</span><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер</button></div></section>
+        : `<section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер · ${HOTEL_PRICE} 💰</button></div></section>
          <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
   return `
@@ -1938,7 +1937,7 @@ function heroInventoryHtml() {
     return `<div class="resource-list">${rows}</div>`;
   }
   if (view.inventoryTab === "gear") {
-    const bag = state.owned.filter((inst) => !isEquipped(inst.uid));
+    const bag = state.owned.slice().sort((a, b) => (isEquipped(a.uid) ? 0 : 1) - (isEquipped(b.uid) ? 0 : 1));
     if (!bag.length) return `<p class="empty">Инвентарь пуст.</p>`;
     const q = view.invSearch.trim().toLowerCase();
     // Кэш фильтрации: пересчитываем только при смене фильтра/поиска/сумки.
@@ -1971,6 +1970,7 @@ function heroInventoryHtml() {
     if (!filtered.length) return `${filters}<p class="empty">Ничего не найдено.</p><div class="inv-count">Показано: 0 из ${bag.length}</div>`;
     const slots = filtered.map((inst) => {
       const item = ITEMS[inst.id]; if (!item) return "";
+      const equipped = isEquipped(inst.uid);
       const tier = RARITY_TIERS[inst.rarity] || RARITY_TIERS.common;
       const statLine = itemStats(item, inst).join(", ");
       const affixLine = (inst.affix?.bonuses || []).filter((b) => ATTR_LABEL[b.id]).map((b) => `${ATTR_LABEL[b.id]} +${b.value}`).join(", ");
@@ -1979,7 +1979,7 @@ function heroInventoryHtml() {
       if (statLine) title += ` — ${statLine}`;
       if (affixLine) title += `, ${affixLine}`;
       if (eff) title += `. ✨ ${eff.name}: ${eff.desc}`;
-      return `<button class="inv-slot${rarityClass(inst)}" data-act="inv-slot-click" data-uid="${inst.uid}" type="button" title="${esc(title)}">${iconHtml(item.icon, 40)}</button>`;
+      return `<button class="inv-slot${equipped ? " equipped-item" : ""}${rarityClass(inst)}" data-act="inv-slot-click" data-uid="${inst.uid}" type="button" title="${esc(title)}">${iconHtml(item.icon, 40)}${equipped ? `<span class="equipped-badge">Надето</span>` : ""}</button>`;
     }).join("");
     return `${filters}<div class="inventory-grid">${slots}</div><div class="inv-count">Показано: ${filtered.length} из ${bag.length}</div><p class="hint">Кликните по предмету в сумке, чтобы надеть его. Продать снаряжение можно у торговцев: Рон — оружие и броня, Элиза — украшения, Элейн — зелья.</p>`;
   }
@@ -2621,14 +2621,17 @@ function resultHtml() {
       ? `<div class="result-loot">
            <h3>Добыча</h3>
            <ul>
-             ${loot.map((lootItem) => `
+             ${loot.map((lootItem) => {
+               const rCls = lootItem.kind === "equipment" ? rarityClass(getInstance(lootItem.uid)).trim() : "";
+               return `
                <li${lootItem.kind === "recipe" ? ` class="loot-recipe"` : ""}>
                  ${iconHtml(lootItem.icon, 24)}
-                 <span>${esc(lootItem.name)}</span>
+                 <span${rCls ? ` class="${rCls}"` : ""}>${esc(lootItem.name)}</span>
                  ${lootItem.kind === "recipe" ? `<span class="badge">Рецепт</span>` : ""}
                  ${lootItem.amount > 1 ? `<b>×${lootItem.amount}</b>` : ""}
                </li>
-             `).join("")}
+             `;
+             }).join("")}
            </ul>
          </div>`
       : "";
