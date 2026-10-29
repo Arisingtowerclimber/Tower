@@ -1112,6 +1112,25 @@ const ITEMS = {
   iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "🥋", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
   dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "🛡️", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
 
+  // ── Тир 1: полные комплекты брони (ткань / кожа / кольчуга / латы) ──
+  shoulder_cloth: gearItem("shoulder_cloth", "Тканевые накидки", "shoulder", "🧣", 18, 1, { def: 1, hp: 10, armorType: "cloth" }, "Несколько слоёв плотной ткани на плечах."),
+  wrist_cloth: gearItem("wrist_cloth", "Тканевые обмотки", "wrist", "🧤", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Плотно стянутая ткань вместо наручей."),
+  hands_cloth: gearItem("hands_cloth", "Тканевые перчатки", "hands", "🧤", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Тонкие, зато руки не мёрзнут."),
+  legs_cloth: gearItem("legs_cloth", "Тканевые штаны", "legs", "👖", 20, 1, { def: 1, hp: 10, armorType: "cloth" }, "Простая материя, подшитая у колен."),
+  feet_cloth: gearItem("feet_cloth", "Тканевые тапочки", "feet", "🩴", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Мягко ступают по каменным плитам."),
+
+  head_leather: gearItem("head_leather", "Кожаный капюшон", "head", "🧢", 35, 1, { def: 2, hp: 15, armorType: "leather" }, "Кожа, пахнущая дёгтем, прикрывает голову и шею."),
+  waist_leather: gearItem("waist_leather", "Кожаный ремень", "waist", "🎗️", 30, 1, { def: 2, hp: 15, armorType: "leather" }, "Широкий ремень с железной пряжкой."),
+
+  head_chain: gearItem("head_chain", "Кольчужный капюшон", "head", "⛑️", 90, 1, { def: 4, hp: 25, armorType: "chain" }, "Кольца прикрывают шею и затылок."),
+  shoulder_chain: gearItem("shoulder_chain", "Кольчужные наплечники", "shoulder", "🛡️", 95, 1, { def: 4, hp: 25, armorType: "chain" }, "Плечи в железных кольцах."),
+  hands_chain: gearItem("hands_chain", "Кольчужные рукавицы", "hands", "🧤", 85, 1, { def: 3, hp: 20, armorType: "chain" }, "Пальцы гнутся, удары держат."),
+  waist_chain: gearItem("waist_chain", "Кольчужный пояс", "waist", "🎗️", 80, 1, { def: 3, hp: 20, armorType: "chain" }, "Кольца свисают до бёдер."),
+  feet_chain: gearItem("feet_chain", "Кольчужные сапоги", "feet", "🥾", 100, 1, { def: 4, hp: 25, armorType: "chain" }, "Шаг тяжёлый, зато голень закрыта."),
+
+  wrist_iron: gearItem("wrist_iron", "Железные наручи", "wrist", "🧤", 160, 1, { def: 5, hp: 30, armorType: "plate" }, "Железо на предплечье гасит удар."),
+  legs_iron: gearItem("legs_iron", "Железные поножи", "legs", "👖", 190, 1, { def: 6, hp: 40, armorType: "plate" }, "Пластины на бёдрах и голенях."),
+
   // ── Броня тир 2 (Сталь) ──
   dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
   reinforced_leather: gearItem("reinforced_leather", "Укрепленная кожа", "chest", "🥋", 200, 2, { def: 8, hp: 40, dodge: 4, armorType: "leather" }, "Кожа с вбиваемыми стальными шипами."),

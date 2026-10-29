@@ -549,6 +549,56 @@ kbd {
   gap: 16px;
 }
 
+/* Торговая площадь: вертикальный список широких карточек */
+.locations.market-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.locations.market-list .loc-card {
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 120px;
+  padding: 0;
+  gap: 0;
+}
+
+.locations.market-list .loc-image {
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: auto;
+  flex: 0 0 240px;
+  opacity: 0.85;
+}
+
+.locations.market-list .loc-card:hover .loc-image { opacity: 1; }
+
+.locations.market-list .loc-content {
+  flex: 1;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+}
+
+.locations.market-list .loc-body { flex: 1; }
+
+.locations.market-list .loc-cta {
+  margin: 0;
+  padding: 9px 16px;
+  border: 1px solid #6a4d24;
+  border-radius: 10px;
+  background: rgba(12, 9, 7, 0.7);
+  white-space: nowrap;
+}
+
 .points-banner {
   display: flex;
   align-items: center;
@@ -1582,6 +1632,8 @@ kbd {
   .topbar { grid-template-columns: auto 1fr; }
   .topnav { grid-column: 1 / -1; justify-content: flex-end; }
   .locations { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .locations.market-list .loc-image { width: 180px; flex-basis: 180px; }
+  .locations.market-list .loc-content { padding: 16px; gap: 14px; }
   .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shop-grid, .shop-grid.single, .hero-grid, .create-grid { grid-template-columns: 1fr; }
   .controls { grid-template-columns: 1fr 1fr; }
@@ -1597,6 +1649,10 @@ kbd {
   .vital { flex: 1 1 45%; min-width: 0; }
   .vital.energy-vital { flex: 1 1 100%; }
   .locations { grid-template-columns: 1fr; }
+  .locations.market-list .loc-card { flex-direction: column; align-items: stretch; }
+  .locations.market-list .loc-image { width: 100%; flex-basis: auto; height: 140px; }
+  .locations.market-list .loc-content { flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
+  .locations.market-list .loc-cta { width: 100%; text-align: center; }
   .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .status-item.buff { grid-column: 1 / -1; }
   .companion-grid { grid-template-columns: 1fr; }
