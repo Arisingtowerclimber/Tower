@@ -39,6 +39,7 @@ function defaultState() {
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
     activeEvent: null, tempDebuffs: [], eventCooldown: 0,
     killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, list: [] },
+    unlockedAchievements: [], critCount: 0, brinkSurvived: false,
     huntContracts: { weekStartDay: 0, list: [] }, contractsDone: 0,
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
@@ -287,6 +288,12 @@ function loadState() {
       const n = Math.max(0, Math.floor(Number(count) || 0));
       if (n > 0) state.bestiaryKills[String(mobId)] = n;
     }
+    // Достижения: список открытых id + счётчики для условий.
+    state.unlockedAchievements = Array.isArray(state.unlockedAchievements)
+      ? [...new Set(state.unlockedAchievements.filter((id) => ACHIEVEMENT_MAP[id]))]
+      : [];
+    state.critCount = Number.isFinite(state.critCount) ? Math.max(0, Math.floor(state.critCount)) : 0;
+    state.brinkSurvived = Boolean(state.brinkSurvived);
 
     // Контракты Гильдии Охотников: чистка мусора из сейва.
     state.contractsDone = Number.isFinite(state.contractsDone) ? Math.max(0, Math.floor(state.contractsDone)) : 0;
@@ -501,6 +508,49 @@ function archetypeMods(archetypeId = state?.archetype) {
   return ARCHETYPE_MAP[archetypeId]?.mods || BASE_ARCHETYPE_MODS;
 }
 
+// ── Достижения (глобальные пассивные бонусы) ────────────────────────────────
+// Сумма бонусов всех открытых ачивок: creds для stats() и rollDrops.
+function achievementBonuses(s = state) {
+  const out = { atk: 0, crit: 0, dodge: 0, hp: 0, loot: 0, goblinAtk: 0, undeadPct: 0 };
+  const unlocked = (s && s.unlockedAchievements) || [];
+  for (const id of unlocked) {
+    const ach = ACHIEVEMENT_MAP[id];
+    if (!ach || !ach.bonus || typeof ach.bonus !== "object") continue;
+    for (const [key, value] of Object.entries(ach.bonus)) {
+      if (key in out && Number.isFinite(value)) out[key] += value;
+    }
+  }
+  return out;
+}
+
+// Проверяет условия и выдаёт новые ачивки. Возвращает список открытых сейчас;
+// вызывающий код (бой/уровень/крит) отвечает за тосты и saveState.
+function checkAchievements(target = state) {
+  if (!target || !target.unlockedAchievements) target.unlockedAchievements = [];
+  const newly = [];
+  for (const ach of ACHIEVEMENTS) {
+    if (target.unlockedAchievements.includes(ach.id)) continue;
+    let ok = false;
+    try { ok = Boolean(ach.condition(target)); } catch (err) { ok = false; }
+    if (ok) newly.push(ach);
+  }
+  if (newly.length) {
+    for (const ach of newly) target.unlockedAchievements.push(ach.id);
+    // Бонусы повышают maxHp/maxMana — даём прирост сразу, HP не теряем.
+    if (target === state) {
+      const before = stats();
+      invalidateStats();
+      applyVitalsDelta(before, stats());
+    }
+    // Тосты о новых ачивках. checkAchievements живёт в state.js без DOM,
+    // поэтому печатаем через ui-хук, если он уже загружен.
+    if (target === state && typeof toast === "function") {
+      for (const ach of newly) toast(`🏆 Достижение получено: ${ach.name}!`, "ok");
+    }
+  }
+  return newly;
+}
+
 function activeArchetype() {
   return state?.archetype ? ARCHETYPE_MAP[state.archetype] || null : null;
 }
@@ -509,6 +559,7 @@ function stats() {
   if (state._statsCache && state._statsCache.rev === (state._statsRev || 0)) return state._statsCache.value;
   const gear = gearBonuses(); const companion = activeCompanion(); const mult = companionMultipliers();
   const mods = archetypeMods();
+  const ach = achievementBonuses();
   const tal = { atk: 0, crit: 0, def: 0, dodge: 0, hp: 0, hpRegen: 0, lootChance: 0, maxEnergy: 0, counterOnDodge: 0, armorPierce: 0, lifesteal: 0, secondWind: 0 };
   for (const [talentId, rank] of Object.entries(state.talents || {})) {
     const t = TALENT_MAP[talentId];
@@ -526,24 +577,24 @@ function stats() {
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
   const mainWeapon = mainInst ? ITEMS[mainInst.id] : null;
 
-  const maxHp = Math.round((BASE_STATS.hp + a.end * 10 + gear.hp + tal.hp) * mult.hp * mods.maxHp);
+  const maxHp = Math.round((BASE_STATS.hp + a.end * 10 + gear.hp + tal.hp + ach.hp) * mult.hp * mods.maxHp);
   const maxMana = Math.round((BASE_STATS.mana + a.int * 10 + gear.mana) * mult.mana);
   let atkMult = mult.damage * mods.atk * tempDebuffMultiplier("damage");
   if (state.archetype === "duelist" && mainWeapon?.handed === "1h") atkMult *= 1.3;
   const monkBonus = state.archetype === "monk" ? a.str * 1 + a.agi * 1 : 0;
-  const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + monkBonus + gear.atk + tal.atk) * atkMult);
+  const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + monkBonus + gear.atk + tal.atk + ach.atk) * atkMult);
 
   let def = Math.round((gear.def + tal.def) * tempDebuffMultiplier("def"));
   if (state.archetype === "guardian" && chestArmorType === "cloth") def = Math.round(def * 0.9);
 
-  const crit = Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit + tal.crit);
-  let dodge = Math.min(mods.dodgeCap, a.agi * AGILITY_DODGE_PERCENT + gear.dodge + tal.dodge);
+  const crit = Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit + tal.crit + ach.crit);
+  let dodge = Math.min(mods.dodgeCap, a.agi * AGILITY_DODGE_PERCENT + gear.dodge + tal.dodge + ach.dodge);
   if (state.archetype === "assassin" && chestArmorType === "plate") dodge = Math.round(dodge * 0.8);
   const counter = Math.min(COUNTERATTACK_CAP, a.agi * AGILITY_COUNTER_PERCENT);
   const blockZones = Math.min(ZONES.length, mods.blockZones + gear.block);
   const maxEnergy = EXPLORATION_MAX + (state.level - 1) + (tal.maxEnergy || 0);
   const result = { maxHp, maxMana, maxEnergy, atk, def, crit, dodge, counter, blockZones, ragePerHit: mods.ragePerHit, attrs: state.attrs, gearAttrs: { str: gear.str || 0, end: gear.end || 0, agi: gear.agi || 0, int: gear.int || 0 }, gear, companion, companionMult: mult, mods, archetype: activeArchetype(), chestArmorType, mainWeapon,
-    hpRegen: tal.regen || 0, counterOnDodge: tal.counterOnDodge || 0, lootChance: tal.lootChance || 0, armorPierce: round1(tal.armorPierce || 0), lifesteal: tal.lifesteal || 0, secondWind: tal.secondWind || 0 };
+    hpRegen: tal.regen || 0, counterOnDodge: tal.counterOnDodge || 0, lootChance: (tal.lootChance || 0) + ach.loot, armorPierce: round1(tal.armorPierce || 0), lifesteal: tal.lifesteal || 0, secondWind: tal.secondWind || 0 };
   state._statsCache = { rev: state._statsRev || 0, value: result };
   return result;
 }
@@ -679,7 +730,7 @@ function gainXp(amount) {
     state.xp -= xpNeeded(state.level); state.level += 1; state.points += LEVEL_ATTR_POINTS; result.points += LEVEL_ATTR_POINTS; result.levels.push(state.level);
     if (state.level % 3 === 0) { state.talentPoints = (state.talentPoints || 0) + 1; result.talentPoints += 1; }
   }
-  if (result.levels.length) { invalidateStats(); const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; }
+  if (result.levels.length) { invalidateStats(); const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; checkAchievements(state); }
   return result;
 }
 

@@ -1862,7 +1862,46 @@ function talentsHtml() {
   `;
 }
 
+function achievementsHtml() {
+  const unlockedIds = state.unlockedAchievements || [];
+  const cards = ACHIEVEMENTS.map((ach) => {
+    const unlocked = unlockedIds.includes(ach.id);
+    const [have, need] = ach.progress ? ach.progress(state) : [unlocked ? 1 : 0, 1];
+    const pct = Math.max(0, Math.min(100, Math.round((have / Math.max(1, need)) * 100)));
+    const style = unlocked
+      ? "border-color: var(--gold); box-shadow: 0 0 14px rgba(217, 169, 75, 0.18);"
+      : "filter: grayscale(1); opacity: 0.8;";
+    const titleColor = unlocked ? "var(--gold)" : "inherit";
+    const foot = unlocked
+      ? `<span class="price" style="color: var(--gold);">✅ Получено</span>`
+      : `<span class="price">${esc(String(have))}/${esc(String(need))}</span>`;
+    return `
+      <article class="quest-card achievement-card" style="${style}">
+        <div class="quest-head">
+          <div class="quest-title" style="display: flex; gap: 10px; align-items: flex-start;">
+            <span style="font-size: 26px; line-height: 1;">${ach.icon}</span>
+            <div>
+              <h3 style="color: ${titleColor}; margin: 0 0 2px 0;">${ach.name}</h3>
+              <span class="hint">${ach.desc}</span>
+            </div>
+          </div>
+        </div>
+        ${unlocked ? "" : `
+          <div class="quest-progress">${bar("xp", have, need)}</div>
+          <div class="hint" style="margin: 4px 0 8px 0;">Прогресс: ${pct}%</div>`}
+        <div class="quest-foot">${foot}</div>
+      </article>
+    `;
+  }).join("");
+
+  return `
+    <div class="banner" style="margin-bottom: 12px;">🏆 Открыто достижений: <b>${unlockedIds.length} / ${ACHIEVEMENTS.length}</b> · бонусы добавляются к статам героя</div>
+    <div class="quest-grid" style="grid-template-columns: 1fr; gap: 10px;">${cards}</div>
+  `;
+}
+
 function heroInventoryHtml() {
+   if (view.inventoryTab === "achievements") return achievementsHtml();
    if (view.inventoryTab === "talents") return talentsHtml();
    if (view.inventoryTab === "potions") {
     const potions = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
@@ -2013,6 +2052,7 @@ function heroHtml(st) {
             <button class="shop-tab${view.inventoryTab === "resources" ? " active" : ""}" data-act="inventory-tab" data-tab="resources" type="button">Материалы</button>
             <button class="shop-tab${view.inventoryTab === "recipes" ? " active" : ""}" data-act="inventory-tab" data-tab="recipes" type="button">Рецепты</button>
             <button class="shop-tab${view.inventoryTab === "potions" ? " active" : ""}" data-act="inventory-tab" data-tab="potions" type="button">Зелья</button>
+            <button class="shop-tab${view.inventoryTab === "achievements" ? " active" : ""}" data-act="inventory-tab" data-tab="achievements" type="button">🏆 Достижения</button>
           </div>
 
           ${heroInventoryHtml()}

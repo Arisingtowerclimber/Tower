@@ -141,6 +141,16 @@ function defeatSummary(state, battle, e) {
   return { defeat: true, enemyName: e.name, lostGold: lost, lostItemsText };
 }
 
+// ── Модификаторы урона от достижений (по расам мобов) ────────────────────────
+// «Убийца гоблинов»: плоский +2 к урону; «Гроза нежити»: множитель по нежити.
+function achievementVsMobBonus(state, enemyId) {
+  const ach = achievementBonuses(state);
+  return {
+    flat: ach.goblinAtk || 0,
+    mult: 1 + (ach.undeadPct || 0) / 100 * (ACH_UNDEAD_IDS.includes(enemyId) ? 1 : 0),
+  };
+}
+
 function chooseEnemyAction(battle, lastPlayerAttack) {
   const prefers = battle.enemy.prefers || [];
   let attack = "";
@@ -245,6 +255,10 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   let avg = Math.max(1, Math.round(base - effectiveDef * 0.6));
   // Прогноз тоже учитывает уязвимость моба.
   if (Array.isArray(e.weakTo) && e.weakTo.includes(actualStyle)) avg = Math.max(1, Math.round(avg * WEAKNESS_DAMAGE_MULT));
+  // Прогноз учитывает достижения (гоблины/нежить).
+  const achVs = achievementVsMobBonus(state, e.id);
+  avg += achVs.flat;
+  if (achVs.mult !== 1) avg = Math.max(1, Math.round(avg * achVs.mult));
   return avg;
 }
 
@@ -418,7 +432,7 @@ function exchange(state, battle, action, weaponInst = null) {
       const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
       // навык «Точный выстрел» гарантирует крит, приём криту не мешает
       const crit = tech ? false : (skillEffect === "aim" ? true : Math.random() * 100 < critChance);
-      if (crit) base *= 1.7;
+      if (crit) { base *= 1.7; state.critCount = (state.critCount || 0) + 1; }
 
       const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
       const effectiveDef = e.def * (1 - pierce);
@@ -429,6 +443,14 @@ function exchange(state, battle, action, weaponInst = null) {
       if (Array.isArray(e.weakTo) && e.weakTo.includes(style)) {
         damage = Math.max(1, Math.round(damage * WEAKNESS_DAMAGE_MULT));
         weaknessMark = " — уязвим!";
+      }
+
+      // Достижения: +2 плоского урона по гоблинам, +5% по нежити.
+      const achVs = achievementVsMobBonus(state, e.id);
+      damage += achVs.flat;
+      if (achVs.mult !== 1) {
+        damage = Math.max(1, Math.round(damage * achVs.mult));
+        weaknessMark = `${weaknessMark} Божество смерти на вашей стороне.`.trim();
       }
 
       battle.hp = Math.max(0, battle.hp - damage);
@@ -450,6 +472,9 @@ function exchange(state, battle, action, weaponInst = null) {
         crit ? "crit" : "hit"
       );
       Sfx.play(crit ? "crit" : "hit");
+
+      // Криты считаются на «Мастера клинка» — проверка ачивок прямо здесь.
+      if (crit) checkAchievements(state);
 
       if (!tech && zone.staggerChance && Math.random() < zone.staggerChance) {
         battle.staggered = true;
@@ -525,6 +550,14 @@ function exchange(state, battle, action, weaponInst = null) {
         const damage = Math.max(2, Math.round(base));
         state.hp = Math.max(0, state.hp - damage);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}»: ${damage} урона.`, "enemy");
+
+        // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
+        if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
+          if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
+          state.brinkSurvived = true;
+          checkAchievements(state);
+        }
+
         reflectThorns(battle, uniques, damage);
 
         if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
@@ -585,6 +618,8 @@ function exchange(state, battle, action, weaponInst = null) {
     // Бестиарий: сколько раз убит каждый конкретный моб (и боссы тоже).
     state.bestiaryKills = state.bestiaryKills || {};
     state.bestiaryKills[e.id] = (state.bestiaryKills[e.id] || 0) + 1;
+    // Достижения триггерятся на победу (счётчики убийств) — до saveState.
+    checkAchievements(state);
     checkQuestProgress(e.id);
 
     const goldMult = goldMultToday();

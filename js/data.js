@@ -645,6 +645,74 @@ const TALENTS = [
 
 const TALENT_MAP = Object.fromEntries(TALENTS.map((t) => [t.id, t]));
 
+// ── Достижения (глобальные пассивные бонусы) ────────────────────────────────
+// Каждая ачивка — условие по state и бонус. Обычные бонусы (atk/crit/dodge/hp/loot)
+// суммируются в stats(), особые модификаторы боя (goblinAtk, undeadPct)
+// учитываются отдельно в combat.js. progress(s) → [есть, нужно] для полоски в UI.
+const ACH_GOBLIN_IDS  = ["goblin_scout", "goblin_chief", "hobgoblin", "bugbear"];
+const ACH_KOBOLD_IDS  = ["kobold_miner", "kobold_tinker", "kobold_sorcerer", "kobold_master"];
+const ACH_UNDEAD_IDS  = ["skeleton_warrior", "unquiet_ghost", "crypt_ghoul", "dark_knight"];
+const ACH_DEMON_IDS   = ["fire_imp", "hell_hound", "horned_devil", "demon_lord"];
+
+function achKillSum(s, ids) {
+  const kills = s.bestiaryKills || {};
+  return ids.reduce((n, id) => n + (Number.isFinite(kills[id]) ? kills[id] : 0), 0);
+}
+
+const ACHIEVEMENTS = [
+  {
+    id: "ach_goblin_slayer", name: "Убийца гоблинов", icon: "👺",
+    desc: "Убить 10 гоблинов. Бонус: +2 урона по гоблинам и +1% к криту.",
+    condition: (s) => achKillSum(s, ACH_GOBLIN_IDS) >= 10,
+    progress: (s) => [Math.min(10, achKillSum(s, ACH_GOBLIN_IDS)), 10],
+    bonus: { crit: 1, goblinAtk: 2 },
+  },
+  {
+    id: "ach_collector", name: "Коллекционер", icon: "💠",
+    desc: "Убить 20 кобольдов. Бонус: +5% к шансу найти ресурсы.",
+    condition: (s) => achKillSum(s, ACH_KOBOLD_IDS) >= 20,
+    progress: (s) => [Math.min(20, achKillSum(s, ACH_KOBOLD_IDS)), 20],
+    bonus: { loot: 5 },
+  },
+  {
+    id: "ach_undead_bane", name: "Гроза нежити", icon: "💀",
+    desc: "Убить 15 неупокоенных. Бонус: +5% урона по нежити.",
+    condition: (s) => achKillSum(s, ACH_UNDEAD_IDS) >= 15,
+    progress: (s) => [Math.min(15, achKillSum(s, ACH_UNDEAD_IDS)), 15],
+    bonus: { undeadPct: 5 },
+  },
+  {
+    id: "ach_demon_hunter", name: "Охотник на демонов", icon: "😈",
+    desc: "Убить 10 демонов. Бонус: +5% к увороту.",
+    condition: (s) => achKillSum(s, ACH_DEMON_IDS) >= 10,
+    progress: (s) => [Math.min(10, achKillSum(s, ACH_DEMON_IDS)), 10],
+    bonus: { dodge: 5 },
+  },
+  {
+    id: "ach_blade_master", name: "Мастер клинка", icon: "🗡️",
+    desc: "Нанести 50 критических ударов. Бонус: +3% к криту.",
+    condition: (s) => (s.critCount || 0) >= 50,
+    progress: (s) => [Math.min(50, s.critCount || 0), 50],
+    bonus: { crit: 3 },
+  },
+  {
+    id: "ach_survivor", name: "Бессмертный", icon: "🕊️",
+    desc: "Выжить, оставшись на волосок от смерти. Бонус: +10 к максимуму HP.",
+    condition: (s) => Boolean(s.brinkSurvived),
+    progress: (s) => [s.brinkSurvived ? 1 : 0, 1],
+    bonus: { hp: 10 },
+  },
+  {
+    id: "ach_tower_veteran", name: "Ветеран Башни", icon: "🏅",
+    desc: "Убить 100 существ в Башне. Бонус: +2 к урону и +2% к криту.",
+    condition: (s) => (s.kills || 0) >= 100,
+    progress: (s) => [Math.min(100, s.kills || 0), 100],
+    bonus: { atk: 2, crit: 2 },
+  },
+];
+
+const ACHIEVEMENT_MAP = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
+
 // Урон оружия по стилям (без оружия — кулаки). Экземпляр оружия передаётся
 // явно из боя/UI, чтобы редкость влияла на damage без глобального состояния.
 function weaponDamageFor(weapon, inst = null) {
