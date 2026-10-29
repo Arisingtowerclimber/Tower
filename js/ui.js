@@ -1903,6 +1903,9 @@ function battleHtml(st) {
     playerArmorTitle = `Получаемый урон: ${mods.join(", ")}`;
   }
 
+  const enemyManaInactive = !(battle.enemy.maxMana > 0);
+  const enemyRageInactive = enemy.rarity === "common" || !(battle.enemy.maxRage > 0);
+
   const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
   let enemyWeaponTitle = "Без оружия";
   if (enemyWeapon) {
@@ -2016,6 +2019,8 @@ function battleHtml(st) {
               ${enemy.ability ? `<span class="chip" style="font-size: 10px; padding: 1px 6px; cursor: help;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : ""}
             </div>
             ${bar("hp enemy", battle.hp, battle.maxHp, "enemy-hp")}
+            ${bar("mana" + (enemyManaInactive ? " inactive" : ""), battle.enemy.mana || 0, battle.enemy.maxMana || 1)}
+            ${bar("rage" + (enemyRageInactive ? " inactive" : ""), battle.enemy.rage || 0, battle.enemy.maxRage || 5)}
             <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap;">
               <span data-role="enemy-hp-text">${battle.hp}/${battle.maxHp} HP</span>
               <span title="Базовый урон врага">Урон: ${enemy.atk}</span>

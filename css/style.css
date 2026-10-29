@@ -2020,6 +2020,21 @@ kbd {
   box-shadow: inset 0 0 8px rgba(242, 204, 96, 0.5);
 }
 
+/* Полоски маны/куража у мобов: всегда в разметке, неактивные — приглушены */
+.bar.mana {
+  background: #1a2b4c;
+}
+.bar.rage {
+  background: #4c3a1a;
+}
+.bar.rage span {
+  background: linear-gradient(90deg, #7a5318, #e0a84a);
+}
+.bar.inactive {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
 .combat-deck {
   display: grid;
   align-items: stretch !important;
