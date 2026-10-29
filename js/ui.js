@@ -2068,7 +2068,9 @@ function render() {
       html += npcDialogHtml(view.talkNpc);
     }
   }
-  
+
+  if (view.topicsNpc) html += npcTopicsModalHtml(view.topicsNpc);
+
   if (view.bestiaryOpen) html += bestiaryModalHtml();
   
   const prevLog = view.prevLog || 0;
@@ -2186,6 +2188,7 @@ function firstMeetModalHtml(npcId) {
         </div>
 
         <button class="btn primary" data-act="story-choice" data-npc="${npcId}" type="button" style="width: 100%;">Продолжить</button>
+        <button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" data-from="meet" type="button" style="width: 100%; margin-top: 8px;">🗣 Поболтать</button>
       </div>
     </div>
   `;
@@ -2217,6 +2220,7 @@ function npcDialogHtml(npcId) {
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
           <button class="btn primary" data-act="npc-talk-shop" data-npc="${npcId}" type="button">${target.shopLabel}</button>
           ${questButton}
+          ${DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length ? `<button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" type="button">🗣 Поболтать</button>` : ""}
           <button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>
         </div>
       </div>
@@ -2224,8 +2228,51 @@ function npcDialogHtml(npcId) {
   `;
 }
 
-function traderDialogHtml() {
-  const npc = NPCS[state.activeNpcId];
+// ── Модалка «Поболтать» (Этап 3) ───────────────────────────────────────────
+// z-index 186 — выше диалога NPC (184) и first-meet-модалки (195 → topicsFromFirstMeet).
+function npcTopicsModalHtml(npcId) {
+  const topics = DIALOG_BRANCHES[npcId] || [];
+  if (!topics.length) return "";
+  const seen = state.dialogTopicsSeen || {};
+  const shownReply = view.topicReply && view.topicReply.npc === npcId ? view.topicReply : null;
+  const zIndex = view.topicsFromFirstMeet ? 196 : 186;
+
+  const rows = topics.map((topic) => {
+    const open = topicAvailable(topic, npcId);
+    const key = npcId + ":" + topic.id;
+    const fresh = !seen[key];
+    const lockHint = open
+      ? (fresh ? "новое" : "")
+      : (Number.isFinite(topic.minRep) && topicNpcRep(npcId) < topic.minRep
+        ? `🔒 нужен тир «${factionTier(topic.minRep).tier.name}» (${topic.minRep} реп.)`
+        : `🔒 нужен этаж ${topic.minFloor}`);
+    return `<button class="btn small${open ? (fresh ? " primary" : " ghost") : " ghost"}" data-act="topic-open" data-npc="${npcId}" data-topic="${topic.id}" ${open ? "" : "disabled"} type="button" style="text-align: left;">
+      ${esc(topic.title)}${lockHint ? ` <span class="hint">${lockHint}</span>` : ""}
+    </button>`;
+  }).join("");
+
+  return `
+    <div class="result-overlay" data-act="npc-talk-topics-close" style="z-index: ${zIndex};">
+      <div class="result-card" style="max-width: 550px; text-align: left;">
+        <div style="display:flex; gap:15px; align-items:center; margin-bottom: 12px;">
+          <img src="${npcPortraitSrc(npcId)}" alt="" style="width:64px; height:64px; border-radius:10px; border:1px solid var(--gold); object-fit:cover;" onerror="this.outerHTML='<b style=font-size:40px>🧙</b>'">
+          <div>
+            <h3 style="margin:0; color:var(--gold2); font-size: 18px;">${esc(NPC_NAMES[npcId] || npcId)}</h3>
+            <span class="hint">О чём поговорим?</span>
+          </div>
+        </div>
+        ${shownReply ? `<div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; margin-bottom: 14px;">
+          <p style="color: #e2e8f0; font-style: italic; margin: 0 0 6px;">«${esc(shownReply.reply)}»</p>
+          <span class="hint">${esc((DIALOG_BRANCHES[npcId] || []).find((t) => t.id === shownReply.topic)?.title || "")}</span>
+        </div>` : ""}
+        <div style="display: flex; flex-direction: column; gap: 8px;">${rows}</div>
+        <button class="btn ghost" data-act="npc-talk-topics-close" data-npc="${npcId}" type="button" style="width: 100%; margin-top: 12px;">Назад</button>
+      </div>
+    </div>
+  `;
+}
+
+function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
   if (!npc) return "";
 
   const storyIndex = state.npcDialogueIndex[npc.id] || 0;
@@ -2399,6 +2446,29 @@ function onClick(event) {
       if (NPC_TALK_TARGETS[el.dataset.npc]) { view.talkNpc = el.dataset.npc; view.talkNpcText = getRandomPhrase(el.dataset.npc, "greetings"); render(); }
       break;
     case "npc-talk-backdrop": view.talkNpc = null; view.talkNpcText = null; render(); break;
+    case "npc-talk-topics": {
+      view.topicsNpc = el.dataset.npc || null;
+      view.topicReply = null;
+      view.topicsFromFirstMeet = el.dataset.from === "meet";
+      render();
+      break;
+    }
+    case "npc-talk-topics-close": {
+      view.topicsNpc = null; view.topicReply = null; view.topicsFromFirstMeet = false;
+      render();
+      break;
+    }
+    case "topic-open": {
+      const npcId = el.dataset.npc;
+      const topic = (DIALOG_BRANCHES[npcId] || []).find((t) => t.id === el.dataset.topic);
+      if (!topic || !topicAvailable(topic, npcId)) break;
+      const phrase = topic.replies[Math.floor(Math.random() * topic.replies.length)];
+      view.topicReply = { npc: npcId, topic: topic.id, reply: phrase };
+      state.dialogTopicsSeen[npcId + ":" + topic.id] = true;
+      saveState();
+      render();
+      break;
+    }
     case "npc-talk-close": {
       const npc = view.talkNpc;
       view.talkNpc = null; view.talkNpcText = null; render();

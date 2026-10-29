@@ -100,6 +100,22 @@ function normalizeUpgrade(raw, item) {
   return { level: clamped, stat };
 }
 
+// ── Темы разговоров NPC (Этап 3) ───────────────────────────────────────────
+// Репутация фракции NPC для порогов тем; у NPC без фракции (стелла, иван)
+// порог по репутации считается пройденным.
+function topicNpcRep(npcId) {
+  const factionId = FACTION_BY_NPC[npcId];
+  if (!factionId) return Infinity;
+  return state.reputation ? (state.reputation[factionId] || 0) : 0;
+}
+
+function topicAvailable(topic, npcId) {
+  if (!topic) return false;
+  const minRep = Number.isFinite(topic.minRep) ? topic.minRep : 0;
+  const minFloor = Number.isFinite(topic.minFloor) ? topic.minFloor : 1;
+  return topicNpcRep(npcId) >= minRep && (state.maxFloor || 1) >= minFloor;
+}
+
 // Улучшение предмета (Этап 2): списывает материалы фракционной наковальни
 // и золото, повышает уровень улучшения. Требует тир «Уважаемый» фракции.
 function upgradeItem(uid, stat = null) {
