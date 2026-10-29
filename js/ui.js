@@ -23,7 +23,7 @@ const view = {
   weaponSwap: false,
   battleLeftTab: "abilities",
   settingsOpen: false, settingsTab: "audio",
-  shopFilterSlot: "all", shopFilterType: "all",
+  shopFilterSlot: "all", shopFilterType: "all", shopFilterStyle: null,
 };
 
 let toastTimer = null;
@@ -47,37 +47,19 @@ const ATTR_LABEL = { str: "Сила", end: "Выносливость", agi: "Л�
 function itemStats(item, inst = null) {
   const s = inst ? getInstanceStats(inst) : item;
   const out = [];
-  if (s.atk) out.push(`⚔ +${s.atk}`);
   if (s.def) out.push(`🛡 +${s.def}`);
   if (s.hp) out.push(`❤ +${s.hp}`);
   if (s.mana) out.push(`🔷 +${s.mana} маны`);
   if (s.crit) out.push(`🎯 +${s.crit}%`);
   if (s.dodge) out.push(`💨 +${s.dodge}%`);
   if (s.block) out.push(`🧱 +${s.block} зона блока`);
+  // Разбивка урона по стилям — вместо общего «⚔ +X».
+  if (s.damage) {
+    if (s.damage.slashing > 0) out.push(`Рубящий ${s.damage.slashing}`);
+    if (s.damage.piercing > 0) out.push(`Колющий ${s.damage.piercing}`);
+    if (s.damage.bludgeoning > 0) out.push(`Дробящий ${s.damage.bludgeoning}`);
+  }
   return out;
-}
-
-function damageStatsHtml(item, inst = null) {
-  const s = inst ? getInstanceStats(inst) : item;
-  const dmg = s.damage;
-  if (!dmg) return "";
-
-  // Всегда три типа: даже при 0 урона показываем «—», чтобы игрок
-  // видел, какие стили у оружия отсутствуют.
-  const styles = [
-    { name: "Рубящий", val: dmg.slashing || 0 },
-    { name: "Колющий", val: dmg.piercing || 0 },
-    { name: "Дробящий", val: dmg.bludgeoning || 0 },
-  ];
-
-  const rows = styles.map(st => `
-    <div style="display: flex; justify-content: space-between; max-width: 140px; font-size: 12px; color: var(--dim); margin-top: 4px;">
-      <span>${st.name}:</span>
-      <b style="color: #d1c0aa;">${st.val > 0 ? st.val : "—"}</b>
-    </div>
-  `).join("");
-
-  return `<div style="margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px;">${rows}</div>`;
 }
 
 function getItemDisplayName(instance) {
@@ -96,18 +78,6 @@ function durabilityChip() { return ""; }
 function statsChips(item, inst = null) {
   const chips = itemStats(item, inst);
   let html = chips.length ? chips.map((c) => `<span class="chip">${c}</span>`).join("") : "";
-  
-  // Добавляем стили урона для оружия
-  const s = inst ? getInstanceStats(inst) : item;
-  if (s.damage) {
-    const dmgParts = [];
-    if (s.damage.slashing > 0) dmgParts.push(`рубящий ${s.damage.slashing}`);
-    if (s.damage.piercing > 0) dmgParts.push(`колющий ${s.damage.piercing}`);
-    if (s.damage.bludgeoning > 0) dmgParts.push(`дробящий ${s.damage.bludgeoning}`);
-    if (dmgParts.length) {
-      html += `<span class="chip" style="border-color: #d1c0aa; color: #d1c0aa;">🩸 ${dmgParts.join(", ")}</span>`;
-    }
-  }
 
   if (inst && inst.affix) {
     for (const b of inst.affix.bonuses || []) {
@@ -985,13 +955,17 @@ const SHOP_SLOT_GROUPS = [
 
 function shopItemsHtml(tabs, activeId, shopName) {
   const activeTab = tabs.find((t) => t.id === activeId) || tabs[0];
-  const allItems = Object.values(ITEMS).filter((i) => activeTab.slots.includes(i.slot) && i.price > 0 && shopFloorFor(i) <= state.maxFloor);
 
   const slotFilter = view.shopFilterSlot || "all";
   const typeFilter = view.shopFilterType || "all";
 
+  // Ассортимент магазина целиком (все вкладки): первая строка фильтров
+  // общая, поэтому выбранная группа слотов работает с любой вкладки.
+  const shopSlots = new Set(tabs.flatMap((t) => t.slots));
+  const shopItems = Object.values(ITEMS).filter((i) => shopSlots.has(i.slot) && i.price > 0 && shopFloorFor(i) <= state.maxFloor);
+
   // Верхняя панель: группы слотов, по которым вообще есть товар.
-  const presentGroups = SHOP_SLOT_GROUPS.filter((g) => g.slots.some((s) => activeTab.slots.includes(s) && allItems.some((i) => i.slot === s)));
+  const presentGroups = SHOP_SLOT_GROUPS.filter((g) => g.slots.some((s) => shopSlots.has(s) && shopItems.some((i) => i.slot === s)));
   const filtersHtml = `
     <div class="shop-filters">
       <button class="shop-filter-btn${slotFilter === "all" ? " active" : ""}" data-act="shop-filter-slot" data-slot="all" type="button">Все</button>
@@ -1001,39 +975,51 @@ function shopItemsHtml(tabs, activeId, shopName) {
     </div>
   `;
 
-  // Слот-препикат: все или конкретная группа.
+  // Слот-препикат: выбранная группа перекрывает текущую вкладку,
+  // «Все» показывает ассортимент активной вкладки (как раньше).
   const group = SHOP_SLOT_GROUPS.find((g) => g.id === slotFilter);
-  const slotOk = (item) => !group ? true : group.slots.includes(item.slot);
-  const candidates = allItems.filter(slotOk);
+  const candidates = group ? shopItems.filter((i) => group.slots.includes(i.slot)) : shopItems.filter((i) => activeTab.slots.includes(i.slot));
 
-  // Вторая строка: подкатегории (1H/2H, типы оружия; Ткань/Кожа/Кольчуга/Латы).
-  const handedSet = new Set(candidates.filter((i) => i.handed).map((i) => i.handed));
-  const weaponTypes = [...new Set(candidates.filter((i) => i.weaponType).map((i) => i.weaponType))];
-  const armorTypes = [...new Set(candidates.filter((i) => i.armorType && !i.handed && i.slot !== "offhand").map((i) => i.armorType))];
+  // Вторая строка (только для Оружия): 1H / 2H.
   const typeBtn = (id, label) =>
     `<button class="shop-filter-btn${typeFilter === id ? " active" : ""}" data-act="shop-filter-type" data-type="${id}" type="button">${label}</button>`;
-  const subButtons = [
-    ...["1h", "2h"].filter((h) => handedSet.has(h)).map((h) => typeBtn(h, h.toUpperCase())),
-    ...weaponTypes.map((wt) => typeBtn(wt, WEAPON_TYPE_NAMES[wt] || (wt === "claw" ? "Когти" : wt))),
-    ...armorTypes.map((at) => typeBtn(at, ARMOR_TYPE_NAMES[at] || at)),
-  ];
-  const subHtml = subButtons.length
+  const handedSet = new Set(candidates.filter((i) => i.handed).map((i) => i.handed));
+  const handedButtons = ["1h", "2h"].filter((h) => handedSet.has(h)).map((h) => typeBtn(h, h.toUpperCase()));
+  const subHtml = slotFilter === "weapon" && handedButtons.length
     ? `<div class="shop-filters shop-filter-sub">
-        <button class="shop-filter-btn${typeFilter === "all" ? " active" : ""}" data-act="shop-filter-type" data-type="all" type="button">Все типы</button>
-        ${subButtons.join("")}
-      </div>`
+         <button class="shop-filter-btn${typeFilter === "all" ? " active" : ""}" data-act="shop-filter-type" data-type="all" type="button">Все</button>
+         ${handedButtons.join("")}
+       </div>`
     : "";
 
   const typeOk = (item) => {
     if (typeFilter === "all") return true;
-    if (typeFilter === "1h" || typeFilter === "2h") return item.handed === typeFilter;
-    if (WEAPON_TYPE_NAMES[typeFilter]) return item.weaponType === typeFilter;
-    return item.armorType === typeFilter && !item.handed && item.slot !== "offhand";
+    return item.handed === typeFilter;
   };
 
-  // Рендер: горизонтальные карточки (иконка | текст и статы | цена + кнопка).
-  const sections = activeTab.slots.map((slot) => {
-    const items = candidates.filter((i) => i.slot === slot && typeOk(i));
+  // Третья строка: сортировка по типу урона. Активный стиль оставляет
+  // только оружие с уроном этого типа и сортирует его по убыванию.
+  const styleFilter = view.shopFilterStyle || null;
+  const styleRowHtml = (activeTab.slots.includes("mainhand") || activeTab.slots.includes("offhand") || styleFilter)
+    ? `<div class="shop-filters shop-filter-sub">
+         ${STYLE_ORDER.map((st) =>
+           `<button class="shop-filter-btn${styleFilter === st ? " active" : ""}" data-act="shop-filter-style" data-style="${st}" type="button">${STYLE_NAMES[st] || st}</button>`
+         ).join("")}
+       </div>`
+    : "";
+  let effective = candidates;
+  if (styleFilter) {
+    effective = candidates
+      .filter((i) => (i.damage?.[styleFilter] || 0) > 0)
+      .sort((a, b) => (b.damage[styleFilter] || 0) - (a.damage[styleFilter] || 0));
+  }
+
+  // Рендер: горизонтальные карточки (иконка | текст и статы | кнопка покупки).
+  // Слоты рендерим по объёму фильтра: выбранная группа — по её слотам,
+  // иначе по активной вкладке.
+  const renderSlots = group ? group.slots : activeTab.slots;
+  const sections = renderSlots.map((slot) => {
+    const items = effective.filter((i) => i.slot === slot && typeOk(i));
     if (!items.length) return "";
     const rows = items.map((item) => {
       const copies = copiesOf(item.id);
@@ -1054,10 +1040,8 @@ function shopItemsHtml(tabs, activeId, shopName) {
           <h3>${item.name}</h3>
           <p class="item-desc">${item.desc}</p>
           <div class="chips">${statsChips(item)}${countChip}${equippedChip}${durChips}</div>
-          ${damageStatsHtml(item)}
         </div>
         <div class="gear-row-side">
-          <span class="price">${priceHtml(item, shopName)}</span>
           <button class="btn small" data-act="buy" data-id="${item.id}" data-shop="${shopName}" ${canBuy ? "" : "disabled"} type="button">${label}</button>
         </div>
       </article>`;
@@ -1067,7 +1051,7 @@ function shopItemsHtml(tabs, activeId, shopName) {
 
   // Панель фильтров — одна, над всеми секциями слотов (и она не исчезает
   // при пустом результате, иначе из фильтра не выбраться).
-  const panel = `<section class="shop-group">${filtersHtml}${subHtml}</section>`;
+  const panel = `<section class="shop-group">${filtersHtml}${subHtml}${styleRowHtml}</section>`;
   return panel + (sections || `<section class="shop-group"><p class="empty">Под этот фильтр товаров нет.</p></section>`);
 }
 
@@ -1246,8 +1230,7 @@ function alchemyHtml() {
           <div class="chips"><span class="chip">В сумке: ${count}</span></div>
         </div>
         <div class="gear-row-side">
-          <span class="price">${priceHtml(item, "alchemy")}</span>
-          <button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить</button>
+          <button class="btn small" data-act="buy-item" data-id="${item.id}" data-shop="alchemy" ${state.gold < p.price ? "disabled" : ""} type="button">Купить · ${p.price} 💰</button>
           ${drinkBtn}
         </div>
       </article>`;
@@ -1281,17 +1264,8 @@ function dollSlotHtml(slotId) {
     const stats = itemStats(eq.item, eq).join(", ");
     const affix = eq.affix ? ` (${eq.affix.name})` : "";
     
-    // Добавляем стили урона в подсказку
-    let dmgText = "";
-    if (eq.item.damage) {
-      const parts = [];
-      if (eq.item.damage.slashing > 0) parts.push(`рубящий ${eq.item.damage.slashing}`);
-      if (eq.item.damage.piercing > 0) parts.push(`колющий ${eq.item.damage.piercing}`);
-      if (eq.item.damage.bludgeoning > 0) parts.push(`дробящий ${eq.item.damage.bludgeoning}`);
-      if (parts.length) dmgText = ` | Урон: ${parts.join(", ")}`;
-    }
-    
-    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}${dmgText}"`;
+    // Подсказка слота: имя + статы (разбивку по стилям itemStats отдаёт сам).
+    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}"`;
   } else {
     title = `title="${slot.name}: пусто"`;
   }
@@ -2751,18 +2725,27 @@ function onClick(event) {
       view.activeShopNpc = el.dataset.npc || view.activeShopNpc;
       view.shopFilterSlot = "all";
       view.shopFilterType = "all";
+      view.shopFilterStyle = null;
       render();
       break;
     }
     case "shop-filter-slot":
       view.shopFilterSlot = el.dataset.slot || "all";
       view.shopFilterType = "all"; // при смене слота сбрасываем подкатегорию
+      view.shopFilterStyle = null;
       render();
       break;
     case "shop-filter-type":
       view.shopFilterType = el.dataset.type || "all";
       render();
       break;
+    case "shop-filter-style": {
+      const style = el.dataset.style || "";
+      // Повторный клик по активному стилю снимает фильтр-сортировку.
+      view.shopFilterStyle = view.shopFilterStyle === style ? null : style;
+      render();
+      break;
+    }
     case "sell-toggle": {
       const id = el.dataset.id; if (!id) break;
       const idx = view.sellSelection.indexOf(id);
@@ -2995,7 +2978,7 @@ function onClick(event) {
       render();
       break;
     }
-    case "reset": if (platform.dialog.confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
+    case "reset": if (platform.dialog.confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.shopFilterSlot = "all"; view.shopFilterType = "all"; view.shopFilterStyle = null; view.screen = "hub"; render(); } break;
     default: break;
   }
 }

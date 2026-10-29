@@ -887,9 +887,9 @@ kbd {
 
 /* ── Магазины ───────────────────────────────────────────── */
 
-.shop-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 26px; align-items: start; }
-.shop-grid.single { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
-.shop-main, .shop-side { min-width: 0; }
+.shop-grid { display: grid; grid-template-columns: 100%; gap: 26px; align-items: start; }
+.shop-grid.single { grid-template-columns: 100%; }
+.shop-main, .shop-side { min-width: 0; max-width: 100%; width: 100%; }
 .shop-tabs { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 
 .shop-tab { flex: 1; text-align: center; justify-content: center; min-width: 110px; padding: 9px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); color: var(--dim); font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s; }
@@ -1802,11 +1802,11 @@ kbd {
 
 /* ── Горизонтальные карточки товаров (Этап 8) ───────────────── */
 .shop-filters {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-bottom: 10px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 20px;
 }
 .shop-filter-sub {
-  margin: 0 0 12px;
+  margin: -8px 0 20px;
   padding-left: 4px;
   border-left: 2px solid var(--line);
 }
@@ -1820,9 +1820,10 @@ kbd {
   border-color: var(--gold); background: rgba(201, 152, 78, 0.12);
   color: var(--gold2);
 }
-.gear-rows { display: flex; flex-direction: column; }
+.gear-rows { display: flex; flex-direction: column; width: 100%; }
 .gear-row {
   display: flex; align-items: center; gap: 12px;
+  width: 100%; box-sizing: border-box;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #191310, #14100d);
@@ -1834,7 +1835,7 @@ kbd {
   border: 1px solid var(--line); border-radius: 10px; background: #130f0c;
   overflow: hidden;
 }
-.gear-row-main { flex: 1; min-width: 0; }
+.gear-row-main { flex: 1 1 auto; min-width: 0; }
 .gear-row-main h3 { margin: 0 0 2px; font-size: 14px; }
 .gear-row-main .item-desc { margin: 0 0 4px; font-size: 12px; line-height: 1.4; }
 .gear-row-main .chips { display: flex; flex-wrap: wrap; gap: 4px; }
