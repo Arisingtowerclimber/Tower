@@ -25,9 +25,10 @@ const view = {
 };
 
 let toastTimer = null;
+let invFilterCache = { key: "", list: [] };
 
 function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
-function bar(cls, value, max) { const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100)); return `<div class="bar ${cls}"><span style="width:${pct}%"></span></div>`; }
+function bar(cls, value, max, role = "") { const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100)); return `<div class="bar ${cls}"${role ? ` data-role="${role}"` : ""}><span style="width:${pct}%"></span></div>`; }
 function toast(text, kind = "info") { const el = document.getElementById("toast"); if (!el) return; el.textContent = text; el.className = `toast show ${kind}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = "toast"; }, 2400); }
 
 function iconHtml(icon, size = 32, fit = "contain") {
@@ -1232,14 +1233,25 @@ function heroInventoryHtml() {
     const bag = state.owned.filter((inst) => !isEquipped(inst.uid));
     if (!bag.length) return `<p class="empty">Инвентарь пуст.</p>`;
     const q = view.invSearch.trim().toLowerCase();
-    const filtered = bag.filter((inst) => {
-      const item = ITEMS[inst.id]; if (!item) return false;
-      if (view.invFilter === "weapon" && item.slot !== "mainhand" && item.slot !== "offhand") return false;
-      if (view.invFilter === "armor" && !["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"].includes(item.slot)) return false;
-      if (view.invFilter === "jewelry" && !["ring", "trinket"].includes(item.slot)) return false;
-      if (q && !getItemDisplayName(inst).toLowerCase().includes(q)) return false;
-      return true;
-    });
+    // Кэш фильтрации: пересчитываем только при смене фильтра/поиска/сумки.
+    // TODO(review): equipped-сигнатура добавлена, чтобы экипировка не оставляла
+    // в кэше уже надетые предметы (owned.length при этом не меняется).
+    const equippedSig = Object.values(state.equipped).join(",");
+    const cacheKey = `${view.invFilter}|${view.invSearch}|${state.owned.length}|${equippedSig}|${state._invRev || 0}`;
+    let filtered;
+    if (invFilterCache.key === cacheKey) {
+      filtered = invFilterCache.list;
+    } else {
+      filtered = bag.filter((inst) => {
+        const item = ITEMS[inst.id]; if (!item) return false;
+        if (view.invFilter === "weapon" && item.slot !== "mainhand" && item.slot !== "offhand") return false;
+        if (view.invFilter === "armor" && !["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"].includes(item.slot)) return false;
+        if (view.invFilter === "jewelry" && !["ring", "trinket"].includes(item.slot)) return false;
+        if (q && !getItemDisplayName(inst).toLowerCase().includes(q)) return false;
+        return true;
+      });
+      invFilterCache = { key: cacheKey, list: filtered };
+    }
     const filters = `
       <div class="inv-filters">
         <button class="inv-filter${view.invFilter === "all" ? " active" : ""}" data-act="inv-filter" data-filter="all" type="button">Всё</button>
@@ -1704,7 +1716,7 @@ function battleHtml(st) {
       <div class="deck-col">
         <div class="deck-title">Прогноз</div>
         <div class="zones" style="display: flex !important; height: 44px !important;">
-          <div class="deck-forecast" style="flex: 1 !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important;">⚔ ~${estimatedDmg}</div>
+          <div class="deck-forecast" data-role="battle-forecast" style="flex: 1 !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important;">⚔ ~${estimatedDmg}</div>
         </div>
         <div class="deck-tabs">
           <button class="btn primary deck-btn" data-act="exchange" type="button" style="flex: 1 !important; height: 100% !important;">РАЗМЕН</button>
@@ -1729,13 +1741,13 @@ function battleHtml(st) {
           </div>
           <div class="fighter-body" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
             <div class="fighter-name" style="font-size: 16px; margin-bottom: 6px;">${esc(state.name)} <span class="muted">УР ${state.level}</span></div>
-            ${bar("hp", state.hp, st.maxHp)}
-            ${bar("mana", state.mana, st.maxMana)}
-            <div class="bar rage-bar" style="margin-top: 4px;"><span style="width:${Math.min(100, (battle.rage / 5) * 100)}%"></span></div>
+            ${bar("hp", state.hp, st.maxHp, "hero-hp")}
+            ${bar("mana", state.mana, st.maxMana, "hero-mana")}
+            <div class="bar rage-bar" data-role="rage-bar" style="margin-top: 4px;"><span style="width:${Math.min(100, (battle.rage / 5) * 100)}%"></span></div>
             <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap;">
-              <span>${state.hp}/${st.maxHp} HP</span>
-              <span>${state.mana}/${st.maxMana} MP</span>
-              <span>Кураж: ${battle.rage}/5</span>
+              <span data-role="hero-hp-text">${state.hp}/${st.maxHp} HP</span>
+              <span data-role="hero-mana-text">${state.mana}/${st.maxMana} MP</span>
+              <span data-role="rage-text">Кураж: ${battle.rage}/5</span>
               <span title="${playerArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[playerArmorType] || "Нет"}</span>
               <span title="${playerWeaponTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Оружие: ${playerWeapon ? playerWeapon.name : "Кулаки"}</span>
             </div>
@@ -1754,9 +1766,9 @@ function battleHtml(st) {
               ${enemy.modifier ? `<span class="chip" style="font-size: 10px; padding: 1px 6px; cursor: help;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : ""}
               ${enemy.ability ? `<span class="chip" style="font-size: 10px; padding: 1px 6px; cursor: help;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : ""}
             </div>
-            ${bar("hp enemy", battle.hp, battle.maxHp)}
+            ${bar("hp enemy", battle.hp, battle.maxHp, "enemy-hp")}
             <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap;">
-              <span>${battle.hp}/${battle.maxHp} HP</span>
+              <span data-role="enemy-hp-text">${battle.hp}/${battle.maxHp} HP</span>
               <span title="Базовый урон врага">Урон: ${enemy.atk}</span>
               <span title="Базовые доспехи, снижающие урон">Защита: ${enemy.def}</span>
               <span title="${enemyArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[enemy.armorType] || "Нет"}</span>
@@ -1767,7 +1779,7 @@ function battleHtml(st) {
       </div>
 
       <!-- ЦЕНТР: Лог боя -->
-      <div class="battle-log" style="flex: 1; max-height: none; margin-bottom: 10px; overflow-y: auto;">
+      <div class="battle-log" id="battle-log" data-role="battle-log" style="flex: 1; max-height: none; margin-bottom: 10px; overflow-y: auto;">
         ${log || `<div class="log-line info">Выберите зону удара и зоны блока, затем нажмите «Размен».</div>`}
       </div>
 
@@ -1839,6 +1851,60 @@ function subHeader(title, subtitle, backScreen, backLabel = "← Назад") {
 }
 
 function scrollLog() { const log = document.getElementById("battle-log"); if (log) log.scrollTop = log.scrollHeight; }
+
+// Точечное обновление боевого экрана: полосы, счётчики, лог и прогноз.
+// Полный render() остаётся для смены экрана и показа summary.
+function renderBattle() {
+  const battle = view.battle;
+  if (!battle) { render(); return; }
+  const st = stats();
+
+  const setBar = (role, value, max) => {
+    const el = document.querySelector(`[data-role="${role}"] span`);
+    if (el) el.style.width = `${Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100))}%`;
+  };
+  setBar("hero-hp", state.hp, st.maxHp);
+  setBar("hero-mana", state.mana, st.maxMana);
+  setBar("rage-bar", battle.rage, 5);
+  setBar("enemy-hp", battle.hp, battle.maxHp);
+
+  const setText = (role, text) => {
+    const el = document.querySelector(`[data-role="${role}"]`);
+    if (el) el.textContent = text;
+  };
+  setText("hero-hp-text", `${state.hp}/${st.maxHp} HP`);
+  setText("hero-mana-text", `${state.mana}/${st.maxMana} MP`);
+  setText("rage-text", `Кураж: ${battle.rage}/5`);
+  setText("enemy-hp-text", `${battle.hp}/${battle.maxHp} HP`);
+
+  const forecast = document.querySelector('[data-role="battle-forecast"]');
+  if (forecast) {
+    const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+    const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
+    forecast.textContent = `⚔ ~${estimateDamage(state, battle, view.attackZone, currentStyle, mainInst)}`;
+  }
+
+  const topbar = document.getElementById("topbar");
+  if (topbar) topbar.innerHTML = topbarHtml(st);
+
+  const prevLog = view.prevLog || 0;
+  const newLines = battle.log.length > prevLog ? battle.log.slice(prevLog) : [];
+  const logEl = document.querySelector('[data-role="battle-log"]');
+  if (logEl) {
+    logEl.innerHTML = battle.log.slice(-18).map((entry) => `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`).join("")
+      || `<div class="log-line info">Выберите зону удара и зоны блока, затем нажмите «Размен».</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  view.prevLog = battle.log.length;
+
+  document.querySelector(".dmg-overlay")?.remove();
+  let dmgPopups = "";
+  for (const line of newLines) {
+    if (line.cls === "enemy") dmgPopups += `<div class="dmg-popup dmg-enemy">-${line.text.match(/\d+/) || "?"}</div>`;
+    if (line.cls === "hit" || line.cls === "crit") dmgPopups += `<div class="dmg-popup dmg-player">-${line.text.match(/\d+/) || "?"}</div>`;
+  }
+  if (dmgPopups) document.body.insertAdjacentHTML("beforeend", `<div class="dmg-overlay">${dmgPopups}</div>`);
+}
 
 function levelUpModalHtml() {
   const level = view.levelUp;

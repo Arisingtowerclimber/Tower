@@ -33,8 +33,12 @@ function doExchange(type, potionId) {
     return; 
   } 
   
-  if (result.summary) view.summary = result.summary; 
-  render();
+  if (result.summary) { 
+    view.summary = result.summary; 
+    render(); 
+    return;
+  } 
+  renderBattle();
 }
 
 function go(screen) {
@@ -281,6 +285,7 @@ function buyFromTrader(entryId, viewRef = view) {
       name = ITEMS[entry.inst.id].name;
     }
   }
+  state._invRev = (state._invRev || 0) + 1;
   saveState();
   return { ok: true, text: `Куплено: ${name} (−${entry.price} 💰).`, entryId };
 }

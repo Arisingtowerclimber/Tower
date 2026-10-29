@@ -11,6 +11,14 @@ const storage = {
   remove(key) { try { localStorage.removeItem(key); } catch (err) {} },
 };
 
+// Сбрасывает кэш stats(). Вызывается из всех механик, меняющих атрибуты,
+// экипировку, таланты, компаньона, дебаффы и уровень.
+function invalidateStats() {
+  if (!state) return;
+  state._statsRev = (state._statsRev || 0) + 1;
+  state._statsCache = null;
+}
+
 let state = null;
 
 function defaultState() {
@@ -173,7 +181,11 @@ function loadState() {
   }
 }
 
-function saveState() { try { storage.set(SAVE_KEY, JSON.stringify(state)); } catch (err) {} }
+function saveState() {
+  try {
+    storage.set(SAVE_KEY, JSON.stringify(state, (key, value) => (key === "_statsCache" || key === "_statsRev" || key === "_invRev" ? undefined : value)));
+  } catch (err) {}
+}
 function resetState() { state = defaultState(); saveState(); }
 function getEquippedItem(slot) {
   const uid = state.equipped[slot];
@@ -191,6 +203,7 @@ function addItemInstance(id, durability = DURABILITY_MAX, rarity = null) {
     inst.unique = UNIQUE_EFFECTS[Math.floor(Math.random() * UNIQUE_EFFECTS.length)].id;
   }
   state.owned.push(inst);
+  invalidateStats();
   return inst;
 }
 
@@ -299,6 +312,7 @@ function companionDaysLeft() { if (!activeCompanion()) return 0; return companio
 function expireCompanion() {
   if (state.companion && state.day > companionExpiryDay()) {
     state.companion = null; state.companionDay = 0;
+    invalidateStats();
     return true;
   }
   return false;
@@ -322,6 +336,7 @@ function activeArchetype() {
 }
 
 function stats() {
+  if (state._statsCache && state._statsCache.rev === (state._statsRev || 0)) return state._statsCache.value;
   const gear = gearBonuses(); const companion = activeCompanion(); const mult = companionMultipliers();
   const mods = archetypeMods();
   const tal = { atk: 0, crit: 0, def: 0, dodge: 0, hp: 0, hpRegen: 0, lootChance: 0, maxEnergy: 0, counterOnDodge: 0, armorPierce: 0, lifesteal: 0, secondWind: 0 };
@@ -357,8 +372,10 @@ function stats() {
   const counter = Math.min(COUNTERATTACK_CAP, a.agi * AGILITY_COUNTER_PERCENT);
   const blockZones = Math.min(ZONES.length, mods.blockZones + gear.block);
   const maxEnergy = EXPLORATION_MAX + (state.level - 1) + (tal.maxEnergy || 0);
-  return { maxHp, maxMana, maxEnergy, atk, def, crit, dodge, counter, blockZones, ragePerHit: mods.ragePerHit, attrs: state.attrs, gearAttrs: { str: gear.str || 0, end: gear.end || 0, agi: gear.agi || 0, int: gear.int || 0 }, gear, companion, companionMult: mult, mods, archetype: activeArchetype(), chestArmorType, mainWeapon,
+  const result = { maxHp, maxMana, maxEnergy, atk, def, crit, dodge, counter, blockZones, ragePerHit: mods.ragePerHit, attrs: state.attrs, gearAttrs: { str: gear.str || 0, end: gear.end || 0, agi: gear.agi || 0, int: gear.int || 0 }, gear, companion, companionMult: mult, mods, archetype: activeArchetype(), chestArmorType, mainWeapon,
     hpRegen: tal.regen || 0, counterOnDodge: tal.counterOnDodge || 0, lootChance: tal.lootChance || 0, armorPierce: round1(tal.armorPierce || 0), lifesteal: tal.lifesteal || 0, secondWind: tal.secondWind || 0 };
+  state._statsCache = { rev: state._statsRev || 0, value: result };
+  return result;
 }
 
 // Множитель активных временных дебаффов (kind: "damage" | "def").
@@ -377,6 +394,7 @@ function tickTempDebuffs() {
   state.tempDebuffs = state.tempDebuffs
     .map((d) => ({ ...d, days: (d.days || 1) - 1 }))
     .filter((d) => d.days > 0);
+  invalidateStats();
 }
 
 function round1(v) { return Math.round(v * 10) / 10; }
@@ -467,6 +485,7 @@ function createHero(biography, archetypeId, portrait = "m1", name = "") {
   state.companionDay = 0;
   state.energy = EXPLORATION_MAX;
 
+  invalidateStats();
   const st = stats();
   state.hp = st.maxHp + bonusHp;
   state.mana = st.maxMana + bonusMana;
@@ -479,7 +498,7 @@ function createHero(biography, archetypeId, portrait = "m1", name = "") {
 function addAttr(attr) {
   if (!(attr in state.attrs)) return { ok: false, text: "Неизвестный атрибут." };
   if (state.points <= 0) return { ok: false, text: "Нет свободных очков." };
-  const oldStats = stats(); state.attrs[attr] += 1; state.points -= 1; const newStats = stats();
+  const oldStats = stats(); state.attrs[attr] += 1; state.points -= 1; invalidateStats(); const newStats = stats();
   applyVitalsDelta(oldStats, newStats); saveState();
   return { ok: true, text: `Атрибут повышен. Осталось очков: ${state.points}.` };
 }
@@ -490,7 +509,7 @@ function gainXp(amount) {
     state.xp -= xpNeeded(state.level); state.level += 1; state.points += LEVEL_ATTR_POINTS; result.points += LEVEL_ATTR_POINTS; result.levels.push(state.level);
     if (state.level % 3 === 0) { state.talentPoints = (state.talentPoints || 0) + 1; result.talentPoints += 1; }
   }
-  if (result.levels.length) { const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; }
+  if (result.levels.length) { invalidateStats(); const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; }
   return result;
 }
 
@@ -503,6 +522,7 @@ function learnTalent(talentId) {
   state.talentPoints -= 1;
   const oldStats = stats();
   state.talents[talentId] = rank + 1;
+  invalidateStats();
   applyVitalsDelta(oldStats, stats()); saveState();
   return { ok: true, text: `Талант «${talent.name}» изучен: ранг ${state.talents[talentId]}/${talent.maxRank}.` };
 }
@@ -778,6 +798,7 @@ function advancePhase() {
     tickTempDebuffs();
   }
   expireCompanion();
+  invalidateStats();
   clampVitals(); saveState(); return phaseInfo();
 }
 
@@ -811,7 +832,7 @@ function hireCompanion(companionId) {
   const discount = companionDiscountToday(); const price = Math.max(1, Math.round(companion.price * (1 - discount)));
   if (state.gold < price) return { ok: false, text: `Не хватает золота: нужно ${price} 💰.` };
   const oldStats = stats(); const previous = current;
-  state.gold -= price; state.companion = companion.id; state.companionDay = state.day; const newStats = stats();
+  state.gold -= price; state.companion = companion.id; state.companionDay = state.day; invalidateStats(); const newStats = stats();
   applyVitalsDelta(oldStats, newStats); saveState();
   const replaced = previous && previous.id !== companion.id ? ` ${previous.name} уступает место.` : "";
   const sale = discount > 0 ? ` (скидка ${Math.round(discount * 100)}%)` : "";
@@ -836,7 +857,7 @@ function drinkPotion(id) {
   const st = stats(); let healed = 0;
   if (item.effect === "hp") { healed = Math.min(item.amount, st.maxHp - state.hp); state.hp += healed; } else { healed = Math.min(item.amount, st.maxMana - state.mana); state.mana += healed; }
   if (healed <= 0) return { ok: false, text: "Показатель уже полон." };
-  state.potions[id] -= 1; saveState();
+  state.potions[id] -= 1; invalidateStats(); saveState();
   return { ok: true, healed, text: `${item.name}: +${healed} ${item.effect === "hp" ? "HP" : "маны"}.` };
 }
 
@@ -1057,6 +1078,7 @@ function buyItem(id, shop = "forge") {
   const eqInst = slot && state.equipped[slot] ? getInstance(state.equipped[slot]) : null;
   const better = slot && itemScore(item, slot, inst) > itemScore(eqInst ? ITEMS[eqInst.id] : null, slot, eqInst);
   if (better) state.equipped[slot] = inst.uid;
+  invalidateStats();
   const newStats = stats(); applyVitalsDelta(oldStats, newStats); saveState();
   const sale = discount > 0 ? ` (скидка ${Math.round(discount * 100)}%)` : "";
   return { ok: true, text: better ? `Куплено и надето: ${getItemDisplayName(inst)} за ${price} 💰${sale} (${SLOT_NAME[slot]}).` : `Куплено: ${getItemDisplayName(inst)} за ${price} 💰${sale}. Наденьте в разделе «Герой».` };
@@ -1091,6 +1113,7 @@ function craftItem(recipeId) {
   const eqInst = slot && state.equipped[slot] ? getInstance(state.equipped[slot]) : null;
   const better = slot && itemScore(item, slot, inst) > itemScore(eqInst ? ITEMS[eqInst.id] : null, slot, eqInst);
   if (better) state.equipped[slot] = inst.uid;
+  invalidateStats();
   const newStats = stats();
   applyVitalsDelta(oldStats, newStats);
   saveState();
@@ -1135,6 +1158,7 @@ function equipItemToSlot(uid, slotId) {
     state.equipped.offhand = null;
     freedOffhand = true;
   }
+  invalidateStats();
   const newStats = stats(); applyVitalsDelta(oldStats, newStats); saveState();
   return { ok: true, text: `Надето: ${getItemDisplayName(inst)} (${slot.name}).${freedOffhand ? " Левая рука освобождена под двуручное оружие." : ""}` };
 }
@@ -1142,7 +1166,7 @@ function equipItemToSlot(uid, slotId) {
 function unequipSlot(slot) {
   const eq = getEquippedItem(slot);
   if (!eq) return { ok: false, text: "Слот пуст." };
-  const oldStats = stats(); state.equipped[slot] = null; const newStats = stats(); applyVitalsDelta(oldStats, newStats); saveState();
+  const oldStats = stats(); state.equipped[slot] = null; invalidateStats(); const newStats = stats(); applyVitalsDelta(oldStats, newStats); saveState();
   return { ok: true, text: `Снято: ${getItemDisplayName(eq)} (${SLOT_NAME[slot] || slot}).` };
 }
 
@@ -1151,7 +1175,7 @@ function sellItem(uid) {
   const item = inst ? ITEMS[inst.id] : null;
   if (!inst || !item) return { ok: false, text: "Предмета нет." };
   if (isEquipped(uid)) return { ok: false, text: "Сначала снимите предмет." };
-  const price = sellPrice(item); state.owned = state.owned.filter((x) => x !== inst); state.gold += price; saveState();
+  const price = sellPrice(item); state.owned = state.owned.filter((x) => x !== inst); state.gold += price; invalidateStats(); saveState();
   return { ok: true, text: `Продано: ${getItemDisplayName(inst)} (+${price} золота).` };
 }
 
@@ -1187,6 +1211,7 @@ function sellMultipleItems(itemIds) {
   if (total <= 0 && !skipped.length) return { ok: false, text: "Ничего не выбрано." };
   if (total <= 0) return { ok: false, text: "Продать не получилось: выбор не доступен." };
   state.gold = (state.gold || 0) + total;
+  invalidateStats();
   saveState();
   const note = skipped.length ? ` (Пропущено: ${skipped.join(", ")})` : "";
   return { ok: true, text: `Продано на ${total} золота.${note}` };
@@ -1199,7 +1224,7 @@ function trainAttr(trainingId) {
   const attr = training.attr; const cap = trainingCap(state.level);
   if (state.attrs[attr] >= cap) return { ok: false, text: `${ATTR_INFO.find((a) => a.id === attr).name} уже на максимуме (${cap}) для ${state.level}-го уровня.` };
 
-  const oldStats = stats(); state.energy -= TRAINING_ENERGY_COST; state.attrs[attr] += 1; const newStats = stats();
+  const oldStats = stats(); state.energy -= TRAINING_ENERGY_COST; state.attrs[attr] += 1; invalidateStats(); const newStats = stats();
   const hpDiff = newStats.maxHp - oldStats.maxHp; const manaDiff = newStats.maxMana - oldStats.maxMana;
   if (hpDiff > 0) state.hp += hpDiff; if (manaDiff > 0) state.mana += manaDiff;
   for (let i = 0; i < TRAINING_PHASES; i += 1) advancePhase();
