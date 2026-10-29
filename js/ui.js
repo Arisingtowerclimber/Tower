@@ -54,10 +54,12 @@ function itemStats(item, inst = null) {
   if (s.dodge) out.push(`💨 +${s.dodge}%`);
   if (s.block) out.push(`🧱 +${s.block} зона блока`);
   // Разбивка урона по стилям — вместо общего «⚔ +X».
+  // Выводим всегда все три типа, чтобы карточки предметов были одинаковой высоты.
   if (s.damage) {
-    if (s.damage.slashing > 0) out.push(`Рубящий ${s.damage.slashing}`);
-    if (s.damage.piercing > 0) out.push(`Колющий ${s.damage.piercing}`);
-    if (s.damage.bludgeoning > 0) out.push(`Дробящий ${s.damage.bludgeoning}`);
+    for (const st of STYLE_ORDER) {
+      const val = s.damage[st] || 0;
+      out.push(`${STYLE_NAMES[st]} ${val > 0 ? val : "—"}`);
+    }
   }
   return out;
 }
@@ -77,7 +79,11 @@ function durabilityChip() { return ""; }
 
 function statsChips(item, inst = null) {
   const chips = itemStats(item, inst);
-  let html = chips.length ? chips.map((c) => `<span class="chip">${c}</span>`).join("") : "";
+  // Чипы урона помечаем отдельным классом — он задаёт им одинаковую ширину/высоту.
+  const isDmgChip = (text) => STYLE_ORDER.some((st) => text.startsWith(`${STYLE_NAMES[st]} `));
+  let html = chips.length
+    ? chips.map((c) => `<span class="chip${isDmgChip(c) ? " dmg" : ""}">${c}</span>`).join("")
+    : "";
 
   if (inst && inst.affix) {
     for (const b of inst.affix.bonuses || []) {
@@ -1954,7 +1960,7 @@ function battleHtml(st) {
       <div class="deck-col">
         <div class="deck-title">Прогноз</div>
         <div class="zones" style="display: flex !important; height: 44px !important;">
-          <div class="deck-forecast" data-role="battle-forecast" style="flex: 1 !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important;">⚔ ~${estimatedDmg}</div>
+          <div class="deck-forecast" data-role="battle-forecast" style="flex: 1 !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important;">⚔ ~${estimatedDmg} <span style="font-size: 11px; color: var(--dim); margin-left: 6px;">(${STYLE_NAMES[currentStyle]})</span></div>
         </div>
         <div class="deck-tabs">
           <button class="btn primary deck-btn" data-act="exchange" type="button" style="flex: 1 !important; height: 100% !important;">РАЗМЕН</button>
@@ -2119,7 +2125,7 @@ function renderBattle() {
   if (forecast) {
     const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
     const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
-    forecast.textContent = `⚔ ~${estimateDamage(state, battle, view.attackZone, currentStyle, mainInst)}`;
+    forecast.innerHTML = `⚔ ~${estimateDamage(state, battle, view.attackZone, currentStyle, mainInst)} <span style="font-size: 11px; color: var(--dim); margin-left: 6px;">(${STYLE_NAMES[currentStyle]})</span>`;
   }
 
   const topbar = platform.dom.byId("topbar");
