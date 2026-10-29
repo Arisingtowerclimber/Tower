@@ -40,9 +40,22 @@ function iconHtml(icon, size = 32, fit = "contain") {
   const resolved = resolveIcon(icon);
   if (!resolved) return "";
   if (resolved.startsWith("assets/")) {
-    return `<img src="${resolved}" class="game-icon" style="width:${size}px;height:${size}px;object-fit:${fit};" alt="" onerror="this.style.display='none'">`;
+    // Если файла иконки нет (onerror) — показываем эмодзи-заглушку по слоту,
+    // чтобы слот не оставался пустым.
+    const emoji = iconFallbackEmoji(resolved);
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;flex-shrink:0;vertical-align:middle;"><img src="${resolved}" class="game-icon" style="width:100%;height:100%;object-fit:${fit};" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span style="display:none;font-size:${Math.round(size * 0.8)}px;line-height:1;vertical-align:middle;">${emoji}</span></span>`;
   }
   return `<span style="font-size:${Math.round(size * 0.8)}px;line-height:1;vertical-align:middle;">${resolved}</span>`;
+}
+
+// По пути к иконке «assets/icons/head_iron.webp» подбираем эмодзи слота,
+// чтобы при отсутствии файла показать осмысленную заглушку.
+function iconFallbackEmoji(resolved) {
+  const m = /([^/]+)\.(webp|png|jpe?g|svg)(\?|$)/i.exec(resolved);
+  const id = m ? m[1] : null;
+  const item = id && ITEMS[id] ? ITEMS[id] : null;
+  const slot = item ? item.slot : null;
+  return (slot && SLOT_ICON[slot]) || "❔";
 }
 
 const ATTR_LABEL = { str: "Сила", end: "Выносливость", agi: "Ловкость", int: "Интеллект" };
@@ -2366,6 +2379,13 @@ function battleHtml(st) {
     playerArmorTitle = `Получаемый урон: ${mods.join(", ")}`;
   }
 
+  // Мини-список брони по зонам: «Голова: Латы | Грудь: Латы | Пояс: Ткань | Ноги: Кожа».
+  const zoneArmorList = ["head", "chest", "waist", "legs"].map((slot) => {
+    const inst = state.equipped[slot] ? getInstance(state.equipped[slot]) : null;
+    const type = (inst && ITEMS[inst.id] && ITEMS[inst.id].armorType) || "cloth";
+    return `${SLOT_NAME[slot]}: ${ARMOR_TYPE_NAMES[type] || type}`;
+  }).join(" | ");
+
   const enemyManaInactive = !(battle.enemy.maxMana > 0);
   const enemyRageInactive = enemy.rarity === "common" || !(battle.enemy.maxRage > 0);
 
@@ -2476,7 +2496,7 @@ function battleHtml(st) {
               <span data-role="hero-hp-text">${state.hp}/${st.maxHp} HP</span>
               <span data-role="hero-mana-text">${state.mana}/${st.maxMana} MP</span>
               <span data-role="rage-text">Кураж: ${battle.rage}/5</span>
-              <span title="${playerArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[playerArmorType] || "Нет"}</span>
+              <span title="${playerArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help; font-size: 10px;">${zoneArmorList}</span>
               <span title="${playerWeaponTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Оружие: ${playerWeapon ? playerWeapon.name : "Кулаки"}</span>
             </div>
           </div>

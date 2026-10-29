@@ -9,6 +9,18 @@ function pick(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+// Зоны удара → слот экипировки, защищающий эту зону.
+const ZONE_TO_SLOT = { head: "head", chest: "chest", belly: "chest", waist: "waist", legs: "legs" };
+
+// Тип брони, прикрывающий конкретный слот (пустой слот считается тканью).
+function equippedArmorTypeFor(state, slot) {
+  const uid = state.equipped && state.equipped[slot];
+  if (!uid) return "cloth";
+  const inst = getInstance(uid);
+  const item = inst ? ITEMS[inst.id] : null;
+  return (item && item.armorType) || "cloth";
+}
+
 // Вариация моба: редкость, модификатор, способность.
 // Боссы не модифицируются — возвращается копия без изменений.
 function applyMobVariation(enemyDef) {
@@ -542,13 +554,19 @@ function exchange(state, battle, action, weaponInst = null) {
           battleLog(battle, `Контратака! ${e.name} теряет ${counterDmg} HP.`, "crit");
         }
       } else {
-        let base = e.atk * rnd(0.85, 1.15);
+        const zoneSlot = ZONE_TO_SLOT[enemyAction.attack] || "chest";
+        const zoneArmorType = equippedArmorTypeFor(state, zoneSlot);
+        const enemyWpn = e.weaponId ? ITEMS[e.weaponId] : null;
+        const enemyStyle = enemyWpn ? weaponBestStyle(enemyWpn) : "slashing";
+        const armorMult = ARMOR_STYLE_MULT[enemyStyle][zoneArmorType] || 1;
+
+        let base = e.atk * rnd(0.85, 1.15) * armorMult;
         base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
         if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
         const damage = Math.max(2, Math.round(base));
         state.hp = Math.max(0, state.hp - damage);
-        battleLog(battle, `${e.name} бьёт в «${enemyZone}»: ${damage} урона.`, "enemy");
+        battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult}): ${damage} урона.`, "enemy");
 
         // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
         if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {

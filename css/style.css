@@ -939,6 +939,8 @@ kbd {
 .item-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 12px; background: #120d0b; font-size: 24px; }
 .item-card.compact .item-icon { width: 42px; height: 42px; font-size: 20px; }
 .item-icon.big { width: 60px; height: 60px; font-size: 30px; }
+/* Иконки-картинки предметов: вписываются в слот без искажений. */
+.game-icon { object-fit: contain; max-width: 100%; max-height: 100%; display: block; }
 .item-main h3 { font-size: 16px; }
 .item-desc { margin-top: 2px; color: var(--dim); font-size: 13px; }
 .item-buy { display: flex; flex-direction: column; align-items: stretch; gap: 7px; min-width: 118px; text-align: center; }

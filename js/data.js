@@ -1027,10 +1027,10 @@ const ITEMS = {
   patched_pants: gearItem("patched_pants", "Штаны в заплатках", "legs", "👖", 0, 0, { def: 0, hp: 0 }, "Заплатка на заплатке."),
   worn_boots: gearItem("worn_boots", "Стоптанные сапоги", "feet", "🥾", 0, 0, { def: 0, hp: 0 }, "Скрипят на каждом шагу."),
   head_cloth: gearItem("head_cloth", "Тканевый капюшон", "head", "🧢", 25, 1, { def: 2, hp: 15 }, "Плотная ткань лучше, чем ничего."),
-  head_iron: gearItem("head_iron", "Железный шлем", "head", "⛑️", 110, 2, { def: 6, hp: 40 }, "Простой, тяжёлый, надёжный."),
+  head_iron: gearItem("head_iron", "Железный шлем", "head", "assets/icons/head_iron.webp", 110, 2, { def: 6, hp: 40 }, "Простой, тяжёлый, надёжный."),
   head_crystal: gearItem("head_crystal", "Кристальный шлем", "head", "💠", 320, 3, { def: 8, hp: 60 }, "Грани ловят свет и чужой удар."),
   shoulder_leather: gearItem("shoulder_leather", "Кожаные наплечники", "shoulder", "🛡️", 25, 1, { def: 2, hp: 15 }, "Ремни и куски кожи."),
-  shoulder_iron: gearItem("shoulder_iron", "Железные наплечники", "shoulder", "🛡️", 100, 2, { def: 4, hp: 40 }, "Держат удар сверху."),
+  shoulder_iron: gearItem("shoulder_iron", "Железные наплечники", "shoulder", "assets/icons/shoulder_iron.webp", 100, 2, { def: 4, hp: 40 }, "Держат удар сверху."),
   shoulder_crystal: gearItem("shoulder_crystal", "Кристальные наплечники", "shoulder", "💠", 300, 3, { def: 6, hp: 50 }, "Осколки срослись в броню."),
   back_cloak: gearItem("back_cloak", "Рваный плащ", "back", "🧣", 20, 1, { def: 0, hp: 15 }, "Холодный ветер всё равно пробирается."),
   back_guard: gearItem("back_guard", "Плащ караульного", "back", "🧣", 90, 2, { def: 2, hp: 30 }, "Плотная ткань с чужого плеча."),
@@ -1039,16 +1039,16 @@ const ITEMS = {
   wrist_chain: gearItem("wrist_chain", "Кольчужные наручи", "wrist", "🧤", 85, 2, { def: 4, hp: 25 }, "Мелкие кольца, плотная посадка."),
   wrist_crystal: gearItem("wrist_crystal", "Кристальные наручи", "wrist", "💠", 260, 3, { def: 4, hp: 30 }, "Холодят руку даже через ткань."),
   hands_gloves: gearItem("hands_gloves", "Рабочие перчатки", "hands", "🧤", 20, 1, { def: 2, hp: 10 }, "Ладони уже не горят."),
-  hands_iron: gearItem("hands_iron", "Железные рукавицы", "hands", "🛡️", 85, 2, { def: 4, hp: 25 }, "Кулак становится доводом."),
+  hands_iron: gearItem("hands_iron", "Железные рукавицы", "hands", "assets/icons/hands_iron.webp", 85, 2, { def: 4, hp: 25 }, "Кулак становится доводом."),
   hands_crystal: gearItem("hands_crystal", "Кристальные рукавицы", "hands", "💠", 260, 3, { def: 2, hp: 6 }, "Пальцы двигаются, кристалл звенит."),
   waist_rope: gearItem("waist_rope", "Верёвочный пояс", "waist", "🎗️", 20, 1, { def: 2, hp: 15 }, "Держит штаны и надежду."),
-  waist_plate: gearItem("waist_plate", "Пояс из пластин", "waist", "🛡️", 90, 2, { def: 4, hp: 30 }, "Пластины стучат при ходьбе."),
+  waist_plate: gearItem("waist_plate", "Пояс из пластин", "waist", "assets/icons/waist_plate.webp", 90, 2, { def: 4, hp: 30 }, "Пластины стучат при ходьбе."),
   waist_crystal: gearItem("waist_crystal", "Кристальный пояс", "waist", "💠", 270, 3, { def: 4, hp: 40 }, "Тяжёлый, но держит спину."),
   legs_leather: gearItem("legs_leather", "Кожаные штаны", "legs", "👖", 25, 1, { def: 2, hp: 20 }, "Мягкие, зато не рвутся сразу."),
   legs_chain: gearItem("legs_chain", "Кольчужные штаны", "legs", "👖", 110, 2, { def: 6, hp: 40 }, "Тяжело шагать, легко стоять."),
   legs_crystal: gearItem("legs_crystal", "Кристальные поножи", "legs", "💠", 320, 3, { def: 8, hp: 60 }, "Каждый шаг отдаётся звоном."),
   feet_leather: gearItem("feet_leather", "Кожаные сапоги", "feet", "🥾", 25, 1, { def: 2, hp: 15 }, "Подошва ещё держится."),
-  feet_iron: gearItem("feet_iron", "Железные сапоги", "feet", "🥾", 90, 2, { def: 4, hp: 30 }, "Гулкий шаг по каменным плитам."),
+  feet_iron: gearItem("feet_iron", "Железные сапоги", "feet", "assets/icons/feet_iron.webp", 90, 2, { def: 4, hp: 30 }, "Гулкий шаг по каменным плитам."),
   feet_crystal: gearItem("feet_crystal", "Кристальные сапоги", "feet", "💠", 270, 3, { def: 6, hp: 40 }, "Ступня вмерзает в камень."),
 
   neck_bone: gearItem("neck_bone", "Грубый амулет", "neck", "📿", 30, 1, { hp: 25 }, "Грубый кусок малахита, наспех привязанный к ремешку."),
@@ -1110,7 +1110,7 @@ const ITEMS = {
   rough_leather: gearItem("rough_leather", "Грубый кожаный доспех", "chest", "🥋", 80, 1, { def: 4, hp: 20, dodge: 2, armorType: "leather" }, "Свинженные куски, сшитые без вкуса, но вовремя."),
   rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "🥋", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
   iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "🥋", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
-  dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "🛡️", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
+  dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "assets/icons/dented_plate.webp", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
 
   // ── Тир 1: полные комплекты брони (ткань / кожа / кольчуга / латы) ──
   shoulder_cloth: gearItem("shoulder_cloth", "Тканевые накидки", "shoulder", "🧣", 18, 1, { def: 1, hp: 10, armorType: "cloth" }, "Несколько слоёв плотной ткани на плечах."),
@@ -1128,8 +1128,8 @@ const ITEMS = {
   waist_chain: gearItem("waist_chain", "Кольчужный пояс", "waist", "🎗️", 80, 1, { def: 3, hp: 20, armorType: "chain" }, "Кольца свисают до бёдер."),
   feet_chain: gearItem("feet_chain", "Кольчужные сапоги", "feet", "🥾", 100, 1, { def: 4, hp: 25, armorType: "chain" }, "Шаг тяжёлый, зато голень закрыта."),
 
-  wrist_iron: gearItem("wrist_iron", "Железные наручи", "wrist", "🧤", 160, 1, { def: 5, hp: 30, armorType: "plate" }, "Железо на предплечье гасит удар."),
-  legs_iron: gearItem("legs_iron", "Железные поножи", "legs", "👖", 190, 1, { def: 6, hp: 40, armorType: "plate" }, "Пластины на бёдрах и голенях."),
+  wrist_iron: gearItem("wrist_iron", "Железные наручи", "wrist", "assets/icons/wrist_iron.webp", 160, 1, { def: 5, hp: 30, armorType: "plate" }, "Железо на предплечье гасит удар."),
+  legs_iron: gearItem("legs_iron", "Железные поножи", "legs", "assets/icons/legs_iron.webp", 190, 1, { def: 6, hp: 40, armorType: "plate" }, "Пластины на бёдрах и голенях."),
 
   // ── Броня тир 2 (Сталь) ──
   dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
