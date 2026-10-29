@@ -1019,7 +1019,7 @@ const ITEMS = {
   plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
 
   wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, price: 55, shopTier: 1, desc: "Третья зона блока." },
-  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
+  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 8, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
   tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, dodge: -2, price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
   parrying_dagger: { id: "parrying_dagger", name: "Кинжал парирования", slot: "offhand", icon: "🗡️", atk: 12, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 3, piercing: 12, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Вторая рука тоже умеет ранить." },
 
@@ -1257,7 +1257,6 @@ const ICON_ALIASES = {
   dented_plate: "iron_breastplate",
   feet_iron: "iron_boots",
   legs_iron: "iron_greaves",
-  kite_shield: "iron_shield",
   shoulder_chain: "shoulders_chain",
   wrist_chain: "wrist_chain",
   legs_chain: "legs_chain",
@@ -1842,7 +1841,7 @@ const RECIPES = [
   { id: "recipe_iron_chainmail", station: "forge", result: "iron_chainmail", desc: "Железная кольчуга", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, rust: 4 } },
   { id: "recipe_wood_club", station: "forge", result: "wood_club", desc: "Дубина", floor: 1, dropChance: 0.05, materials: { wood: 3, rust: 2 } },
   { id: "recipe_wood_shield", station: "forge", result: "wood_shield", desc: "Деревянный щит", floor: 1, dropChance: 0.05, materials: { wood: 5, malachite: 3 } },
-  { id: "recipe_iron_shield", station: "forge", result: "iron_shield", desc: "Железный щит", floor: 1, dropChance: 0.05, materials: { leather: 4, wood: 4 } },
+  { id: "recipe_iron_shield", station: "forge", result: "iron_shield", desc: "Железный щит", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, wood: 2, leather: 2 } },
   { id: "recipe_head_cloth", station: "forge", result: "head_cloth", desc: "Тканевый капюшон", floor: 1, dropChance: 0.05, materials: { cloth: 3, rust: 1 } },
   { id: "recipe_back_cloak", station: "forge", result: "back_cloak", desc: "Рваный плащ", floor: 1, dropChance: 0.05, materials: { cloth: 4, wood: 1 } },
   { id: "recipe_hands_gloves", station: "forge", result: "hands_gloves", desc: "Рабочие перчатки", floor: 1, dropChance: 0.05, materials: { leather: 2, cloth: 2 } },

@@ -1,5 +1,5 @@
 const SAVE_KEY = "safe-zone-tower-v2";
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 const OLD_SLOT_MAP = { weapon: "mainhand", armor: "chest", shield: "offhand" };
 const BASE_STATS = { hp: 140, mana: 40, damage: 5, dodgeCap: 35, critCap: 60 };
 // Версия формата недельных заказов. v2: доска и журнал читают один список
@@ -64,6 +64,37 @@ function migrateSave(saved, fromVersion) {
   if (version < 5) version = 5;
   if (version < 6) version = 6;
   if (version < 7) version = 7;
+  if (version < 8) version = 8;
+  // v9: бронза переименована в «холодное железо». Переносим старые id,
+  // чтобы игроки не потеряли снаряжение, рецепты и слитки.
+  if (version < 9) {
+    const renameColdIron = (id) => {
+      if (typeof id !== "string") return id;
+      if (id.startsWith("recipe_bronze_")) return `recipe_cold_iron_${id.slice(14)}`;
+      if (id.startsWith("bronze_")) return `cold_iron_${id.slice(7)}`;
+      return id;
+    };
+    if (Array.isArray(saved.owned)) {
+      saved.owned = saved.owned.map((entry) => {
+        if (typeof entry === "string") return renameColdIron(entry);
+        if (entry && typeof entry === "object" && typeof entry.id === "string") return { ...entry, id: renameColdIron(entry.id) };
+        return entry;
+      });
+    }
+    if (saved.equipped && typeof saved.equipped === "object" && !Array.isArray(saved.equipped)) {
+      for (const slot of Object.keys(saved.equipped)) saved.equipped[slot] = renameColdIron(saved.equipped[slot]);
+    }
+    if (Array.isArray(saved.knownRecipes)) saved.knownRecipes = saved.knownRecipes.map(renameColdIron);
+    if (saved.resources && typeof saved.resources === "object" && !Array.isArray(saved.resources)) {
+      for (const resId of Object.keys(saved.resources)) {
+        if (!resId.startsWith("bronze_")) continue;
+        const nextId = renameColdIron(resId);
+        saved.resources[nextId] = (Number(saved.resources[nextId]) || 0) + (Number(saved.resources[resId]) || 0);
+        delete saved.resources[resId];
+      }
+    }
+    version = 9;
+  }
   saved.version = version;
   return saved;
 }
