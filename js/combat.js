@@ -218,8 +218,11 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   
   const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
   const effectiveDef = e.def * (1 - pierce);
-  
-  return Math.max(1, Math.round(base - effectiveDef * 0.6));
+
+  let avg = Math.max(1, Math.round(base - effectiveDef * 0.6));
+  // Прогноз тоже учитывает уязвимость моба.
+  if (Array.isArray(e.weakTo) && e.weakTo.includes(actualStyle)) avg = Math.max(1, Math.round(avg * WEAKNESS_DAMAGE_MULT));
+  return avg;
 }
 
 function exchange(state, battle, action, weaponInst = null) {
@@ -370,7 +373,14 @@ function exchange(state, battle, action, weaponInst = null) {
 
       const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
       const effectiveDef = e.def * (1 - pierce);
-      const damage = Math.max(1, Math.round(base - effectiveDef * 0.6));
+      let damage = Math.max(1, Math.round(base - effectiveDef * 0.6));
+
+      // Уязвимость моба: стили из e.weakTo мнóжат итоговый урон на 1.25.
+      let weaknessMark = "";
+      if (Array.isArray(e.weakTo) && e.weakTo.includes(style)) {
+        damage = Math.max(1, Math.round(damage * WEAKNESS_DAMAGE_MULT));
+        weaknessMark = " — уязвим!";
+      }
 
       battle.hp = Math.max(0, battle.hp - damage);
       battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
@@ -384,10 +394,10 @@ function exchange(state, battle, action, weaponInst = null) {
         }
       }
 
-      const suffix = crit ? " — критический" : "";
+      const suffix = crit ? ` — КРИТ В ${ZONE_ACCUSATIVE[action.zone] || zone.name.toUpperCase()}!` : "";
       battleLog(
         battle,
-        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult}).`,
+        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult})${weaknessMark}.`,
         crit ? "crit" : "hit"
       );
       Sfx.play(crit ? "crit" : "hit");
@@ -430,8 +440,10 @@ function exchange(state, battle, action, weaponInst = null) {
       const enemyZone = ZONE_NAME[enemyAction.attack];
 
       if (playerBlocked) {
-        battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
-        battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы блокируете.`, "block");
+        // Кураж за блок: закрыли зону, куда бьёт враг — +1 кураж поверх урона.
+        // Мимо (блок в пустую зону) — куража нет.
+        battle.rage = Math.min(5, battle.rage + 1);
+        battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы блокируете. +1 кураж.`, "block");
         Sfx.play("block");
 
         if (state.archetype === "guardian") {

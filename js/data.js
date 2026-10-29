@@ -8,6 +8,10 @@ const ZONES = [
 
 const ZONE_NAME = Object.fromEntries(ZONES.map((z) => [z.id, z.name]));
 const ZONE_MAP = Object.fromEntries(ZONES.map((z) => [z.id, z]));
+// Винительный падеж зон — для окрика «КРИТ В ГОЛОВУ!» в логе боя.
+const ZONE_ACCUSATIVE = {
+  head: "ГОЛОВУ", chest: "ГРУДЬ", belly: "ЖИВОТ", waist: "ПОЯС", legs: "НОГИ",
+};
 
 const SLOTS = [
   { id: "head", name: "Голова", icon: "⛑️", accepts: ["head"] },
@@ -663,6 +667,40 @@ const RARITY_INFO = {
 };
 
 const ABILITY_POOL = ["poison", "vampire", "rage", "adaptive"];
+
+// ── Уязвимости мобов (глобальное обновление боя) ────────────────────────────
+// weakTo — список стилей удара, к которым моб восприимчив. Такой удар множит
+// финальный урон на WEAKNESS_DAMAGE_MULT. Пустой weakTo — урон как обычно.
+const WEAKNESS_DAMAGE_MULT = 1.25;
+
+// Примеры раскладки: скелеты — дробящий, слизни/духи — рубящий,
+// элементалы (бесы) — колющий. У остальных — свои честные слабости.
+const MOB_WEAKNESS = {
+  goblin_scout: ["piercing"],
+  hobgoblin: ["slashing"],
+  bugbear: ["bludgeoning"],
+  goblin_chief: ["slashing"],
+
+  kobold_miner: ["bludgeoning"],
+  kobold_tinker: ["piercing"],
+  kobold_sorcerer: ["piercing"],
+  kobold_master: ["slashing"],
+
+  skeleton_warrior: ["bludgeoning"],
+  unquiet_ghost: ["slashing"],
+  crypt_ghoul: ["bludgeoning"],
+  dark_knight: ["bludgeoning"],
+
+  orc_raider: ["piercing"],
+  orc_shaman: ["piercing"],
+  ogre_brute: ["slashing"],
+  orc_warlord: ["slashing"],
+
+  fire_imp: ["piercing"],
+  hell_hound: ["slashing"],
+  horned_devil: ["bludgeoning"],
+  demon_lord: ["bludgeoning"],
+};
 
 const MOB_ABILITY_INFO = {
   poison: { name: "Яд", icon: "☠️", desc: "Отравляет героя: урон каждый ход 3 хода подряд. Повторное отравление обновляет таймер, но не стакается." },
@@ -1629,8 +1667,13 @@ function getRecipes(station) { return RECIPES.filter((r) => r.station === statio
 
 // Каждому мобу и боссу проставляем этаж — по нему считаются рецепты и дроп.
 for (const floor of FLOORS) {
-  for (const mob of floor.mobs) mob.floorId = floor.id;
+  for (const mob of floor.mobs) {
+    mob.floorId = floor.id;
+    // Уязвимость стилю: пустой weakTo — урон идёт как обычно.
+    mob.weakTo = MOB_WEAKNESS[mob.id] || [];
+  }
   floor.boss.floorId = floor.id;
+  floor.boss.weakTo = MOB_WEAKNESS[floor.boss.id] || [];
 }
 
 function todaysEvent() { return WEEKLY_EVENTS[calendarInfo().weekday.id] || null; }

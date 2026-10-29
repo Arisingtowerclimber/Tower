@@ -1916,6 +1916,11 @@ function battleHtml(st) {
   const enemyManaInactive = !(battle.enemy.maxMana > 0);
   const enemyRageInactive = enemy.rarity === "common" || !(battle.enemy.maxRage > 0);
 
+  // Уязвимость врага: читаемые названия стилей из STYLE_NAMES.
+  const enemyWeakText = Array.isArray(enemy.weakTo) && enemy.weakTo.length
+    ? enemy.weakTo.map((s) => STYLE_NAMES[s] || s).join(", ")
+    : "";
+
   const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
   let enemyWeaponTitle = "Без оружия";
   if (enemyWeapon) {
@@ -2036,6 +2041,7 @@ function battleHtml(st) {
               <span title="Базовый урон врага">Урон: ${enemy.atk}</span>
               <span title="Базовые доспехи, снижающие урон">Защита: ${enemy.def}</span>
               <span title="${enemyArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[enemy.armorType] || "Нет"}</span>
+              ${enemyWeakText ? `<span title="Стиль удара, к которому враг уязвим (урон ×1.25)" style="border-bottom: 1px dotted var(--dim); cursor: help; color: var(--gold2);">Уязвим к: ${enemyWeakText}</span>` : ""}
               <span title="${enemyWeaponTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Оружие: ${enemyWeapon ? enemyWeapon.name : "Кулаки"}</span>
             </div>
           </div>
