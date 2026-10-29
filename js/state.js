@@ -38,7 +38,7 @@ function defaultState() {
     },
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
     activeEvent: null, tempDebuffs: [], eventCooldown: 0,
-    killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
+    killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, list: [] },
     huntContracts: { weekStartDay: 0, list: [] }, contractsDone: 0,
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
@@ -280,6 +280,13 @@ function loadState() {
     state.knownRecipes = Array.isArray(state.knownRecipes) ? [...new Set(state.knownRecipes.filter((id) => RECIPE_MAP[id]))] : [];
     state.killCount = state.killCount || {};
     state.bestiary = state.bestiary && typeof state.bestiary === "object" ? state.bestiary : {};
+    // Счётчики убийств для бестиария и достижений.
+    state.bestiaryKills = {};
+    const savedKills = saved.bestiaryKills && typeof saved.bestiaryKills === "object" ? saved.bestiaryKills : {};
+    for (const [mobId, count] of Object.entries(savedKills)) {
+      const n = Math.max(0, Math.floor(Number(count) || 0));
+      if (n > 0) state.bestiaryKills[String(mobId)] = n;
+    }
 
     // Контракты Гильдии Охотников: чистка мусора из сейва.
     state.contractsDone = Number.isFinite(state.contractsDone) ? Math.max(0, Math.floor(state.contractsDone)) : 0;

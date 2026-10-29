@@ -582,6 +582,9 @@ function exchange(state, battle, action, weaponInst = null) {
   if (battle.hp <= 0) {
     battle.over = true;
     state.kills = (state.kills || 0) + 1;
+    // Бестиарий: сколько раз убит каждый конкретный моб (и боссы тоже).
+    state.bestiaryKills = state.bestiaryKills || {};
+    state.bestiaryKills[e.id] = (state.bestiaryKills[e.id] || 0) + 1;
     checkQuestProgress(e.id);
 
     const goldMult = goldMultToday();

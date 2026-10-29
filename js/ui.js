@@ -1,7 +1,7 @@
 const view = {
   screen: "hub", battle: null, attackZone: "chest", attackStyle: "slashing", blocks: ["head", "chest"],
   summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry", talentsTab: "war",
-  questsOpen: false, bestiaryOpen: false,
+  questsOpen: false, bestiaryOpen: false, bestiaryFilter: "all",
   timmyTip: null,
   currentFloor: null,
   levelUp: null,
@@ -1091,10 +1091,29 @@ function settingsModalHtml() {
 }
 
 function bestiaryModalHtml() {
+  const filter = view.bestiaryFilter || "all";
+  const killsOf = (id) => (state.bestiaryKills || {})[id] || 0;
+  const REVEAL_KILLS = 5; // после 5 убийств бестиарий раскрывает слабость и дроп
+
+  // Имя дропа: сначала ресурс, затем предмет.
+  const dropName = (drop) => {
+    const res = ALL_RESOURCES.find((r) => r.id === drop.id);
+    if (res) return `${iconHtml(res.icon, 14)} ${res.name}`;
+    const item = ITEMS[drop.id];
+    if (item) return `${iconHtml(item.icon, 14)} ${item.name}`;
+    return drop.id;
+  };
+
   const cards = FLOORS.flatMap((floor) => {
     const bossDefeated = Boolean(state.cleared[floor.id]);
     const entries = [...floor.mobs.map((def) => ({ def, floor, isBoss: false })), { def: floor.boss, floor, isBoss: true }];
-    return entries.map(({ def, floor, isBoss }) => {
+    return entries.filter(({ def, isBoss }) => {
+      const known = isBoss ? bossDefeated : Boolean(state.bestiary[def.id]);
+      if (filter === "boss") return isBoss;
+      if (filter === "unknown") return !known && !isBoss;
+      if (filter === "defeated") return known && !isBoss;
+      return true;
+    }).map(({ def, floor, isBoss }) => {
       const known = isBoss ? bossDefeated : Boolean(state.bestiary[def.id]);
       if (!known) {
         return `
@@ -1105,6 +1124,13 @@ function bestiaryModalHtml() {
             <span class="hint">Этаж ${floor.id}</span>
           </article>`;
       }
+      const kills = killsOf(def.id);
+      const revealLore = kills >= REVEAL_KILLS;
+      const weakText = Array.isArray(def.weakTo) && def.weakTo.length
+        ? def.weakTo.map((s) => STYLE_NAMES[s] || s).join(", ")
+        : "—";
+      const drops = Array.isArray(def.drops) ? def.drops : [];
+      const dropsText = drops.map(dropName).join(", ") || "—";
       return `
         <article class="bestiary-card${isBoss ? " boss" : ""}">
           <span class="bestiary-icon">${iconHtml(def.icon, 44)}</span>
@@ -1115,10 +1141,22 @@ function bestiaryModalHtml() {
             <span class="mob-stat-chip atk">⚔ ${def.atk}</span>
             <span class="mob-stat-chip def">🛡 ${def.def}</span>
           </div>
+          <div class="bestiary-lore hint" style="margin-top: 6px; line-height: 1.5;${revealLore ? "" : " opacity: 0.7;"}">
+            <b style="color: var(--gold);">Убито: ${kills} раз</b>${revealLore ? "" : ` · раскроет тайны на ${REVEAL_KILLS}-й победе`}
+          </div>
+          ${revealLore ? `
+            <div class="bestiary-lore hint" style="margin-top: 4px; line-height: 1.5;">
+              <span style="color: var(--gold2);">Слабость:</span> ${weakText}<br>
+              <span style="color: var(--gold2);">Дроп:</span> ${dropsText}
+            </div>` : ""}
           <span class="hint">Этаж ${floor.id}</span>
         </article>`;
     });
   }).join("");
+
+  const filterBtn = (id, label) => `
+    <button class="shop-tab${filter === id ? " active" : ""}" data-act="bestiary-filter" data-filter="${id}" type="button">${label}</button>
+  `;
 
   const total = FLOORS.reduce((n, f) => n + f.mobs.length + 1, 0);
   const knownCount = FLOORS.reduce((n, f) => n + f.mobs.filter((m) => state.bestiary[m.id]).length + (state.cleared[f.id] ? 1 : 0), 0);
@@ -1130,7 +1168,13 @@ function bestiaryModalHtml() {
         <h3>📖 Бестиарий (${knownCount}/${total})</h3>
         <button class="doll-menu-close" data-act="bestiary-close" type="button">✕</button>
       </div>
-      <p class="hint" style="margin: 0 0 12px;">Обычные существа открываются при первой встрече в бою; имя босса — после победы над ним.</p>
+      <p class="hint" style="margin: 0 0 12px;">Обычные существа открываются при первой встрече в бою; имя босса — после победы над ним. Пять побед над одним врагом раскрывают его слабость и дроп.</p>
+      <div class="shop-tabs" style="margin-bottom: 12px;">
+        ${filterBtn("all", "Все")}
+        ${filterBtn("defeated", "Побежденные")}
+        ${filterBtn("unknown", "Неизвестные")}
+        ${filterBtn("boss", "Боссы")}
+      </div>
       <div class="bestiary-grid">${cards}</div>
     </div>
   `;
@@ -3100,6 +3144,9 @@ function onClick(event) {
     case "test-sound": Sfx.play("open"); break;
     case "bestiary-open": view.bestiaryOpen = true; render(); break;
     case "bestiary-close": view.bestiaryOpen = false; render(); break;
+    case "bestiary-filter":
+      if (["all", "defeated", "unknown", "boss"].includes(el.dataset.filter)) { view.bestiaryFilter = el.dataset.filter; render(); }
+      break;
     case "levelup-close": view.levelUp = null; render(); break;
     case "goto":
       if (el.dataset.screen === "tower") view.currentFloor = null;
