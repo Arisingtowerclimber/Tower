@@ -606,9 +606,11 @@ function sellPanelHtml(shopName) {
     return `<section class="shop-group"><h2 class="group-title">🧾 Скупка</h2><p class="empty">Мне это не интересно.</p></section>`;
   }
 
+  const potionIds = [];
   const potionRows = acceptsPotions
     ? Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0).map((item) => {
     const id = item.id; const count = state.potions[id];
+    potionIds.push(id);
     const price = sellPrice(item) * count;
     return `<label class="sell-row${sel.has(id) ? " picked" : ""}" data-act="sell-toggle" data-id="${id}" data-shop="${shopName}">
       <input type="checkbox" ${sel.has(id) ? "checked" : ""}>
@@ -618,9 +620,11 @@ function sellPanelHtml(shopName) {
     </label>`;
   }).join("") : "";
 
+  const gearIds = [];
   const gearRows = acceptsGear
     ? state.owned.filter((inst) => !isEquipped(inst.uid) && !(ITEMS[inst.id]?.type === "potion") && gearOk(ITEMS[inst.id]?.slot)).map((inst) => {
     const item = ITEMS[inst.id]; if (!item) return "";
+    gearIds.push(inst.uid);
     const price = sellPrice(item, inst);
     return `<label class="sell-row${sel.has(inst.uid) ? " picked" : ""}" data-act="sell-toggle" data-id="${inst.uid}" data-shop="${shopName}">
       <input type="checkbox" ${sel.has(inst.uid) ? "checked" : ""}>
@@ -640,16 +644,23 @@ function sellPanelHtml(shopName) {
 
   const empty = !potionRows && !gearRows;
   if (empty) return `<section class="shop-group"><h2 class="group-title">🧾 Скупка</h2><p class="empty">Мне это не интересно.</p></section>`;
+
+  const sellableIds = [...gearIds, ...potionIds];
+  const allSelected = sellableIds.length > 0 && sellableIds.every((id) => sel.has(id));
+
   return `
     <section class="shop-group">
-      <h2 class="group-title">💰 Скупка <span class="hint">— отмечайте всё лишнее, продажа одним кликом</span></h2>
+      <div class="sell-head">
+        <h2 class="group-title">💰 Скупка <span class="hint">— отмечайте всё лишнее, продажа одним кликом</span></h2>
+        <button class="btn small ghost" data-act="sell-select-all" data-shop="${shopName}" type="button">${allSelected ? "Снять выбор" : "Выбрать всё"}</button>
+      </div>
       <div class="sell-grid">
         ${gearRows ? `<h3 class="group-title">Снаряжение</h3>${gearRows}` : ""}
         ${potionRows ? `<h3 class="group-title">Зелья</h3>${potionRows}` : ""}
       </div>
       <div class="repair-all">
         <span class="price">Итого: ${total} 💰</span>
-        <button class="btn primary" data-act="sell-submit" data-shop="${shopName}" ${sel.size ? "" : "disabled"} type="button">Продать выбранное (${total} 💰)</button>
+        <button class="btn primary" data-act="sell-submit" data-shop="${shopName}" ${sel.size ? "" : "disabled"} type="button">Продать всё выбранное (${total} 💰)</button>
       </div>
     </section>
   `;
@@ -2082,6 +2093,14 @@ function battleHtml(st) {
     ? enemy.weakTo.map((s) => STYLE_NAMES[s] || s).join(", ")
     : "";
 
+  // Бейджи врага выносим отдельным рядом под именем, чтобы не раздувать строку с названием.
+  const enemyBadges = [
+    enemy.rarity === "rare" ? `<span class="chip" style="border-color: #d9a94b; color: #d9a94b;" title="Редкий враг">Редкий</span>` : "",
+    enemy.rarity === "elite" ? `<span class="chip" style="border-color: #c2483c; color: #c2483c;" title="Элитный враг">Элитный</span>` : "",
+    enemy.modifier ? `<span class="chip" style="cursor: help;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : "",
+    enemy.ability ? `<span class="chip" style="cursor: help;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : "",
+  ].filter(Boolean).join("");
+
   const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
   let enemyWeaponTitle = "Без оружия";
   if (enemyWeapon) {
@@ -2186,24 +2205,19 @@ function battleHtml(st) {
           <div class="fighter-avatar" style="width: 80px; height: 80px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: #1c1511;">
             <img src="${resolveIcon(enemy.icon)}" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
-          <div class="fighter-body" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <div class="fighter-name" style="font-size: 16px; margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-              ${enemy.name}
-              ${enemy.rarity === "rare" ? `<span class="chip" style="border-color: #d9a94b; color: #d9a94b; font-size: 10px; padding: 1px 6px;" title="Редкий враг">Редкий</span>` : ""}
-              ${enemy.rarity === "elite" ? `<span class="chip" style="border-color: #c2483c; color: #c2483c; font-size: 10px; padding: 1px 6px;" title="Элитный враг">Элитный</span>` : ""}
-              ${enemy.modifier ? `<span class="chip" style="font-size: 10px; padding: 1px 6px; cursor: help;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : ""}
-              ${enemy.ability ? `<span class="chip" style="font-size: 10px; padding: 1px 6px; cursor: help;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : ""}
-            </div>
+          <div class="fighter-body" style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
+            <div class="fighter-name" style="font-size: 16px; margin-bottom: 4px;">${enemy.name}</div>
+            ${enemyBadges ? `<div class="enemy-badges">${enemyBadges}</div>` : ""}
             ${bar("hp enemy", battle.hp, battle.maxHp, "enemy-hp")}
             ${bar("mana" + (enemyManaInactive ? " inactive" : ""), battle.enemy.mana || 0, battle.enemy.maxMana || 1)}
             ${bar("rage" + (enemyRageInactive ? " inactive" : ""), battle.enemy.rage || 0, battle.enemy.maxRage || 5)}
-            <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 4px 12px; flex-wrap: wrap; align-items: center;">
               <span data-role="enemy-hp-text">${battle.hp}/${battle.maxHp} HP</span>
               <span title="Базовый урон врага">Урон: ${enemy.atk}</span>
               <span title="Базовые доспехи, снижающие урон">Защита: ${enemy.def}</span>
               <span title="${enemyArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[enemy.armorType] || "Нет"}</span>
-              ${enemyWeakText ? `<span title="Стиль удара, к которому враг уязвим (урон ×1.25)" style="border-bottom: 1px dotted var(--dim); cursor: help; color: var(--gold2);">Уязвим к: ${enemyWeakText}</span>` : ""}
               <span title="${enemyWeaponTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Оружие: ${enemyWeapon ? enemyWeapon.name : "Кулаки"}</span>
+              ${enemyWeakText ? `<span class="chip weak-chip" title="Стиль удара, к которому враг уязвим (урон ×1.25)">Уязвим к: ${enemyWeakText}</span>` : ""}
             </div>
           </div>
         </article>
@@ -3041,6 +3055,16 @@ function onClick(event) {
       const id = el.dataset.id; if (!id) break;
       const idx = view.sellSelection.indexOf(id);
       if (idx >= 0) view.sellSelection.splice(idx, 1); else view.sellSelection.push(id);
+      render();
+      break;
+    }
+    case "sell-select-all": {
+      const ids = Array.from(document.querySelectorAll('[data-act="sell-toggle"]'))
+        .map((row) => row.dataset.id)
+        .filter(Boolean);
+      const picked = new Set(view.sellSelection || []);
+      const allPicked = ids.length > 0 && ids.every((id) => picked.has(id));
+      view.sellSelection = allPicked ? [] : ids;
       render();
       break;
     }
