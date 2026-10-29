@@ -1605,6 +1605,8 @@ const FLOOR_RESOURCES = {
     { id: "malachite", name: "Малахит", icon: "malachite", minAmount: 1, maxAmount: 3, sellPrice: 7, npc: "elize" },
     { id: "wood", name: "Кривая доска", icon: "wood", minAmount: 1, maxAmount: 3, sellPrice: 4, npc: "ron" },
     { id: "cloth", name: "Обрывок ткани", icon: "cloth", minAmount: 1, maxAmount: 3, sellPrice: 5, npc: "elain" },
+    { id: "leather", name: "Кусок кожи", icon: "leather", minAmount: 1, maxAmount: 2, sellPrice: 6, npc: "ron" },
+    { id: "iron_ore", name: "Железная руда", icon: "iron_ore", minAmount: 1, maxAmount: 2, sellPrice: 9, npc: "ron" },
   ],
 // === FLOOR_RESOURCES[2..5] ===
   2: [
