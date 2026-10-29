@@ -578,6 +578,7 @@ const STYLE_ORDER = ["slashing", "piercing", "bludgeoning"];
 const STYLE_NAMES = { slashing: "Рубящий", piercing: "Колющий", bludgeoning: "Дробящий" };
 const STYLE_ICONS = { slashing: "⚔", piercing: "🗡", bludgeoning: "🔨" };
 const ARMOR_TYPE_NAMES = { cloth: "Ткань", leather: "Кожа", chain: "Кольчуга", plate: "Латы" };
+const WEAPON_TYPE_NAMES = { sword: "Мечи/Рапиры", axe: "Топоры", mace: "Булавы/Молоты", spear: "Копья/Алебарды" };
 // Насколько каждый стиль пробивает тип брони врага.
 const ARMOR_STYLE_MULT = {
   piercing:    { cloth: 1.3, leather: 1.1, chain: 1.0, plate: 0.6 },
