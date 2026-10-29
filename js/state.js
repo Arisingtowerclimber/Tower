@@ -43,6 +43,10 @@ function defaultState() {
     knownRecipes: [],
     talentPoints: 0, talents: {},
     npcDialogueIndex: {},
+    reputation: Object.fromEntries(FACTIONS.map((f) => [f.id, 0])),
+    factionNotified: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
+    factionPerksUnlocked: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
+    dialogTopicsSeen: {},
   };
 }
 
@@ -56,6 +60,31 @@ function migrateSave(saved, fromVersion) {
   if (version < 7) version = 7;
   saved.version = version;
   return saved;
+}
+
+// Приводит карту «фракция → значение» к значимому виду: числа — это репутация,
+// булевы — флаги (уведомления/перки). Всё постороннее отбрасывается.
+function normalizeFactionMap(raw, fill) {
+  const out = {};
+  for (const f of FACTIONS) {
+    const v = raw && typeof raw === "object" && !Array.isArray(raw) ? raw[f.id] : undefined;
+    if (typeof fill === "boolean") out[f.id] = typeof v === "boolean" ? v : false;
+    else if (typeof fill === "string") out[f.id] = typeof v === "string" ? v : fill;
+    else out[f.id] = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : (Number.isFinite(fill) ? fill : 0);
+  }
+  return out;
+}
+
+// Приводит reputation/флаги фракций из сейва к дефолтам без миграции версии:
+// свежие поля просто дополняются из defaultState, а мусор отбрасывается.
+function normalizeFactionFields() {
+  state.reputation = normalizeFactionMap(state.reputation, 0);
+  state.factionNotified = normalizeFactionMap(state.factionNotified, false);
+  state.factionPerksUnlocked = normalizeFactionMap(state.factionPerksUnlocked, false);
+  // «Уважаемый» (тир 2) открывает перки фракции: улучшение вещей и т.п.
+  for (const f of FACTIONS) {
+    state.factionPerksUnlocked[f.id] = state.reputation[f.id] >= FACTION_TIERS[2].min;
+  }
 }
 
 function loadState() {
@@ -110,6 +139,9 @@ function loadState() {
     }
 
     state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
+
+    normalizeFactionFields();
+    state.dialogTopicsSeen = state.dialogTopicsSeen && typeof state.dialogTopicsSeen === "object" && !Array.isArray(state.dialogTopicsSeen) ? state.dialogTopicsSeen : {};
 
     if (!Array.isArray(state.owned)) state.owned = [];
     if (state.owned.some((x) => typeof x === "string")) {
@@ -613,9 +645,35 @@ function claimNpcQuest(id) {
   state.gold += q.gold;
   const up = gainXp(q.xp);
   if (q.potions > 0) state.potions["hp_small"] = (state.potions["hp_small"] || 0) + q.potions;
+
+  // Репутация фракции: +1 за сданный заказ (стелла/иван не состоят во фракциях).
+  const faction = factionForNpc(q.npc);
+  let repNote = "";
+  let factionLevelUp = null;
+  if (faction) {
+    const repBefore = state.reputation[faction.id] || 0;
+    const tierBefore = factionTier(repBefore).tier;
+    const repAfter = repBefore + 1;
+    state.reputation[faction.id] = repAfter;
+    if (state.reputation[faction.id] >= FACTION_TIERS[2].min) state.factionPerksUnlocked[faction.id] = true;
+    const tierAfter = factionTier(repAfter).tier;
+    repNote = ` Репутация ${faction.name}: ${repAfter}.`;
+    if (tierAfter !== tierBefore) {
+      // Флаг «новость ещё не показана» — UI тост гасит его.
+      state.factionNotified[faction.id] = true;
+      factionLevelUp = {
+        faction: faction.id,
+        name: faction.name,
+        icon: faction.icon,
+        tier: tierAfter.name,
+        text: `${faction.icon} ${faction.name}: новый тир «${tierAfter.name}» — скидка ${Math.round(tierAfter.discount * 100)}%!`,
+      };
+    }
+  }
+
   saveState();
   const levelText = up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : "";
-  return { ok: true, text: `Задание сдано: +${q.gold} 💰, +${q.xp} ✦${q.potions > 0 ? `, +${q.potions} 🧪` : ""}.${levelText}` };
+  return { ok: true, text: `Задание сдано: +${q.gold} 💰, +${q.xp} ✦${q.potions > 0 ? `, +${q.potions} 🧪` : ""}.${levelText}${repNote}`, factionLevelUp };
 }
 
 function weekQuestResourceGain(resId, amount) {
@@ -1053,13 +1111,31 @@ function targetSlotFor(item, instance = null) {
   return weakest;
 }
 
-function buyItem(id, shop = "forge") {
-  const item = ITEMS[id]; if (!item) return { ok: false, text: "Товар не найден." };
+// ── Цены лавок (Этап 1) ────────────────────────────────────────────────────
+// Канонический priceFor.id — priceFor(item, shop) — считается только здесь.
+// Дневная скидка рынка и репутационная скидка фракции учитываются по
+// максимальной из двух (не складываются).
+function factionDiscount(factionId) {
+  if (!factionId) return 0;
+  const rep = state && state.reputation ? (state.reputation[factionId] || 0) : 0;
+  return factionTier(rep).tier.discount;
+}
+
+function priceFor(item, shop = "forge") {
   let discount = 0;
   if (shop === "alchemy") discount = alchemyDiscountToday();
   else if (shop === "forge") discount = forgeDiscountToday();
-
+  const factionId = SHOP_FACTION[shop];
+  if (factionId) discount = Math.max(discount, factionDiscount(factionId));
   const price = Math.max(1, Math.round(item.price * (1 - discount)));
+  return { price, old: item.price, hasDiscount: discount > 0, discount };
+}
+
+function buyItem(id, shop = "forge") {
+  const item = ITEMS[id]; if (!item) return { ok: false, text: "Товар не найден." };
+  const p = priceFor(item, shop);
+  const discount = p.discount;
+  const price = p.price;
   if (state.gold < price) return { ok: false, text: "Не хватает золота." };
 
   if (item.slot === "potion") {

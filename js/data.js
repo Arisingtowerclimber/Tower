@@ -211,6 +211,40 @@ const DIALOGS = {
 
 
 
+// ── Фракции и репутация (Этап 1) ───────────────────────────────────────────
+// Каждый NPC с лавкой представляет свою фракцию. Ежедневные заказы
+// (weeklyQuests) повышают репутацию фракции, что даёт скидку в её лавке.
+const FACTIONS = [
+  { id: "smiths", name: "Гильдия кузнецов", npc: "ron", icon: "⚒️" },
+  { id: "alchemists", name: "Цех алхимиков", npc: "elain", icon: "⚗️" },
+  { id: "jewelers", name: "Ювелирный дом", npc: "elize", icon: "💍" },
+];
+const FACTION_MAP = Object.fromEntries(FACTIONS.map((f) => [f.id, f]));
+const FACTION_TIERS = [
+  { min: 0,  name: "Незнакомец", discount: 0 },
+  { min: 5,  name: "Знакомый",   discount: 0.05 },
+  { min: 10, name: "Уважаемый",  discount: 0.10 },
+  { min: 20, name: "Почтенный",  discount: 0.15 },
+  { min: 35, name: "Легенда",    discount: 0.20 },
+];
+const FACTION_BY_NPC = Object.fromEntries(FACTIONS.map((f) => [f.npc, f.id]));
+const SHOP_FACTION = { forge: "smiths", alchemy: "alchemists", jewelry: "jewelers" };
+
+// Текущий тир репутации и следующий тир (для прогресса).
+function factionTier(rep) {
+  rep = Number.isFinite(rep) ? Math.max(0, rep) : 0;
+  let index = 0;
+  for (let i = 0; i < FACTION_TIERS.length; i++) {
+    if (rep >= FACTION_TIERS[i].min) index = i;
+  }
+  return { tier: FACTION_TIERS[index], tierIndex: index, next: FACTION_TIERS[index + 1] || null };
+}
+
+function factionForNpc(npcId) {
+  const id = FACTION_BY_NPC[npcId];
+  return id ? FACTION_MAP[id] : null;
+}
+
 const DEFENSE_CAP = 0.6;
 
 const DURABILITY_MAX = 100;

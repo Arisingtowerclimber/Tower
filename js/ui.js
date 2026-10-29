@@ -129,11 +129,8 @@ function equippedUidOf(id) {
   return null;
 }
 
-function priceFor(item, shop = "forge") {
-  const discount = shop === "alchemy" ? alchemyDiscountToday() : shop === "forge" ? forgeDiscountToday() : 0;
-  const price = Math.max(1, Math.round(item.price * (1 - discount)));
-  return { price, old: item.price, hasDiscount: discount > 0 };
-}
+// Канонический priceFor(item, shop) живёт в state.js (этап 1): учитывает
+// дневную скидку рынка И репутацию фракции лавки (по максимуму).
 
 function priceHtml(item, shop = "forge") { const p = priceFor(item, shop); if (!p.hasDiscount) return `${p.price} 💰`; return `<s class="price-old">${p.old} 💰</s> <b class="price-new">${p.price} 💰</b>`; }
 function battleActive() { return view.screen === "battle" && view.battle && !view.battle.over; }
@@ -372,6 +369,39 @@ function tryStartGame() {
   toast(`Добро пожаловать, ${state.name}.`, "ok");
 }
 
+// ── Репутация фракций (Этап 1) ─────────────────────────────────────────────
+// Пилюля фракции в топбаре — только на экранах лавок (кузница/алхимик/ювелир).
+function shopFactionPill() {
+  const factionId = SHOP_FACTION[view.screen];
+  if (!factionId) return "";
+  const faction = FACTION_MAP[factionId];
+  if (!faction) return "";
+  const rep = state.reputation ? (state.reputation[factionId] || 0) : 0;
+  const fi = factionTier(rep);
+  const tip = `${faction.name}: репутация ${rep}, тир «${fi.tier.name}»${fi.tier.discount > 0 ? `, скидка ${Math.round(fi.tier.discount * 100)}%` : ""}`;
+  return `<div class="pill faction" data-tip="${esc(tip)}">${faction.icon} <b>${faction.name} · ${rep}</b></div>`;
+}
+
+// Блок «Репутация» в меню Героя: тиры, скидки и прогресс до следующего тира.
+function factionReputationHtml() {
+  const rep = state.reputation || {};
+  return FACTIONS.map((f) => {
+    const value = rep[f.id] || 0;
+    const fi = factionTier(value);
+    const progress = fi.next
+      ? Math.round(((value - fi.tier.min) / (fi.next.min - fi.tier.min)) * 100)
+      : 100;
+    const hint = fi.next
+      ? `до «${fi.next.name}» ещё ${fi.next.min - value} реп.`
+      : "максимальный тир";
+    return `
+      <div class="faction-row">
+        <div class="faction-top"><b>${f.icon} ${f.name}</b><span class="hint">${fi.tier.name} · скидка ${Math.round(fi.tier.discount * 100)}% · ${hint}</span></div>
+        ${bar("rep", value - fi.tier.min, fi.next ? fi.next.min - fi.tier.min : Math.max(1, value))}
+      </div>`;
+  }).join("");
+}
+
 function topbarHtml(st) {
   const hpPct = Math.round((state.hp / st.maxHp) * 100); const manaPct = Math.round((state.mana / st.maxMana) * 100);
   const phase = phaseInfo(); const event = todaysEvent(); const lockNav = battleActive() ? " locked" : "";
@@ -402,6 +432,7 @@ function topbarHtml(st) {
       <div class="pill gold"><span>💰</span><b>${state.gold}</b></div><div class="pill">УР <b>${state.level}</b></div>
       ${state.points > 0 ? `<button class="pill gold points" data-act="goto" data-screen="hero" type="button">+<b>${state.points}</b></button>` : ""}
       <div class="pill">ЭТАЖ <b>${state.maxFloor}/5</b></div>
+      ${shopFactionPill()}
       <div class="pill time event-pill${phase.towerOpen ? "" : " night"}" data-tip="${event ? `${event.icon} ${event.name}: ${esc(event.desc)}` : "Сегодня обычный день — событий нет"}">${phase.icon} <b>${phase.name}</b> · ${calendarLabel()}</div>
       ${weeklyPill}
     </div>
@@ -1328,6 +1359,8 @@ function heroHtml(st) {
         </div>
         ${archetype ? `<div class="archetype-note">${iconHtml(archetype.icon, 20)} <span><b>${archetype.name}</b>: ${archetype.desc}</span></div>` : ""}
         ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${companionDaysLeft()} дн.</span></div>` : ""}
+        <div class="attr-head"><h2 class="group-title">Репутация</h2></div>
+        <div class="faction-list">${factionReputationHtml()}</div>
         <div class="attr-head"><h2 class="group-title">Атрибуты</h2></div>
         <div class="attr-list hero">${ATTR_INFO.map((attr) => { const gearBonus = st.gearAttrs?.[attr.id] || 0; return `<div class="attr-row"><div class="attr-info"><b>${attr.name}</b><span class="hint">${attr.effect}</span></div><div class="attr-controls"><span class="attr-value">${st.attrs[attr.id]}${gearBonus ? `<i class="attr-gear" title="От снаряжения">+${gearBonus}</i>` : ""}</span><button class="attr-btn" data-act="add-attr" data-attr="${attr.id}" ${state.points <= 0 ? "disabled" : ""} type="button">+</button></div></div>`; }).join("")}</div>
       </section>
@@ -2435,6 +2468,13 @@ function onClick(event) {
         if (q) res = { ...res, text: `${res.text} ${getRandomPhrase(q.npc, "quest_complete")}` };
       }
       toast(res.text, res.ok ? "ok" : "warn");
+      if (res.ok && res.factionLevelUp) {
+        toast(res.factionLevelUp.text, "ok");
+        if (state.factionNotified && state.factionNotified[res.factionLevelUp.faction] !== undefined) {
+          state.factionNotified[res.factionLevelUp.faction] = false;
+          saveState();
+        }
+      }
       if (res.ok && res.text.includes("Новый уровень")) {
         view.levelUp = state.level;
       }

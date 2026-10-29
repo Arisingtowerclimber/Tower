@@ -327,6 +327,15 @@ p { margin: 0; }
 .bar.xp { height: 8px; }
 .bar.xp span { background: linear-gradient(90deg, #86621f, var(--gold2)); }
 
+/* Репутация фракций (Этап 1) */
+.faction-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.faction-row { display: flex; flex-direction: column; gap: 5px; }
+.faction-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; }
+.faction-top .hint { color: var(--dim); font-size: 12px; text-align: right; }
+.bar.rep { height: 6px; }
+.bar.rep span { background: linear-gradient(90deg, #3a5f7d, #5fa2cc); }
+.pill.faction { cursor: default; }
+
 .pill {
   display: inline-flex;
   align-items: center;
