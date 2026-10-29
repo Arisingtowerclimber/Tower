@@ -349,6 +349,8 @@ function createSummaryHtml(c, portrait) {
       <div class="create-grid">
         <section class="panel">
           <div class="field"><label for="hero-name">Имя героя</label><input class="name-input" id="hero-name" type="text" maxlength="20" data-role="create-name" autocomplete="off" spellcheck="false" placeholder="Странник" value="${esc(c.name)}"></div>
+
+          <div class="field"><label>Портрет</label><div class="portrait-picker">${PORTRAITS.map((p) => `<button class="portrait-option${p.id === c.portrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" style="aspect-ratio: 1 / 1;" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
           
           <div class="preview-portrait" style="margin-bottom: 20px;">
             <img src="${portrait.src}" alt="${esc(c.name || "Странник")}">
@@ -3243,6 +3245,13 @@ function onClick(event) {
       const c = view.create;
       if (!c) break;
       c.step = Math.max(0, c.step - 1);
+      render();
+      break;
+    }
+    case "bio-portrait": {
+      const c = view.create;
+      if (!c) break;
+      c.portrait = el.dataset.id;
       render();
       break;
     }

@@ -58,6 +58,8 @@ const PORTRAITS = [
   { id: "m1", name: "Мужчина 1", gender: "m", src: "assets/portraits/m1.webp" },
   { id: "m2", name: "Мужчина 2", gender: "m", src: "assets/portraits/m2.webp" },
   { id: "f1", name: "Женщина 1", gender: "f", src: "assets/portraits/f1.webp" },
+  { id: "f2", name: "Женщина 2", gender: "f", src: "assets/portraits/f2.webp" },
+  { id: "m3", name: "Мужчина 3", gender: "m", src: "assets/portraits/m3.webp" },
 ];
 
 const PORTRAIT_MAP = Object.fromEntries(PORTRAITS.map((p) => [p.id, p]));
