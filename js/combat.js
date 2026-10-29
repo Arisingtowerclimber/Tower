@@ -479,7 +479,7 @@ function exchange(state, battle, action, weaponInst = null) {
       const suffix = crit ? ` — КРИТ В ${ZONE_ACCUSATIVE[action.zone] || zone.name.toUpperCase()}!` : "";
       battleLog(
         battle,
-        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult})${weaknessMark}.`,
+        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)})${weaknessMark}.`,
         crit ? "crit" : "hit"
       );
       Sfx.play(crit ? "crit" : "hit");
@@ -557,7 +557,11 @@ function exchange(state, battle, action, weaponInst = null) {
         const zoneSlot = ZONE_TO_SLOT[enemyAction.attack] || "chest";
         const zoneArmorType = equippedArmorTypeFor(state, zoneSlot);
         const enemyWpn = e.weaponId ? ITEMS[e.weaponId] : null;
-        const enemyStyle = enemyWpn ? weaponBestStyle(enemyWpn) : "slashing";
+        // Когти — это естественное оружие, а не сталь: урон считается как безоружный.
+        const isNaturalAttack = !enemyWpn || enemyWpn.weaponType === "claw";
+        const enemyStyle = isNaturalAttack
+          ? (e.unarmedStyle || "bludgeoning")
+          : weaponBestStyle(enemyWpn);
         const armorMult = ARMOR_STYLE_MULT[enemyStyle][zoneArmorType] || 1;
 
         let base = e.atk * rnd(0.85, 1.15) * armorMult;
@@ -566,7 +570,7 @@ function exchange(state, battle, action, weaponInst = null) {
         if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
         const damage = Math.max(2, Math.round(base));
         state.hp = Math.max(0, state.hp - damage);
-        battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult}): ${damage} урона.`, "enemy");
+        battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
 
         // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
         if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {

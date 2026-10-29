@@ -1388,7 +1388,7 @@ const FLOORS = [
           { id: "cursed_cloth", chance: 0.25, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 630, atk: 72, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], prefers: ["waist", "chest"],
+      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 630, atk: 72, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], unarmedStyle: "piercing", prefers: ["waist", "chest"],
         desc: "Сгорбленный пожиратель падали с длинными когтями. Рвётся к животу и поясу, чтобы добраться до плоти.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 2 },
@@ -1453,7 +1453,7 @@ const FLOORS = [
           { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], prefers: ["head", "chest"],
+      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], unarmedStyle: "piercing", prefers: ["head", "chest"],
         desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
         drops: [
           { id: "hellstone", chance: 0.35, min: 1, max: 2 },
