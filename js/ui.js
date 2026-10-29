@@ -1268,20 +1268,18 @@ function alchemyHtml() {
     content = upgradePanelHtml();
   } else if (tab === "buy") {
     const filter = view.alchemyFilter || "all";
-    const potions = Object.values(ITEMS).filter((i) => i.slot === "potion");
-    const items = potions.filter((item) => {
-      if (filter === "hp") return item.effect === "hp";
+    const allPotions = Object.values(ITEMS).filter((i) => i.slot === "potion");
+    const items = allPotions.filter((item) => {
+      if (filter === "heal") return item.effect === "hp";
       if (filter === "mana") return item.effect === "mana";
       if (filter === "combat") return item.type === "combat";
       return true;
     });
-    const filterBtn = (id, label) =>
-      `<button class="shop-filter-btn${filter === id ? " active" : ""}" data-act="alchemy-filter" data-filter="${id}" type="button">${label}</button>`;
     const filters = `<div class="shop-filters">
-      ${filterBtn("all", "Все")}
-      ${filterBtn("hp", "Лечение")}
-      ${filterBtn("mana", "Мана")}
-      ${filterBtn("combat", "Боевые")}
+      <button class="shop-tab ${view.alchemyFilter === "all" ? "active" : ""}" data-act="alchemy-filter" data-filter="all" type="button">Все</button>
+      <button class="shop-tab ${view.alchemyFilter === "heal" ? "active" : ""}" data-act="alchemy-filter" data-filter="heal" type="button">Лечение</button>
+      <button class="shop-tab ${view.alchemyFilter === "mana" ? "active" : ""}" data-act="alchemy-filter" data-filter="mana" type="button">Мана</button>
+      <button class="shop-tab ${view.alchemyFilter === "combat" ? "active" : ""}" data-act="alchemy-filter" data-filter="combat" type="button">Боевые</button>
     </div>`;
     const rows = items.map((item) => {
       const count = state.potions[item.id] || 0;
