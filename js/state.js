@@ -19,7 +19,7 @@ let state = null;
 
 function defaultState() {
   let uid = 0;
-  const inst = (id) => ({ uid: `item_${++uid}`, id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null });
+  const inst = (id) => ({ uid: `item_${++uid}`, id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null, upgrade: null });
   const owned = [inst("rusty_knife"), inst("rags"), inst("worn_hood"), inst("patched_pants"), inst("worn_boots")];
   const uidOf = (id) => owned.find((x) => x.id === id).uid;
   
@@ -75,7 +75,7 @@ function normalizeFactionMap(raw, fill) {
   return out;
 }
 
-// Приводит reputation/флаги фракций из сейва к дефолтам без миграции версии:
+// Приводит репутацию/флаги фракций из сейва к дефолтам без миграции версии:
 // свежие поля просто дополняются из defaultState, а мусор отбрасывается.
 function normalizeFactionFields() {
   state.reputation = normalizeFactionMap(state.reputation, 0);
@@ -85,6 +85,76 @@ function normalizeFactionFields() {
   for (const f of FACTIONS) {
     state.factionPerksUnlocked[f.id] = state.reputation[f.id] >= FACTION_TIERS[2].min;
   }
+}
+
+// Валидация записи улучшения предмета (Этап 2): { level, stat }.
+// Всё лишнее — мусор, ключи стата вне ветки отбрасываются.
+function normalizeUpgrade(raw, item) {
+  const path = upgradePathForItem(item);
+  if (!path || !raw || typeof raw !== "object") return null;
+  const level = Number(raw.level);
+  if (!Number.isFinite(level) || level <= 0) return null;
+  const clamped = Math.min(UPGRADE_MAX_LEVEL, Math.floor(level));
+  let stat = null;
+  if (path.id === "jewelry") stat = raw.stat === "dodge" ? "dodge" : "crit";
+  return { level: clamped, stat };
+}
+
+// Улучшение предмета (Этап 2): списывает материалы фракционной наковальни
+// и золото, повышает уровень улучшения. Требует тир «Уважаемый» фракции.
+function upgradeItem(uid, stat = null) {
+  const inst = getInstance(uid);
+  if (!inst) return { ok: false, text: "Предмет не найден." };
+  const item = ITEMS[inst.id];
+  if (!item) return { ok: false, text: "Предмет не найден." };
+  const path = upgradePathForItem(item);
+  if (!path) return { ok: false, text: "Этот предмет нельзя улучшить." };
+
+  const factionId = UPGRADE_FACTION[path.id];
+  const faction = FACTION_MAP[factionId];
+  if (!state.factionPerksUnlocked || !state.factionPerksUnlocked[factionId]) {
+    return { ok: false, text: `${faction.name} ещё не доверяет вам — нужен тир «${FACTION_TIERS[2].name}» (${FACTION_TIERS[2].min} репутации, ежедневные заказы ${faction.npc === "elain" ? "Элейн" : faction.npc === "elize" ? "Элизы" : "Рона"}).` };
+  }
+
+  const up = normalizeUpgrade(inst.upgrade, item) || { level: 0, stat: null };
+  if (up.level >= UPGRADE_MAX_LEVEL) return { ok: false, text: "Максимальный уровень улучшения достигнут." };
+
+  // Ювелирная ветка: выбор стата применяется ко всем уровням улучшения,
+  // поэтому его можно менять — это просто другая раскладка тех же бонусов.
+  let chosen = null;
+  if (path.id === "jewelry") {
+    chosen = stat === "dodge" ? "dodge" : stat === "crit" ? "crit" : (up.stat || "crit");
+  }
+
+  const step = up.level; // материалы и цена шага level → level+1
+  const missing = [];
+  const goldCost = UPGRADE_GOLD_COST[step];
+  if (state.gold < goldCost) missing.push(`золото ${state.gold}/${goldCost} 💰`);
+  for (const [resId, need] of Object.entries(path.materials[step])) {
+    const have = state.resources[resId] || 0;
+    if (have < need) {
+      const res = ALL_RESOURCES.find((r) => r.id === resId);
+      missing.push(`${res ? res.name : resId} ${have}/${need}`);
+    }
+  }
+  if (missing.length) return { ok: false, text: `Не хватает: ${missing.join(", ")}.` };
+
+  for (const [resId, need] of Object.entries(path.materials[step])) {
+    state.resources[resId] = Math.max(0, (state.resources[resId] || 0) - need);
+  }
+  state.gold -= goldCost;
+  inst.upgrade = { level: up.level + 1, stat: chosen };
+
+  const oldStats = stats();
+  invalidateStats();
+  applyVitalsDelta(oldStats, stats());
+  saveState();
+
+  const gains = path.id === "jewelry"
+    ? { [inst.upgrade.stat === "dodge" ? "dodge" : "crit"]: inst.upgrade.stat === "dodge" ? UPGRADE_PER_LEVEL.jewelry.dodge : UPGRADE_PER_LEVEL.jewelry.crit }
+    : UPGRADE_PER_LEVEL[path.id];
+  const gainText = Object.entries(gains).map(([k, v]) => `+${v * inst.upgrade.level} ${UPGR_STAT_LABEL[k] || k}`).join(", ");
+  return { ok: true, text: `Улучшено: ${item.name} ${inst.upgrade.stat ? `${UPGR_STAT_LABEL[inst.upgrade.stat === "dodge" ? "dodge" : "crit"]} ` : ""}+${inst.upgrade.level} (${gainText}). Цена: ${goldCost} 💰.` };
 }
 
 function loadState() {
@@ -174,7 +244,7 @@ function loadState() {
           if (bonuses.length) affix = { id: inst.affix.id, name: String(inst.affix.name || ""), bonuses };
         }
         const unique = rarity === "legendary" && UNIQUE_EFFECTS.some((u) => u.id === inst.unique) ? inst.unique : null;
-        return { uid: inst.uid, id: inst.id, durability: Number.isFinite(inst.durability) ? inst.durability : DURABILITY_MAX, rarity, affix, unique };
+        return { uid: inst.uid, id: inst.id, durability: Number.isFinite(inst.durability) ? inst.durability : DURABILITY_MAX, rarity, affix, unique, upgrade: normalizeUpgrade(inst.upgrade, ITEMS[inst.id]) };
       });
       
     for (const slot of Object.keys(state.equipped)) {
@@ -226,7 +296,7 @@ function getInstance(uid) { return state.owned.find((inst) => inst.uid === uid) 
 
 function addItemInstance(id, durability = DURABILITY_MAX, rarity = null) {
   const itemRarity = rarity && RARITY_TIERS[rarity] ? rarity : rollRarity();
-  const inst = { uid: generateUid(), id, durability, rarity: itemRarity, affix: generateAffix(itemRarity), unique: null };
+  const inst = { uid: generateUid(), id, durability, rarity: itemRarity, affix: generateAffix(itemRarity), unique: null, upgrade: null };
   if (itemRarity === "legendary" && UNIQUE_EFFECTS.length) {
     inst.unique = UNIQUE_EFFECTS[Math.floor(Math.random() * UNIQUE_EFFECTS.length)].id;
   }
@@ -283,6 +353,21 @@ function getInstanceStats(instance) {
   if (instance.affix && Array.isArray(instance.affix.bonuses)) {
     for (const b of instance.affix.bonuses) {
       if (b && b.id in out && Number.isFinite(b.value)) out[b.id] += Math.round(b.value * mult);
+    }
+  }
+  // Бонусы улучшения (Этап 2) — плоские, не зависят от редкости.
+  const path = upgradePathForItem(item);
+  if (path && instance.upgrade) {
+    const level = Number(instance.upgrade.level) || 0;
+    if (level > 0) {
+      // Ювелирная ветка: stat определяет, что растёт за ВСЕ уровни —
+      // крит (+2/ур) или уворот (+1/ур). Прочее: атака/защита ветки.
+      const gains = path.id === "jewelry"
+        ? { [instance.upgrade.stat === "dodge" ? "dodge" : "crit"]: instance.upgrade.stat === "dodge" ? UPGRADE_PER_LEVEL.jewelry.dodge : UPGRADE_PER_LEVEL.jewelry.crit }
+        : UPGRADE_PER_LEVEL[path.id];
+      for (const [statKey, perLevel] of Object.entries(gains)) {
+        out[statKey] += perLevel * level;
+      }
     }
   }
   if (instance.unique === "swift") out.dodge += 5;

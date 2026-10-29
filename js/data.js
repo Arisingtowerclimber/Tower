@@ -1207,6 +1207,63 @@ const FLOOR_SCENES = {
   ],
 };
 
+// ── Улучшение предметов (Этап 2) ───────────────────────────────────────────
+// Каждая ветка улучшений привязана к фракции (UPGRADE_FACTION) и требует
+// её тир «Уважаемый» (репутация 10+, см. FACTION_TIERS[2]).
+// Материалы — только ресурсы нижних этажей (FLOOR_RESOURCES 2..5).
+const UPGRADE_MAX_LEVEL = 5;
+const UPGRADE_GOLD_COST = [50, 150, 400, 900, 2000];
+const UPGRADE_PATHS = {
+  weapon: {
+    id: "weapon", name: "Оружие", icon: "⚒️",
+    materials: [
+      { copper_ore: 3, tin_ore: 2 },
+      { bronze_ingot: 3, kobold_gear: 2 },
+      { grave_iron: 3, rune_dust: 2 },
+      { mithril_ore: 3, war_crystal: 1 },
+      { hellstone: 3, void_crystal: 1 },
+    ],
+  },
+  armor: {
+    id: "armor", name: "Броня", icon: "🛡️",
+    materials: [
+      { copper_ore: 3, tin_ore: 3 },
+      { bronze_ingot: 2, kobold_gear: 3 },
+      { grave_iron: 4, rune_dust: 2 },
+      { mithril_ore: 3, iron_chain: 2 },
+      { hellstone: 4, void_crystal: 2 },
+    ],
+  },
+  jewelry: {
+    id: "jewelry", name: "Украшения", icon: "💍",
+    // В ювелирной ветке игрок выбирает, что расти: крит или уворот.
+    altStat: "dodge",
+    materials: [
+      { silver: 3, tin_ore: 2 },
+      { silver: 4, kobold_gear: 1 },
+      { silver: 5, rune_dust: 2, cursed_cloth: 1 },
+      { silver: 6, war_crystal: 2 },
+      { silver: 8, void_crystal: 2 },
+    ],
+  },
+};
+// Прирост стата за каждый уровень улучшения.
+const UPGRADE_PER_LEVEL = { weapon: { atk: 5 }, armor: { def: 2 }, jewelry: { crit: 2, dodge: 1 } };
+// Фракция, которая делает улучшение для каждой ветки.
+const UPGRADE_FACTION = { weapon: "smiths", armor: "smiths", jewelry: "jewelers" };
+// Подписи статов для UI.
+const UPGR_STAT_LABEL = { atk: "Атака", def: "Защита", crit: "Крит", dodge: "Уворот", hp: "HP", block: "Зон блока", mana: "Мана" };
+
+// Ветка улучшения для предмета: оружие/щиты — weapon, украшения — jewelry,
+// броня (ткань/кожа/пластинчатые слоты) — armor, остальное — null.
+function upgradePathForItem(item) {
+  if (!item) return null;
+  if (item.slot && (item.slot === "mainhand" || item.slot === "offhand")) return UPGRADE_PATHS.weapon;
+  if (item.slot && ["ring", "neck", "trinket"].includes(item.slot)) return UPGRADE_PATHS.jewelry;
+  if (item.slot && ["head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"].includes(item.slot)) return UPGRADE_PATHS.armor;
+  return null;
+}
+
 // ── NPC (Этап 3) ───────────────────────────────────────────────────────────
 // События исследования могут открывать диалог NPC. Портреты — через npcPortraitSrc().
 const TRADER_PRICE_MULT = 1.5; // странствующий торговец берёт на 50% дороже лавочной цены

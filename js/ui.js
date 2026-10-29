@@ -580,6 +580,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
       <div class="npc-dialogue-actions">
         ${btn("buy", buyLabel)}
         ${sellLabel ? btn("sell", sellLabel) : ""}
+        ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
         ${btn("quests", "📜 Есть задания?")}
       </div>
     </div>
@@ -959,6 +960,68 @@ function materialChipHtml(resId, need) {
   return `<span class="chip material${enough ? " ok" : " lack"}">${iconHtml(res ? res.icon : "❔", 16)} ${res ? res.name : resId} ${have}/${need}</span>`;
 }
 
+// ── Панель улучшения предметов (Этап 2) ────────────────────────────────────
+// Кузница (ron): ветки weapon + armor. Ювелирная лавка (elize): jewelry,
+// выбор стата «Крит» или «Уворот». У Алхимика (elain) наковальни нет — заглушка.
+function upgradePanelHtml() {
+  if (view.screen === "alchemy") {
+    return `<section class="shop-group"><h2 class="group-title">🔧 Улучшение</h2><p class="empty">Наковальни у меня нет. Оружие и броню улучшайте у Рона в кузнице, украшения — у Элизы.</p></section>`;
+  }
+
+  const pathIds = view.screen === "forge" ? ["weapon", "armor"] : ["jewelry"];
+  const pathBlocks = pathIds.map((pathId) => {
+    const path = UPGRADE_PATHS[pathId];
+    const factionId = UPGRADE_FACTION[pathId];
+    const faction = FACTION_MAP[factionId];
+    const unlocked = !!(state.factionPerksUnlocked && state.factionPerksUnlocked[factionId]);
+    const rep = state.reputation[factionId] || 0;
+
+    const cards = state.owned.filter((inst) => inst && upgradePathForItem(ITEMS[inst.id])?.id === pathId).map((inst) => {
+      const item = ITEMS[inst.id];
+      const up = inst.upgrade || { level: 0, stat: null };
+      const maxed = up.level >= UPGRADE_MAX_LEVEL;
+      const step = up.level;
+      const goldCost = UPGRADE_GOLD_COST[step];
+      const chipsHtml = up.level > 0
+        ? (path.id === "jewelry" && up.stat === "dodge" ? { dodge: UPGRADE_PER_LEVEL.jewelry.dodge } : UPGRADE_PER_LEVEL[path.id])
+        : null;
+      const gainChip = chipsHtml ? Object.entries(chipsHtml).map(([k, v]) => `<span class="chip ok">${UPGR_STAT_LABEL[k] || k} +${v * up.level}</span>`).join("") : "";      const nextHtml = maxed
+        ? `<span class="chip">Максимум +${UPGRADE_MAX_LEVEL}</span>`
+        : `<div class="chips recipe-materials">${materialChipHtmlEx(path.materials[step])}<span class="chip${state.gold >= goldCost ? " ok" : " lack"}">💰 ${goldCost}</span></div>`;
+      const statChoice = path.id === "jewelry"
+        ? `<div class="stack-buttons">
+             ${["crit", "dodge"].map((s) => `<button class="btn small${s === "crit" ? " primary" : ""}" data-act="upgrade-item" data-uid="${inst.uid}" data-stat="${s}" type="button" ${(unlocked && !maxed) ? "" : "disabled"}>${UPGR_STAT_LABEL[s]} +${UPGRADE_PER_LEVEL.jewelry[s]}%/ур</button>`).join("")}
+           </div>`
+        : `<button class="btn small primary" data-act="upgrade-item" data-uid="${inst.uid}" type="button" ${unlocked && !maxed ? "" : "disabled"}>Улучшить${maxed ? " — максимум" : ""}</button>`;
+      return `<article class="gear-card upgrade-card">
+        <div class="gear-card-head">
+          <div class="item-icon">${iconHtml(item.icon, 48)}</div>
+          <div class="gear-card-info">
+            <h3>${item.name}${up.level > 0 ? ` <em class="up-level">+${up.level}</em>` : ""}</h3>
+            <p class="item-desc">${item.desc}</p>
+            <div class="chips">${statsChips(item)}${gainChip}</div>
+            ${nextHtml}
+          </div>
+        </div>
+        <div class="gear-card-foot">${statChoice}</div>
+      </article>`;
+    }).join("");
+
+    return `<section class="shop-group">
+      <h2 class="group-title">${path.icon} ${path.name}${unlocked ? "" : ` <span class="hint">🔒 ${faction.name}: нужен тир «${FACTION_TIERS[2].name}» (реп. ${FACTION_TIERS[2].min}, сейчас ${rep})</span>`}</h2>
+      <p class="hint">За каждый уровень улучшения: ${path.id === "weapon" ? "Атака +5" : path.id === "armor" ? "Защита +2" : "Крит +2 или Уворот +1 (на выбор)"}. Материалы — из походов на нижние этажи Башни.</p>
+      <div class="item-grid">${cards || `<p class="empty">Подходящих предметов нет.</p>`}</div>
+    </section>`;
+  }).join("");
+
+  return pathBlocks;
+}
+
+// Материальные чипы для произвольной карты материалов { resId: need }.
+function materialChipHtmlEx(materials) {
+  return Object.entries(materials).map(([resId, need]) => materialChipHtml(resId, need)).join("");
+}
+
 function craftPanelHtml(station) {
   const known = new Set(Array.isArray(state.knownRecipes) ? state.knownRecipes : []);
   const recipes = getRecipes(station).filter((recipe) => known.has(recipe.id));
@@ -1000,6 +1063,7 @@ function forgeHtml() {
     tab === "sell" ? sellPanelHtml("forge")
     : tab === "quests" ? npcQuestHtml("ron")
     : tab === "craft" ? craftPanelHtml("forge")
+    : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? [
         shopItemsHtml([{ id: "held", name: "Оружие и щиты", slots: ["mainhand", "offhand"] }], "held", "forge"),
         shopItemsHtml([{ id: "armor", name: "Доспехи", slots: ["head", "neck", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"] }], "armor", "forge"),
@@ -1019,6 +1083,7 @@ function jewelryHtml() {
     tab === "sell" ? sellPanelHtml("jewelry")
     : tab === "quests" ? npcQuestHtml("elize")
     : tab === "craft" ? craftPanelHtml("jewelry")
+    : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? shopItemsHtml([{ id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] }], "jewelry", "jewelry")
     : "";
 
@@ -1038,6 +1103,8 @@ function alchemyHtml() {
     content = sellPanelHtml("alchemy");
   } else if (tab === "quests") {
     content = npcQuestHtml("elain");
+  } else if (tab === "upgrade") {
+    content = upgradePanelHtml();
   } else if (tab === "buy") {
     const cards = Object.values(ITEMS).filter((i) => i.slot === "potion").map((item) => {
       const count = state.potions[item.id] || 0;
@@ -2419,6 +2486,12 @@ function onClick(event) {
       if (view.autoExplore) {
         view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
       }
+      render();
+      break;
+    }
+    case "upgrade-item": {
+      res = upgradeItem(el.dataset.uid, el.dataset.stat || null);
+      toast(res.text, res.ok ? "ok" : "warn");
       render();
       break;
     }
