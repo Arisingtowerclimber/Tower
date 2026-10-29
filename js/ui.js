@@ -232,6 +232,7 @@ function resetCreate() {
     answers: {},
     archetype: null,
     portrait: "m1",
+    gender: "male",
     name: "",
   };
 }
@@ -267,6 +268,7 @@ function createHtml() {
     <section class="create">
       <div class="create-head">
         <p class="eyebrow">Перед подъёмом · Шаг ${c.step + 1} из ${totalSteps}</p>
+        ${step.lore ? `<p class="lore">${esc(step.lore)}</p>` : ""}
         <h1>${step.title}</h1>
         <p class="lead">${step.text}</p>
         <div class="bar xp" style="margin-top: 16px; height: 4px;">
@@ -348,6 +350,8 @@ function createSummaryHtml(c, portrait) {
       </div>
       <div class="create-grid">
         <section class="panel">
+          <div class="field"><label>Пол</label><div class="gender-toggle"><button class="btn${c.gender === "male" ? " selected" : ""}" data-act="bio-gender" data-id="male" type="button">Мужчина</button><button class="btn${c.gender === "female" ? " selected" : ""}" data-act="bio-gender" data-id="female" type="button">Женщина</button></div></div>
+
           <div class="field"><label for="hero-name">Имя героя</label><input class="name-input" id="hero-name" type="text" maxlength="20" data-role="create-name" autocomplete="off" spellcheck="false" placeholder="Странник" value="${esc(c.name)}"></div>
 
           <div class="field"><label>Портрет</label><div class="portrait-picker">${PORTRAITS.map((p) => `<button class="portrait-option${p.id === c.portrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" style="aspect-ratio: 1 / 1;" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
@@ -399,7 +403,7 @@ function createSummaryHtml(c, portrait) {
 function tryStartGame() {
   const c = view.create; if (!c) return;
   if (!ARCHETYPE_MAP[c.archetype]) { toast("Выберите архетип.", "warn"); return; }
-  createHero(c.answers, c.archetype, c.portrait, c.name);
+  createHero(c.answers, c.archetype, c.portrait, c.name, c.gender);
   view.create = null; view.screen = "hub"; view.summary = null; render();
   toast(`Добро пожаловать, ${state.name}.`, "ok");
 }
@@ -3252,6 +3256,13 @@ function onClick(event) {
       const c = view.create;
       if (!c) break;
       c.portrait = el.dataset.id;
+      render();
+      break;
+    }
+    case "bio-gender": {
+      const c = view.create;
+      if (!c) break;
+      c.gender = el.dataset.id === "female" ? "female" : "male";
       render();
       break;
     }

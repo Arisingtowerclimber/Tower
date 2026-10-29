@@ -55,11 +55,11 @@ const JEWELRY_TABS = [
 ];
 
 const PORTRAITS = [
-  { id: "m1", name: "Мужчина 1", gender: "m", src: "assets/portraits/m1.webp" },
-  { id: "m2", name: "Мужчина 2", gender: "m", src: "assets/portraits/m2.webp" },
-  { id: "f1", name: "Женщина 1", gender: "f", src: "assets/portraits/f1.webp" },
-  { id: "f2", name: "Женщина 2", gender: "f", src: "assets/portraits/f2.webp" },
-  { id: "m3", name: "Мужчина 3", gender: "m", src: "assets/portraits/m3.webp" },
+  { id: "m1", name: "Мужчина 1", gender: "male", src: "assets/portraits/m1.webp" },
+  { id: "m2", name: "Мужчина 2", gender: "male", src: "assets/portraits/m2.webp" },
+  { id: "f1", name: "Женщина 1", gender: "female", src: "assets/portraits/f1.webp" },
+  { id: "f2", name: "Женщина 2", gender: "female", src: "assets/portraits/f2.webp" },
+  { id: "m3", name: "Мужчина 3", gender: "male", src: "assets/portraits/m3.webp" },
 ];
 
 const PORTRAIT_MAP = Object.fromEntries(PORTRAITS.map((p) => [p.id, p]));
@@ -443,6 +443,7 @@ const BACKGROUND_STEPS = [
     id: "childhood",
     title: "Детство",
     text: "Кем ты был до того, как Башня позвала тебя?",
+    lore: "Говорят, Башня стоит здесь со времён падения первой империи — её шпиль виден даже из колыбели.",
     options: [
       { 
         id: "slums", 
@@ -478,6 +479,7 @@ const BACKGROUND_STEPS = [
     id: "youth",
     title: "Юность",
     text: "Чему ты научился, когда вырос?",
+    lore: "Дорога к Башне усеяна не камнями, а сломанными судьбами тех, кто решил попытать счастья.",
     options: [
       { 
         id: "guard", 
@@ -513,6 +515,7 @@ const BACKGROUND_STEPS = [
     id: "reason",
     title: "Причина прихода в Йорстед",
     text: "Почему ты здесь? Что гонит тебя к Башне?",
+    lore: "Никто не приходит в Йорстед просто так — каждого ведёт либо мечта, либо то, от чего он бежит.",
     options: [
       { 
         id: "glory", 
@@ -541,6 +544,78 @@ const BACKGROUND_STEPS = [
         desc: "+2 Интеллект, +15 маны", 
         icon: "📜",
         effects: { int: 2, mana: 15 } 
+      }
+    ]
+  },
+  {
+    id: "baptism",
+    title: "Боевое крещение",
+    text: "Вспомни свой первый настоящий бой — и его шрам.",
+    lore: "Первая кровь не смывается. Она остаётся на руках и в снах.",
+    options: [
+      { 
+        id: "wolf", 
+        label: "Убил волка", 
+        desc: "+2 Силы, стартовый нож", 
+        icon: "🐺",
+        effects: { str: 2, equipment: ["rusty_knife"] } 
+      },
+      { 
+        id: "village", 
+        label: "Спас деревню от бандитов", 
+        desc: "+50 золота, +1 Выносливость", 
+        icon: "🏘️",
+        effects: { gold: 50, end: 1 } 
+      },
+      { 
+        id: "deserter", 
+        label: "Сбежал с поля боя", 
+        desc: "+2 Ловкости", 
+        icon: "🏃",
+        effects: { agi: 2 } 
+      },
+      { 
+        id: "healer", 
+        label: "Вылечил раненого", 
+        desc: "+2 Интеллекта, 3 зелья лечения", 
+        icon: "🩹",
+        effects: { int: 2, potions: ["hp_small", "hp_small", "hp_small"] } 
+      }
+    ]
+  },
+  {
+    id: "secret",
+    title: "Тайна",
+    text: "Что ты скрываешь даже от самого себя?",
+    lore: "У каждого, кто ступает на порог Башни, есть тайна, которую он надеется оставить за спиной.",
+    options: [
+      { 
+        id: "noble", 
+        label: "Дворянское происхождение", 
+        desc: "+200 золота, +1 Интеллект", 
+        icon: "👑",
+        effects: { gold: 200, int: 1 } 
+      },
+      { 
+        id: "curse", 
+        label: "Проклятие", 
+        desc: "+20 маны, −10 HP", 
+        icon: "🕯️",
+        effects: { mana: 20, hp: -10 } 
+      },
+      { 
+        id: "debt", 
+        label: "Долг", 
+        desc: "+100 золота", 
+        icon: "🪙",
+        effects: { gold: 100 } 
+      },
+      { 
+        id: "possession", 
+        label: "Одержимость", 
+        desc: "Когти (крит +5)", 
+        icon: "👁️",
+        effects: { equipment: ["claws"] } 
       }
     ]
   }

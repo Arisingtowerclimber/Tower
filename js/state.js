@@ -27,7 +27,7 @@ function defaultState() {
   const uidOf = (id) => owned.find((x) => x.id === id).uid;
   
   return {
-    version: SAVE_VERSION, created: false, name: "Странник", portrait: "m1", archetype: null,
+    version: SAVE_VERSION, created: false, name: "Странник", portrait: "m1", gender: "male", archetype: null,
     level: 1, xp: 0, points: 0, attrs: { str: 1, agi: 1, end: 1, int: 1 },
     gold: 60, hp: BASE_STATS.hp + 2, mana: BASE_STATS.mana + 2, energy: EXPLORATION_MAX,
     phase: 0, day: 1, companion: null, companionDay: 0,
@@ -687,9 +687,10 @@ function applyVitalsDelta(oldStats, newStats) {
   clampVitals();
 }
 
-function createHero(biography, archetypeId, portrait = "m1", name = "") {
+function createHero(biography, archetypeId, portrait = "m1", name = "", gender = "male") {
   state.name = (name || "").trim().slice(0, 20) || "Странник";
   state.portrait = PORTRAIT_MAP[portrait] ? portrait : "m1";
+  state.gender = gender === "female" ? "female" : "male";
   state.archetype = ARCHETYPE_MAP[archetypeId] ? archetypeId : null;
   
   state.attrs = { str: 1, agi: 1, end: 1, int: 1 };
