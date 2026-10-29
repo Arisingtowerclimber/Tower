@@ -553,6 +553,7 @@ function hubHtml(st) {
 }
 
 const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "stella", training: "ivan" };
+const CRAFT_NPC_STATIONS = { ron: "forge", elain: "alchemy", elize: "jewelry" };
 
 function npcStorySlide(npcId) {
   const storyArr = DIALOGS[npcId]?.story;
@@ -592,6 +593,8 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
   
   const btn = (tabId, label) =>
     `<button class="shop-tab${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button" style="text-align: center;">${label}</button>`;
+  const craftStation = CRAFT_NPC_STATIONS[npcId];
+  const craftBtn = craftStation && getRecipes(craftStation).length ? btn("craft", "📜 Крафт") : "";
     
   return `
     <div class="npc-dialogue-bar">
@@ -604,6 +607,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
         ${extraAction}
         ${btn("buy", buyLabel)}
         ${sellLabel ? btn("sell", sellLabel) : ""}
+        ${craftBtn}
         ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
         ${npcId === "ron" ? btn("exchange", "🔁 Обмен") : ""}
         ${npcId === "ivan" ? "" : btn("quests", "📜 Есть задания?")}
@@ -1648,6 +1652,8 @@ function alchemyHtml() {
     content = npcQuestHtml("elain");
   } else if (tab === "story") {
     content = storyQuestPanelHtml("elain");
+  } else if (tab === "craft") {
+    content = craftPanelHtml("alchemy");
   } else if (tab === "upgrade") {
     content = upgradePanelHtml();
   } else if (tab === "buy") {
