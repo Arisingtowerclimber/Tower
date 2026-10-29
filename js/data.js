@@ -1334,6 +1334,94 @@ const FLOOR_SCENES = {
       group: [0, 1],
     },
   ],
+  2: [
+    {
+      id: "mine_collapse",
+      title: "Обвал в шахте",
+      text: "Нависший свод шахты не выдержал — камни хлынули вниз, отрезая проход. В клубах пыли слышится заунывный скрежет кирок: кобольды-рудокопы спешат разрыть завал, а на стене тускло блестит свежая жила меди. Пока твари поглощены работой, можно пробиться сквозь их толпу или тихо уйти.",
+      actions: [
+        { id: "fight", label: "⚔ Пробиваться сквозь завал" },
+        { id: "leave", label: "🚶 Обойти завал" },
+      ],
+      group: [0, 2],
+    },
+    {
+      id: "kobold_chest",
+      title: "Запертый сундук кобольдов",
+      text: "В укромной нише стоит сундук, обитый медными полосами и запертый на хитроумный кобольдий замок. Слышно, как внутри перекатывается что-то тяжёлое. Но рядом, за поворотом, стоит стража — она наверняка заметит взлом. Рисковать ли?",
+      actions: [
+        { id: "dig", label: "⛏ Взломать замок" },
+        { id: "leave", label: "🚶 Оставить сундук" },
+      ],
+      group: [0, 1],
+    },
+  ],
+  3: [
+    {
+      id: "strange_sarcophagus",
+      title: "Странный саркофаг",
+      text: "Погребальный зал полон гранитных плит, но лишь один саркофаг стоит на постаменте — с нечеловеческими узорами и тёмными потёками на крышке. Тяжёлая плита сдвинута на ладонь. Склеп терпеливо ждёт: вскроете вы — или это сделает то, что внутри.",
+      actions: [
+        { id: "dig", label: "⛏ Вскрыть саркофаг" },
+        { id: "leave", label: "🚶 Не тревожить покой" },
+      ],
+      group: [0, 2],
+    },
+    {
+      id: "whispering_shadows",
+      title: "Шепчущие тени",
+      text: "В узком коридоре тени не совпадают с телами. Что-то шепчет на языке, от которого ноют зубы, — и шёпот складывается в ваше имя. Тени сгущаются, мешаясь с неупокоенными, что бродят между колонн. Развеять? Или пройти мимо, не оборачиваясь?",
+      actions: [
+        { id: "fight", label: "⚔ Развеять тени" },
+        { id: "leave", label: "🚶 Пройти не оборачиваясь" },
+      ],
+      group: [1, 2],
+    },
+  ],
+  4: [
+    {
+      id: "orc_cage",
+      title: "Клетка с пленником",
+      text: "Среди орочьих знамён стоит клетка с прутьями из мифрила — внутри мечется измождённый пленник, гость из чужих земель. Рядом лениво прохлаждается дозор: орки и огр-громила. Можно перебить стражу и открыть клетку, а можно уйти, притворившись, что вы не слышите криков.",
+      actions: [
+        { id: "fight", label: "⚔ Освободить пленника" },
+        { id: "leave", label: "🚶 Уйти, не встревая" },
+      ],
+      group: [0, 2],
+    },
+    {
+      id: "shaman_bonfire",
+      title: "Костёр шамана",
+      text: "Орк-шаман бросает в пламя горсть кровавой травы, и огонь отвечает зелёным душным светом. В трепещущих тенях угадывается спина огри-телохранителя, а то и чьи-то духи. Костёр тёплый и манящий, но то, о чём шепчет пламя, смертным слушать не велено.",
+      actions: [
+        { id: "stealth", label: "🫥 Обкрасть костёр" },
+        { id: "fight", label: "⚔ Напасть из тени" },
+      ],
+      group: [1, 2],
+    },
+  ],
+  5: [
+    {
+      id: "abyss_portal",
+      title: "Портал в бездну",
+      text: "В высокой арке из адского камня чёрный воздух мерцает, будто в нём проступают звёзды чужого неба. Сквозь разрыв тянет не холодом — отсутствием. Дверь стерегут бесы и рогатый дьявол. Одолеть стражей — или тихо отступить от портала?",
+      actions: [
+        { id: "fight", label: "⚔ Сразить стражей" },
+        { id: "leave", label: "🚶 Отступить от портала" },
+      ],
+      group: [0, 2],
+    },
+    {
+      id: "victim_altar",
+      title: "Алтарь с жертвой",
+      text: "На алтарной плите извивается прикованный к ней пленник, кровь по желобам стекает к горящей сере. Рогатый дьявол поднимает нож — ритуал на исходе. Можно прервать его, бросившись в середину движения, а можно, пока взоры заняты жертвой, юркнуть к приношениям у алтаря.",
+      actions: [
+        { id: "fight", label: "⚔ Прервать ритуал" },
+        { id: "dig", label: "⛏ Обыскать приношения" },
+      ],
+      group: [1, 2],
+    },
+  ],
 };
 
 // ── Улучшение предметов (Этап 2) ───────────────────────────────────────────
@@ -1466,6 +1554,72 @@ const RECIPES = [
   { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Серебряное кольцо", floor: 2, dropChance: 0.05, materials: { silver: 4, malachite: 2 } },
   { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { silver: 5, bone: 3 } },
   { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { silver: 3, steel: 4, leather: 2 } },
+
+  // ── 2-Й ЭТАЖ (Бронза/сет «Рудокоп») ──
+  { id: "recipe_bronze_sword", station: "forge", result: "bronze_sword", desc: "Бронзовый меч", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 2, bronze_ingot: 2 } },
+  { id: "recipe_bronze_axe", station: "forge", result: "bronze_axe", desc: "Бронзовый топор", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 3, bronze_ingot: 2 } },
+  { id: "recipe_bronze_mace", station: "forge", result: "bronze_mace", desc: "Бронзовая булава", floor: 2, dropChance: 0.05, materials: { copper_ore: 5, tin_ore: 2, bronze_ingot: 3 } },
+  { id: "recipe_bronze_shield", station: "forge", result: "bronze_shield", desc: "Бронзовый щит", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 3, tin_ore: 1 } },
+  { id: "recipe_bronze_head", station: "forge", result: "bronze_head", desc: "Бронзовый шлем", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 2 } },
+  { id: "recipe_bronze_chest", station: "forge", result: "bronze_chest", desc: "Бронзовый нагрудник", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 4, copper_ore: 3, tin_ore: 2 } },
+  { id: "recipe_bronze_hands", station: "forge", result: "bronze_hands", desc: "Бронзовые перчатки", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2, tin_ore: 1 } },
+  { id: "recipe_bronze_feet", station: "forge", result: "bronze_feet", desc: "Бронзовые сапоги", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 2, tin_ore: 2 } },
+  { id: "recipe_bronze_ring", station: "jewelry", result: "bronze_ring", desc: "Бронзовое кольцо", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2 } },
+  { id: "recipe_bronze_neck", station: "jewelry", result: "bronze_neck", desc: "Бронзовый амулет", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 1, tin_ore: 1 } },
+  // Сет «Рудокоп» (бронза, этаж 2)
+  { id: "recipe_set_miner_head", station: "forge", result: "set_miner_head", desc: "Шлем рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, kobold_gear: 1, copper_ore: 2 } },
+  { id: "recipe_set_miner_chest", station: "forge", result: "set_miner_chest", desc: "Доспех рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 3, kobold_gear: 2, copper_ore: 3 } },
+  { id: "recipe_set_miner_legs", station: "forge", result: "set_miner_legs", desc: "Штаны рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 3, tin_ore: 2 } },
+  { id: "recipe_set_miner_hands", station: "forge", result: "set_miner_hands", desc: "Перчатки рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, kobold_gear: 1, tin_ore: 2 } },
+  { id: "recipe_set_miner_feet", station: "forge", result: "set_miner_feet", desc: "Сапоги рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2, tin_ore: 2 } },
+
+  // ── 3-Й ЭТАЖ (Сталь/сет «Страж склепа») ──
+  { id: "recipe_steel_knight_sword", station: "forge", result: "steel_knight_sword", desc: "Рыцарский стальной меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2, silver: 1 } },
+  { id: "recipe_steel_zweihander", station: "forge", result: "steel_zweihander", desc: "Стальной двуручник", floor: 3, dropChance: 0.05, materials: { grave_iron: 6, bone: 3 } },
+  { id: "recipe_steel_sledge", station: "forge", result: "steel_sledge", desc: "Стальная кувалда", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 4 } },
+  { id: "recipe_steel_bulwark", station: "forge", result: "steel_bulwark", desc: "Стальной оплот", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, silver: 1 } },
+  { id: "recipe_steel_head", station: "forge", result: "steel_head", desc: "Стальной шлем", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2 } },
+  { id: "recipe_steel_chest", station: "forge", result: "steel_chest", desc: "Стальная кираса", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 3, cursed_cloth: 1 } },
+  { id: "recipe_steel_legs", station: "forge", result: "steel_legs", desc: "Стальные поножи", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2 } },
+  { id: "recipe_steel_feet", station: "forge", result: "steel_feet", desc: "Стальные сапоги", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, cursed_cloth: 1 } },
+  { id: "recipe_steel_ring", station: "jewelry", result: "steel_ring", desc: "Стальное кольцо", floor: 3, dropChance: 0.05, materials: { silver: 3, grave_iron: 2, bone: 1 } },
+  { id: "recipe_steel_trinket", station: "jewelry", result: "steel_trinket", desc: "Стальной талисман", floor: 3, dropChance: 0.05, materials: { silver: 3, cursed_cloth: 2, bone: 1 } },
+  // Сет «Страж склепа» (сталь, этаж 3)
+  { id: "recipe_set_guard_head", station: "forge", result: "set_guard_head", desc: "Шлем стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, silver: 1 } },
+  { id: "recipe_set_guard_chest", station: "forge", result: "set_guard_chest", desc: "Латы стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 3, cursed_cloth: 1 } },
+  { id: "recipe_set_guard_legs", station: "forge", result: "set_guard_legs", desc: "Поножи стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2, cursed_cloth: 1 } },
+  { id: "recipe_set_guard_hands", station: "forge", result: "set_guard_hands", desc: "Рукавицы стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, silver: 1 } },
+  { id: "recipe_set_guard_feet", station: "forge", result: "set_guard_feet", desc: "Сапоги стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, cursed_cloth: 1 } },
+
+  // ── 4-Й ЭТАЖ (Мифрил) ──
+  { id: "recipe_mithril_sword", station: "forge", result: "mithril_sword", desc: "Мифриловый меч", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, blood_herb: 2, war_crystal: 1 } },
+  { id: "recipe_mithril_halberd", station: "forge", result: "mithril_halberd", desc: "Мифриловая алебарда", floor: 4, dropChance: 0.05, materials: { mithril_ore: 5, orc_tusk: 2, war_crystal: 1 } },
+  { id: "recipe_mithril_axe", station: "forge", result: "mithril_axe", desc: "Мифриловая секира", floor: 4, dropChance: 0.05, materials: { mithril_ore: 6, orc_tusk: 3, blood_herb: 2 } },
+  { id: "recipe_mithril_shield", station: "forge", result: "mithril_shield", desc: "Мифриловый щит", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, war_crystal: 2 } },
+  { id: "recipe_mithril_head", station: "forge", result: "mithril_head", desc: "Мифриловый шлем", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, orc_tusk: 2 } },
+  { id: "recipe_mithril_chest", station: "forge", result: "mithril_chest", desc: "Мифриловая кольчуга", floor: 4, dropChance: 0.05, materials: { mithril_ore: 6, blood_herb: 3, war_crystal: 1 } },
+  { id: "recipe_mithril_hands", station: "forge", result: "mithril_hands", desc: "Мифриловые перчатки", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, orc_tusk: 2 } },
+  { id: "recipe_mithril_legs", station: "forge", result: "mithril_legs", desc: "Мифриловые поножи", floor: 4, dropChance: 0.05, materials: { mithril_ore: 5, war_crystal: 1 } },
+  { id: "recipe_mithril_ring", station: "jewelry", result: "mithril_ring", desc: "Мифриловое кольцо", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, war_crystal: 2 } },
+  { id: "recipe_mithril_trinket", station: "jewelry", result: "mithril_trinket", desc: "Мифриловый амулет", floor: 4, dropChance: 0.05, materials: { mithril_ore: 2, blood_herb: 2, war_crystal: 2 } },
+
+  // ── 5-Й ЭТАЖ (Адский камень/сет «Адский клинок») ──
+  { id: "recipe_hell_great_sword", station: "forge", result: "hell_great_sword", desc: "Двуручник из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, demon_horn: 2, void_crystal: 1 } },
+  { id: "recipe_hell_halberd", station: "forge", result: "hell_halberd", desc: "Алебарда из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 6, demon_horn: 3, brimstone: 2 } },
+  { id: "recipe_hell_maul", station: "forge", result: "hell_maul", desc: "Молот из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 7, brimstone: 3, demon_horn: 2 } },
+  { id: "recipe_hell_shield", station: "forge", result: "hell_shield", desc: "Щит из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, void_crystal: 1 } },
+  { id: "recipe_hell_head", station: "forge", result: "hell_head", desc: "Шлем из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2 } },
+  { id: "recipe_hell_chest", station: "forge", result: "hell_chest", desc: "Кираса из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 6, brimstone: 3, void_crystal: 1 } },
+  { id: "recipe_hell_legs", station: "forge", result: "hell_legs", desc: "Поножи из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, demon_horn: 2, brimstone: 1 } },
+  { id: "recipe_hell_feet", station: "forge", result: "hell_feet", desc: "Сапоги из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 4, brimstone: 2, void_crystal: 1 } },
+  { id: "recipe_hell_ring", station: "jewelry", result: "hell_ring", desc: "Кольцо из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 3, demon_horn: 1, void_crystal: 2 } },
+  { id: "recipe_hell_trinket", station: "jewelry", result: "hell_trinket", desc: "Амулет из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 2, brimstone: 2, void_crystal: 2 } },
+  // Сет «Адский клинок» (адский камень, этаж 5)
+  { id: "recipe_set_hellblade_head", station: "forge", result: "set_hellblade_head", desc: "Шлем адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2, void_crystal: 1 } },
+  { id: "recipe_set_hellblade_chest", station: "forge", result: "set_hellblade_chest", desc: "Кираса адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 6, demon_horn: 3, void_crystal: 1 } },
+  { id: "recipe_set_hellblade_legs", station: "forge", result: "set_hellblade_legs", desc: "Поножи адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, demon_horn: 2 } },
+  { id: "recipe_set_hellblade_hands", station: "forge", result: "set_hellblade_hands", desc: "Рукавицы адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2, brimstone: 1 } },
+  { id: "recipe_set_hellblade_feet", station: "forge", result: "set_hellblade_feet", desc: "Сапоги адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, brimstone: 2, demon_horn: 2 } },
 ];
 
 const RECIPE_MAP = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
