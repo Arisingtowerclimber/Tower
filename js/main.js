@@ -6,13 +6,13 @@ document.addEventListener("input", onInput);
 const MUSIC_VOLUME_KEY = "tower_music_volume";
 const MUSIC_ON_KEY = "tower_music_on";
 
-function getAudio() { return document.getElementById("bg-music"); }
+function getAudio() { return platform.dom.byId("bg-music"); }
 
 function updateMusicUI() {
-  const btn = document.getElementById("music-toggle");
+  const btn = platform.dom.byId("music-toggle");
   if (!btn) return;
   
-  const isOn = localStorage.getItem(MUSIC_ON_KEY) !== "false";
+  const isOn = platform.storage.get(MUSIC_ON_KEY) !== "false";
   btn.textContent = isOn ? "🎵" : "🔇";
 }
 
@@ -20,13 +20,13 @@ function applyMusicSettings() {
   const audio = getAudio();
   if (!audio) return;
 
-  const savedVol = localStorage.getItem(MUSIC_VOLUME_KEY);
-  audio.volume = savedVol !== null ? parseFloat(savedVol) : 0.3;
+  const savedVol = platform.storage.get(MUSIC_VOLUME_KEY);
+  platform.audio.setVolume(audio, savedVol !== null ? parseFloat(savedVol) : 0.3);
 
-  const isOn = localStorage.getItem(MUSIC_ON_KEY) !== "false";
+  const isOn = platform.storage.get(MUSIC_ON_KEY) !== "false";
   audio.muted = !isOn;
 
-  const slider = document.getElementById("music-volume");
+  const slider = platform.dom.byId("music-volume");
   if (slider && savedVol !== null) {
     slider.value = savedVol;
   }
@@ -38,10 +38,8 @@ function tryStartMusic() {
   const audio = getAudio();
   if (!audio) return;
   
-  const isOn = localStorage.getItem(MUSIC_ON_KEY) !== "false";
-  if (isOn) {
-    audio.play().catch(() => {});
-  }
+  const isOn = platform.storage.get(MUSIC_ON_KEY) !== "false";
+  if (isOn) platform.audio.play(audio);
   document.removeEventListener("pointerdown", tryStartMusic);
   document.removeEventListener("keydown", tryStartMusic);
 }
@@ -55,15 +53,15 @@ document.addEventListener("click", (e) => {
   const audio = getAudio();
   if (!audio) return;
 
-  const isOn = localStorage.getItem(MUSIC_ON_KEY) !== "false";
+  const isOn = platform.storage.get(MUSIC_ON_KEY) !== "false";
   
   if (isOn) {
-    audio.pause();
-    localStorage.setItem(MUSIC_ON_KEY, "false");
+    platform.audio.pause(audio);
+    platform.storage.set(MUSIC_ON_KEY, "false");
   } else {
     audio.muted = false;
-    audio.play().catch(() => {});
-    localStorage.setItem(MUSIC_ON_KEY, "true");
+    platform.audio.play(audio);
+    platform.storage.set(MUSIC_ON_KEY, "true");
   }
   updateMusicUI();
 });
@@ -75,13 +73,13 @@ document.addEventListener("input", (e) => {
   const val = parseFloat(e.target.value);
   
   if (audio) {
-    audio.volume = val;
-    localStorage.setItem(MUSIC_VOLUME_KEY, val);
+    platform.audio.setVolume(audio, val);
+    platform.storage.set(MUSIC_VOLUME_KEY, val);
     
     if (audio.paused && val > 0) {
       audio.muted = false;
-      audio.play().catch(() => {});
-      localStorage.setItem(MUSIC_ON_KEY, "true");
+      platform.audio.play(audio);
+      platform.storage.set(MUSIC_ON_KEY, "true");
       updateMusicUI();
     }
   }
@@ -98,7 +96,7 @@ function init() {
   // в отдельный ключ ДО первого saveState(), который перезапишет основной слот.
   if (loaded && loaded.ok === false && loaded.raw) {
     const backupKey = `${SAVE_KEY}.backup-${Date.now()}`;
-    storage.set(backupKey, loaded.raw);
+    platform.storage.set(backupKey, loaded.raw);
     console.warn("Повреждённое сохранение скопировано в", backupKey, loaded.error);
   }
   clampVitals();
@@ -111,7 +109,7 @@ function init() {
   document.body.appendChild(toastEl);
 
   if (state.created) {
-    const requested = new URLSearchParams(location.search).get("screen");
+    const requested = platform.url.getParam("screen");
     if (["hub", "forge", "alchemy", "jewelry", "hotel", "hero", "tower"].includes(requested)) {
       view.screen = requested;
       if (requested === "tower") {

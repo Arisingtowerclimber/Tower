@@ -29,7 +29,7 @@ let invFilterCache = { key: "", list: [] };
 
 function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
 function bar(cls, value, max, role = "") { const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100)); return `<div class="bar ${cls}"${role ? ` data-role="${role}"` : ""}><span style="width:${pct}%"></span></div>`; }
-function toast(text, kind = "info") { const el = document.getElementById("toast"); if (!el) return; el.textContent = text; el.className = `toast show ${kind}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = "toast"; }, 2400); }
+function toast(text, kind = "info") { const el = platform.dom.byId("toast"); if (!el) return; el.textContent = text; el.className = `toast show ${kind}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = "toast"; }, 2400); }
 
 function iconHtml(icon, size = 32, fit = "contain") {
   const resolved = resolveIcon(icon);
@@ -1850,7 +1850,7 @@ function subHeader(title, subtitle, backScreen, backLabel = "← Назад") {
   return `<div class="subhead"><button class="btn tiny ghost" data-act="goto" data-screen="${backScreen}" type="button">${backLabel}</button><div><h1>${title}</h1><p class="muted">${subtitle}</p></div><div class="subhead-gold">💰 <b>${state.gold}</b></div></div>`;
 }
 
-function scrollLog() { const log = document.getElementById("battle-log"); if (log) log.scrollTop = log.scrollHeight; }
+function scrollLog() { const log = platform.dom.byId("battle-log"); if (log) log.scrollTop = log.scrollHeight; }
 
 // Точечное обновление боевого экрана: полосы, счётчики, лог и прогноз.
 // Полный render() остаётся для смены экрана и показа summary.
@@ -1884,7 +1884,7 @@ function renderBattle() {
     forecast.textContent = `⚔ ~${estimateDamage(state, battle, view.attackZone, currentStyle, mainInst)}`;
   }
 
-  const topbar = document.getElementById("topbar");
+  const topbar = platform.dom.byId("topbar");
   if (topbar) topbar.innerHTML = topbarHtml(st);
 
   const prevLog = view.prevLog || 0;
@@ -1928,7 +1928,7 @@ function levelUpModalHtml() {
 }
 
 function render() {
-  const screen = document.getElementById("screen"); const topbar = document.getElementById("topbar");
+  const screen = platform.dom.byId("screen"); const topbar = platform.dom.byId("topbar");
   if (!state.created) { 
     if (!view.create) resetCreate(); 
     topbar.innerHTML = ""; topbar.hidden = true; 
@@ -2623,7 +2623,7 @@ function onClick(event) {
       render();
       break;
     }
-    case "reset": if (confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
+    case "reset": if (platform.dialog.confirm("Сбросить прогресс?")) { resetState(); view.battle = null; view.summary = null; view.create = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.autoExplore = null; view.autoExploreMode = "safe"; view.dollSlot = null; view.invItemUid = null; view.invFilter = "all"; view.invSearch = ""; view.screen = "hub"; render(); } break;
     default: break;
   }
 }

@@ -1193,3 +1193,22 @@ function alchemyDiscountToday() { const ev = WEEKLY_EVENTS[calendarInfo().weekda
 function companionDiscountToday() { const ev = WEEKLY_EVENTS[calendarInfo().weekday.id]; return ev?.companionDiscount || 0; }
 function xpMultToday() { const ev = WEEKLY_EVENTS[calendarInfo().weekday.id]; return ev?.xpMult || 1; }
 function goldMultToday() { const ev = WEEKLY_EVENTS[calendarInfo().weekday.id]; return ev?.goldMult || 1; }
+// ── Экспорт для bundler/Node (не влияет на браузер) ────────────────────────
+// TODO(port): при переходе на ES-модули заменить этот блок на export { ... }.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    ZONES, ZONE_NAME, ZONE_MAP, SLOTS, SLOT_NAME, SLOT_ICON,
+    FORGE_TABS, JEWELRY_TABS, PORTRAITS, PORTRAIT_MAP, NPC_PORTRAITS, DIALOGS,
+    ATTR_INFO, RARITY_TIERS, AFFIXES, UNIQUE_EFFECTS, BACKGROUND_STEPS,
+    ARCHETYPES, ARCHETYPE_MAP, STYLE_ORDER, STYLE_NAMES, STYLE_ICONS,
+    ARMOR_TYPE_NAMES, ARMOR_STYLE_MULT, UNARMED_DAMAGE, MONK_STANCES,
+    TALENTS, TALENT_MAP, RARITY_INFO, MOB_ABILITY_INFO, MOB_MODIFIERS,
+    TIME_PHASES, COMPANIONS, COMPANION_MAP, MONTHS, WEEKDAYS, WEEKLY_EVENTS,
+    TRAININGS, TRAINING_MAP, ITEMS, ARMOR_TYPE_BY_ID, MOB_ICONS,
+    RESOURCE_ICONS, FLOORS, FLOOR_RESOURCES, ALL_RESOURCES, FLOOR_SCENES,
+    NPCS, RECIPES, RECIPE_MAP,
+    getRecipeById, getRecipes, todaysEvent, forgeDiscountToday,
+    alchemyDiscountToday, companionDiscountToday, xpMultToday, goldMultToday,
+    weaponDamageFor, weaponStyleValue, weaponStyleMult, weaponBestStyle,
+  };
+}

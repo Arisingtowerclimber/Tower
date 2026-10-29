@@ -3,13 +3,9 @@ const SAVE_VERSION = 8;
 const OLD_SLOT_MAP = { weapon: "mainhand", armor: "chest", shield: "offhand" };
 const BASE_STATS = { hp: 140, mana: 40, damage: 5, dodgeCap: 35, critCap: 60 };
 
-// Абстракция хранилища. TODO(step4): перенести реализацию в js/platform.js
-// (platform.storage) и оставить здесь только вызовы адаптера.
-const storage = {
-  get(key) { try { return localStorage.getItem(key); } catch (err) { return null; } },
-  set(key, value) { try { localStorage.setItem(key, value); } catch (err) {} },
-  remove(key) { try { localStorage.removeItem(key); } catch (err) {} },
-};
+// Абстракция хранилища — единая точка через js/platform.js (localStorage).
+// Порт на Electron/Capacitor подменяет только platform.storage.
+const storage = platform.storage;
 
 // Сбрасывает кэш stats(). Вызывается из всех механик, меняющих атрибуты,
 // экипировку, таланты, компаньона, дебаффы и уровень.
