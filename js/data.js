@@ -1018,9 +1018,9 @@ const ITEMS = {
   scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "🥋", def: 12, hp: 110, armorType: "chain", price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
   plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
 
-  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, armorType: "cloth", price: 55, shopTier: 1, desc: "Третья зона блока." },
-  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 6, block: 1, armorType: "plate", price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
-  tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, dodge: -2, armorType: "plate", price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
+  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, price: 55, shopTier: 1, desc: "Третья зона блока." },
+  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
+  tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, dodge: -2, price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
   parrying_dagger: { id: "parrying_dagger", name: "Кинжал парирования", slot: "offhand", icon: "🗡️", atk: 12, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 3, piercing: 12, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Вторая рука тоже умеет ранить." },
 
   worn_hood: gearItem("worn_hood", "Поношенный капюшон", "head", "🧢", 0, 0, { def: 0, hp: 0 }, "Ткань, которую не жалко потерять."),
@@ -1080,8 +1080,8 @@ const ITEMS = {
   iron_maul: { id: "iron_maul", name: "Железный молот", slot: "mainhand", icon: "🔨", atk: 24, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 22 }, price: 150, shopTier: 1, desc: "Кузнечный молот, перепрофилированный по врагам." },
   iron_spear: { id: "iron_spear", name: "Железное копьё", slot: "mainhand", icon: "🔱", atk: 20, weaponType: "spear", handed: "2h", damage: { slashing: 4, piercing: 16, bludgeoning: 0 }, price: 120, shopTier: 1, desc: "Дешёвое древко с честным жалом." },
 
-  // ── Щиты (offhand; armorType — чтобы броня видела тип) ──
-  leather_shield: { id: "leather_shield", name: "Кожаный щит", slot: "offhand", icon: "🛡️", def: 3, block: 1, armorType: "leather", price: 80, shopTier: 1, desc: "Кожа на раме — легче стали, но держит." },
+  // ── Щиты (offhand): активная защита, armorType не нужен — зоны тела они не закрывают ──
+  iron_shield: { id: "iron_shield", name: "Железный щит", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 6, block: 1, price: 120, shopTier: 1, desc: "Тяжёлый каплевидный щит из железа. Надёжно прикрывает корпус от ударов." },
 
   // ── Тир 2 «Сталь» (shopTier: 2, ниша 150–350) ──
   steel_short_sword: { id: "steel_short_sword", name: "Стальной короткий меч", slot: "mainhand", icon: "🗡️", atk: 33, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 15, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Тот же профиль, что у железного — но сталь честнее." },
@@ -1149,7 +1149,7 @@ const ITEMS = {
   bronze_axe: { id: "bronze_axe", name: "Бронзовый топор", slot: "mainhand", icon: "🪓", atk: 34, crit: 2, dodge: 2, weaponType: "axe", handed: "1h", damage: { slashing: 26, piercing: 0, bludgeoning: 8 }, price: 150, shopTier: 2, desc: "Лёгкий топор с бронзовым лезвием, что входит в кость с одного замаха." },
   bronze_mace: { id: "bronze_mace", name: "Бронзовая булава", slot: "mainhand", icon: "🏏", atk: 38, crit: 2, dodge: 2, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 35 }, price: 170, shopTier: 2, desc: "Шиповатое бронзовое навершие дробит шлемы и черепа одинаково легко." },
 
-  bronze_shield: { id: "bronze_shield", name: "Бронзовый щит", slot: "offhand", icon: "🛡️", def: 4, block: 1, dodge: 2, armorType: "leather", price: 90, shopTier: 2, desc: "Лёгкий бронзовый щит, за которым проще уйти от удара." },
+  bronze_shield: { id: "bronze_shield", name: "Бронзовый щит", slot: "offhand", icon: "🛡️", def: 4, block: 1, dodge: 2, price: 90, shopTier: 2, desc: "Лёгкий бронзовый щит, за которым проще уйти от удара." },
 
   bronze_head: gearItem("bronze_head", "Бронзовый шлем", "head", "⛑️", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Бронзовый шлем рудокопа, что гасит и камнепад, и удар."),
   bronze_chest: gearItem("bronze_chest", "Бронзовый нагрудник", "chest", "🥋", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из звонкой бронзы, лёгкий настолько, что не мешает уклоняться."),
@@ -1163,7 +1163,7 @@ const ITEMS = {
   steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 2, desc: "Двуручник, чей клинок длиннее человеческой тени." },
   steel_sledge: { id: "steel_sledge", name: "Стальная кувалда", slot: "mainhand", icon: "🔨", atk: 58, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 55 }, price: 380, shopTier: 2, desc: "Кузнечная кувалда, перекованная в орудие для черепов." },
 
-  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, armorType: "plate", price: 180, shopTier: 2, desc: "Стальной щит, за которым можно переждать целый бой." },
+  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 180, shopTier: 2, desc: "Стальной щит, за которым можно переждать целый бой." },
 
   steel_head: gearItem("steel_head", "Стальной шлем", "head", "⛑️", 150, 2, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
   steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "🛡️", 300, 2, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
@@ -1177,7 +1177,7 @@ const ITEMS = {
   mithril_halberd: { id: "mithril_halberd", name: "Мифриловая алебарда", slot: "mainhand", icon: "🪓", atk: 70, crit: 4, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 34, bludgeoning: 6 }, price: 560, shopTier: 3, desc: "Мифриловая алебарда — копьё и топор в одном древке." },
   mithril_axe: { id: "mithril_axe", name: "Мифриловая секира", slot: "mainhand", icon: "🪓", atk: 78, crit: 3, weaponType: "axe", handed: "2h", damage: { slashing: 58, piercing: 0, bludgeoning: 20 }, price: 640, shopTier: 3, desc: "Двуручная секира из мифрила, рассекающая воздух и броню." },
 
-  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, armorType: "plate", price: 320, shopTier: 3, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
+  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, price: 320, shopTier: 3, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
 
   mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "💠", 320, 3, { def: 12, hp: 100, crit: 2, armorType: "chain" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
   mithril_chest: gearItem("mithril_chest", "Мифриловая кольчуга", "chest", "🥋", 560, 3, { def: 16, hp: 130, crit: 3, armorType: "chain" }, "Мифриловая кольчуга, лёгкая настолько, что не замедляет руку."),
@@ -1191,7 +1191,7 @@ const ITEMS = {
   hell_halberd: { id: "hell_halberd", name: "Алебарда из адского камня", slot: "mainhand", icon: "🪓", atk: 100, dodge: -3, weaponType: "spear", handed: "2h", damage: { slashing: 40, piercing: 50, bludgeoning: 10 }, price: 880, shopTier: 4, desc: "Адская алебарда, чей крюк рвёт и плоть, и реальность." },
   hell_maul: { id: "hell_maul", name: "Молот из адского камня", slot: "mainhand", icon: "🔨", atk: 110, dodge: -4, weaponType: "mace", handed: "2h", damage: { slashing: 5, piercing: 0, bludgeoning: 105 }, price: 980, shopTier: 4, desc: "Молот из адского камня, от которого трещит сама земля." },
 
-  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, armorType: "plate", price: 600, shopTier: 4, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
+  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, price: 600, shopTier: 4, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
 
   hell_head: gearItem("hell_head", "Шлем из адского камня", "head", "👹", 600, 4, { def: 16, hp: 130, armorType: "plate" }, "Шлем из адского камня, из глазниц которого сочится дым."),
   hell_chest: gearItem("hell_chest", "Кираса из адского камня", "chest", "🛡️", 850, 4, { def: 20, hp: 160, armorType: "plate" }, "Кираса из адского камня, что жжёт того, кто ударит по ней."),
@@ -1276,8 +1276,12 @@ for (const [itemId, fileId] of Object.entries(ICON_ALIASES)) {
 
 // Обратный поиск «имя файла → id предмета» — чтобы эмодзи-заглушка
 // находилась и для иконок с несовпадающим именем файла.
+// Если имя файла совпадает с id реального предмета (iron_shield), файл
+// принадлежит этому предмету, а не алиасу.
 const ICON_ITEM_BY_FILE = Object.fromEntries(
-  Object.entries(ICON_ALIASES).map(([itemId, fileId]) => [fileId, itemId])
+  Object.entries(ICON_ALIASES)
+    .filter(([, fileId]) => !ITEMS[fileId])
+    .map(([itemId, fileId]) => [fileId, itemId])
 );
 
 // Текстовая (эмодзи) иконка предмета — для тостов и строк лога.
@@ -1838,7 +1842,7 @@ const RECIPES = [
   { id: "recipe_iron_chainmail", station: "forge", result: "iron_chainmail", desc: "Железная кольчуга", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, rust: 4 } },
   { id: "recipe_wood_club", station: "forge", result: "wood_club", desc: "Дубина", floor: 1, dropChance: 0.05, materials: { wood: 3, rust: 2 } },
   { id: "recipe_wood_shield", station: "forge", result: "wood_shield", desc: "Деревянный щит", floor: 1, dropChance: 0.05, materials: { wood: 5, malachite: 3 } },
-  { id: "recipe_leather_shield", station: "forge", result: "leather_shield", desc: "Кожаный щит", floor: 1, dropChance: 0.05, materials: { leather: 4, wood: 4 } },
+  { id: "recipe_iron_shield", station: "forge", result: "iron_shield", desc: "Железный щит", floor: 1, dropChance: 0.05, materials: { leather: 4, wood: 4 } },
   { id: "recipe_head_cloth", station: "forge", result: "head_cloth", desc: "Тканевый капюшон", floor: 1, dropChance: 0.05, materials: { cloth: 3, rust: 1 } },
   { id: "recipe_back_cloak", station: "forge", result: "back_cloak", desc: "Рваный плащ", floor: 1, dropChance: 0.05, materials: { cloth: 4, wood: 1 } },
   { id: "recipe_hands_gloves", station: "forge", result: "hands_gloves", desc: "Рабочие перчатки", floor: 1, dropChance: 0.05, materials: { leather: 2, cloth: 2 } },
