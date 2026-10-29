@@ -1676,7 +1676,7 @@ function floorHtml() {
   const canFight = !isNight() && state.energy >= FIGHT_ENERGY_COST;
   const reason = towerClosedReason();
 
-  const potionsHtml = Object.values(ITEMS).filter(i => i.slot === "potion" && (state.potions[i.id] || 0) > 0).map(i => {
+  const potionsHtml = Object.values(ITEMS).filter(i => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0).map(i => {
     const full = i.effect === "hp" ? state.hp >= stats().maxHp : state.mana >= stats().maxMana;
     return `<button class="btn small ghost" data-act="drink" data-id="${i.id}" ${full ? "disabled" : ""} type="button">${iconHtml(i.icon, 16)} ${i.name} ×${state.potions[i.id]}</button>`;
   }).join("");
