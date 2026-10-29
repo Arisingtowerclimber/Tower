@@ -944,12 +944,14 @@ const ITEMS = {
   student_robe: gearItem("student_robe", "Ученическая роба", "chest", "🧥", 50, 1, { def: 2, hp: 10, mana: 10, armorType: "cloth" }, "Роба ученика алхимика — ткань теперь пахнет травами."),
   rough_leather: gearItem("rough_leather", "Грубый кожаный доспех", "chest", "🥋", 80, 1, { def: 4, hp: 20, dodge: 2, armorType: "leather" }, "Свинженные куски, сшитые без вкуса, но вовремя."),
   rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "🥋", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
+  iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "🥋", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
   dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "🛡️", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
 
   // ── Броня тир 2 (Сталь) ──
   dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
   reinforced_leather: gearItem("reinforced_leather", "Укрепленная кожа", "chest", "🥋", 200, 2, { def: 8, hp: 40, dodge: 4, armorType: "leather" }, "Кожа с вбиваемыми стальными шипами."),
   steel_chain: gearItem("steel_chain", "Стальная кольчуга", "chest", "🥋", 300, 2, { def: 14, hp: 60, armorType: "chain" }, "Каждое кольцо — углеродистая сталь."),
+  steel_chainmail: { id: "steel_chainmail", name: "Стальная кольчуга", slot: "chest", armorType: "chain", def: 14, hp: 110, price: 280, shopTier: 2, icon: "🥋", desc: "Тяжёлая, но надёжная броня, способная остановить даже меч." },
   steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "🛡️", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
 
   hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 60, price: 20, shopTier: 1, desc: "Восстанавливает 60 HP." },
@@ -1599,6 +1601,7 @@ const NPCS = {
 const RECIPES = [
   // ── 1-Й ЭТАЖ (Тир 0 и Железо/Тир 1) ──
   { id: "recipe_gambeson", station: "forge", result: "gambeson", desc: "Стёганый гамбезон", floor: 1, dropChance: 0.05, materials: { cloth: 4, malachite: 2 } },
+  { id: "recipe_iron_chainmail", station: "forge", result: "iron_chainmail", desc: "Железная кольчуга", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, rust: 4 } },
   { id: "recipe_wood_club", station: "forge", result: "wood_club", desc: "Дубина", floor: 1, dropChance: 0.05, materials: { wood: 3, rust: 2 } },
   { id: "recipe_wood_shield", station: "forge", result: "wood_shield", desc: "Деревянный щит", floor: 1, dropChance: 0.05, materials: { wood: 5, malachite: 3 } },
   { id: "recipe_leather_shield", station: "forge", result: "leather_shield", desc: "Кожаный щит", floor: 1, dropChance: 0.05, materials: { leather: 4, wood: 4 } },
@@ -1634,6 +1637,7 @@ const RECIPES = [
   { id: "recipe_dense_cloth", station: "forge", result: "dense_cloth", desc: "Плотная ткань", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 5, bone: 2 } },
   { id: "recipe_shadow_leather", station: "forge", result: "shadow_leather", desc: "Кожа ловца дорожек", floor: 2, dropChance: 0.05, materials: { steel: 2, leather: 6, bone: 2 } },
   { id: "recipe_steel_chain", station: "forge", result: "steel_chain", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 4, leather: 2 } },
+  { id: "recipe_steel_chainmail", station: "forge", result: "steel_chainmail", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 4, leather: 2 } },
   { id: "recipe_steel_plate", station: "forge", result: "steel_plate", desc: "Стальные латы", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 5, leather: 2 } },
   { id: "recipe_steel_short_sword", station: "forge", result: "steel_short_sword", desc: "Стальной короткий меч", floor: 2, dropChance: 0.05, materials: { steel: 4, iron_ore: 2, leather: 1 } },
   { id: "recipe_steel_great_sword", station: "forge", result: "steel_great_sword", desc: "Стальной двуручный меч", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 4, leather: 2 } },
