@@ -44,24 +44,44 @@ function iconHtml(icon, size = 32, fit = "contain") {
 
 const ATTR_LABEL = { str: "Сила", end: "Выносливость", agi: "Ловкость", int: "Интеллект" };
 
+const DMG_TIPS = {
+  slashing: "Урон рубящего типа. Эффективен против ткани и кожи, слаб против лат.",
+  piercing: "Урон колющего типа. Эффективен против ткани, слаб против лат.",
+  bludgeoning: "Урон дробящего типа. Эффективен против лат и кольчуги.",
+};
+
 function itemStats(item, inst = null) {
   const s = inst ? getInstanceStats(inst) : item;
   const out = [];
-  if (s.def) out.push(`🛡 +${s.def}`);
-  if (s.hp) out.push(`❤ +${s.hp}`);
-  if (s.mana) out.push(`🔷 +${s.mana} маны`);
-  if (s.crit) out.push(`🎯 +${s.crit}%`);
-  if (s.dodge) out.push(`💨 +${s.dodge}%`);
-  if (s.block) out.push(`🧱 +${s.block} зона блока`);
-  // Разбивка урона по стилям — вместо общего «⚔ +X».
-  // Выводим всегда все три типа, чтобы карточки предметов были одинаковой высоты.
+  // Сначала — разбивка урона по стилям, всегда все три типа,
+  // чтобы карточки предметов были одинаковой высоты.
   if (s.damage) {
     for (const st of STYLE_ORDER) {
       const val = s.damage[st] || 0;
       out.push(`${STYLE_NAMES[st]} ${val > 0 ? val : "—"}`);
     }
   }
+  // Затем — бонусные статы, чистым текстом без иконок.
+  if (s.def) out.push(`+${s.def} броня`);
+  if (s.crit) out.push(`+${s.crit}% крит`);
+  if (s.dodge) out.push(`+${s.dodge}% уворот`);
+  if (s.block) out.push(`+${s.block} блок`);
+  if (s.hp) out.push(`+${s.hp} HP`);
+  if (s.mana) out.push(`+${s.mana} маны`);
   return out;
+}
+
+// Стиль урона по тексту чипа (для класса и подсказки).
+function dmgStyleOf(text) {
+  return STYLE_ORDER.find((st) => text.startsWith(`${STYLE_NAMES[st]} `)) || null;
+}
+
+function chipTitle(text) {
+  const style = dmgStyleOf(text);
+  if (style) return DMG_TIPS[style];
+  if (text.includes("крит")) return "Шанс критического удара.";
+  if (text.includes("уворот")) return "Шанс уклониться от атаки.";
+  return "";
 }
 
 function getItemDisplayName(instance) {
@@ -79,10 +99,16 @@ function durabilityChip() { return ""; }
 
 function statsChips(item, inst = null) {
   const chips = itemStats(item, inst);
-  // Чипы урона помечаем отдельным классом — он задаёт им одинаковую ширину/высоту.
-  const isDmgChip = (text) => STYLE_ORDER.some((st) => text.startsWith(`${STYLE_NAMES[st]} `));
+  // Чипы урона помечаем отдельным классом (одинаковая ширина/высота)
+  // и добавляем подсказку о взаимодействии с бронёй.
   let html = chips.length
-    ? chips.map((c) => `<span class="chip${isDmgChip(c) ? " dmg" : ""}">${c}</span>`).join("")
+    ? chips
+        .map((c) => {
+          const title = chipTitle(c);
+          const cls = `chip${dmgStyleOf(c) ? " dmg" : ""}`;
+          return `<span class="${cls}"${title ? ` title="${title}"` : ""}>${c}</span>`;
+        })
+        .join("")
     : "";
 
   if (inst && inst.affix) {
