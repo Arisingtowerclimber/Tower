@@ -991,7 +991,6 @@ kbd {
 
 .doll-item { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 9px; align-items: center; width: 100%; padding: 7px; border: 1px solid var(--line); border-radius: 10px; background: #130f0c; text-align: left; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
 .doll-item:hover { border-color: var(--gold); background: #1c1510; }
-.doll-item.equipped { border-color: #3c4a35; }
 .doll-item .item-icon { width: 38px; height: 38px; font-size: 19px; }
 .doll-item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .doll-item-name { font-size: 13.5px; font-weight: 600; }
@@ -1229,8 +1228,16 @@ kbd {
 .inv-slot.rarity-epic, .doll-item.rarity-epic, .gear-card.rarity-epic, .resource-row.rarity-epic, .doll-slot.rarity-epic { border-color: #9c27b0; }
 .inv-slot.rarity-legendary, .doll-item.rarity-legendary, .gear-card.rarity-legendary, .resource-row.rarity-legendary, .doll-slot.rarity-legendary { border-color: #ff9800; }
 
+.doll-item.rarity-uncommon .doll-item-name { color: #4caf50; }
+.doll-item.rarity-rare .doll-item-name { color: #2196f3; }
+.doll-item.rarity-epic .doll-item-name { color: #9c27b0; }
+.doll-item.rarity-legendary .doll-item-name { color: #ff9800; }
+
 .inv-slot.equipped-item { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(217, 169, 75, 0.25); }
 .inv-slot.equipped-item:hover { border-color: var(--gold2); }
+.doll-item.equipped { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(217, 169, 75, 0.25), 0 0 10px rgba(217, 169, 75, 0.16); }
+.doll-item.equipped:hover { border-color: var(--gold2); }
+.doll-item.equipped .doll-item-status { color: var(--gold2); font-weight: 700; }
 .equipped-badge {
   position: absolute;
   top: 2px;

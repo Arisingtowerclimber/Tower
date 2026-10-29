@@ -1731,7 +1731,8 @@ function dollMenuHtml() {
   const rows = items.map((inst) => {
     const item = ITEMS[inst.id];
     const equippedAt = Object.keys(state.equipped).find((s) => state.equipped[s] === inst.uid);
-    return `<button class="doll-item${equippedAt === slot.id ? " equipped" : ""}${rarityClass(inst)}" data-act="doll-equip" data-uid="${inst.uid}" data-slot="${slot.id}" type="button"><span class="item-icon">${iconHtml(item.icon, 32)}</span><span class="doll-item-body"><span class="doll-item-name">${getItemDisplayName(inst)}</span><span class="chips">${statsChips(item, inst)}</span></span></button>`;
+    const isEquipped = equippedAt === slot.id;
+    return `<button class="doll-item${isEquipped ? " equipped" : ""}${rarityClass(inst)}" data-act="doll-equip" data-uid="${inst.uid}" data-slot="${slot.id}" type="button"><span class="item-icon">${iconHtml(item.icon, 32)}</span><span class="doll-item-body"><span class="doll-item-name">${getItemDisplayName(inst)}</span><span class="chips">${statsChips(item, inst)}</span>${isEquipped ? `<span class="doll-item-status">✓ Надето</span>` : ""}</span></button>`;
   }).join("");
   return `<div class="doll-menu-backdrop" data-act="doll-close"></div><div class="doll-menu" role="dialog"><div class="doll-menu-head"><h3>${slot.name}</h3><button class="doll-menu-close" data-act="doll-close" type="button">✕</button></div>${offhandNote}<div class="doll-menu-list">${rows}</div>${current ? `<div class="doll-menu-foot"><button class="btn small ghost" data-act="doll-unequip" data-slot="${slot.id}" type="button">Снять «${getItemDisplayName(current)}»</button></div>` : ""}</div>`;
 }
