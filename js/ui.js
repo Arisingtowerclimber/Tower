@@ -2669,7 +2669,7 @@ function resultHtml() {
 }
 
 function subHeader(title, subtitle, backScreen, backLabel = "← Назад") {
-  return `<div class="subhead"><button class="btn tiny ghost" data-act="goto" data-screen="${backScreen}" type="button">${backLabel}</button><div><h1>${title}</h1><p class="muted">${subtitle}</p></div><div class="subhead-gold">💰 <b>${state.gold}</b></div></div>`;
+  return `<div class="subhead"><button class="btn tiny ghost" data-act="goto" data-screen="${backScreen}" type="button">${backLabel}</button><div><h1>${title}</h1><p class="muted">${subtitle}</p></div></div>`;
 }
 
 function scrollLog() { const log = platform.dom.byId("battle-log"); if (log) log.scrollTop = log.scrollHeight; }

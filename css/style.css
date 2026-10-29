@@ -488,16 +488,6 @@ kbd {
 
 .subhead h1 { font-size: 30px; }
 
-.subhead-gold {
-  margin-left: auto;
-  padding: 8px 14px;
-  border: 1px solid #4d3a1b;
-  border-radius: 10px;
-  background: #221a0f;
-  color: var(--gold2);
-  white-space: nowrap;
-}
-
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 .chip {
@@ -1621,7 +1611,6 @@ kbd {
   .points-banner { flex-wrap: wrap; }
   .points-banner .loc-cta { margin-left: 0; width: 100%; }
   .subhead { gap: 10px; flex-wrap: wrap; }
-  .subhead-gold { margin-left: 0; }
   .fighters { grid-template-columns: 1fr; }
   .vs { display: none; }
   .controls { grid-template-columns: 1fr; padding: 14px; }
