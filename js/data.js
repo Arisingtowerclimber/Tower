@@ -589,9 +589,9 @@ const UNARMED_DAMAGE = { slashing: 6, piercing: 4, bludgeoning: 6 }; // кула
 const MONK_UNARMED_STYLE_MULT = 1.0;
 const MONK_DEFAULT_STANCE = "bludgeoning";
 const MONK_STANCES = [
-  { id: "slashing", name: "Тигр", icon: "🐯", desc: "Стойка Тигра: +10% урона, −10% уклонения." },
-  { id: "piercing", name: "Журавль", icon: "🦢", desc: "Стойка Журавля: +10% уклонения, −10% урона." },
-  { id: "bludgeoning", name: "Змея", icon: "🐍", desc: "Стойка Змеи: игнорирует 30% брони, −10% урона." },
+  { id: "slashing", name: "Тигр", desc: "Аналог рубящего стиля." },
+  { id: "piercing", name: "Журавль", desc: "Аналог колющего стиля." },
+  { id: "bludgeoning", name: "Медведь", desc: "Аналог дробящего стиля." },
 ];
 
 // ── Таланты: 3 ветки, очко раз в 3 уровня ────────────────────────────────────

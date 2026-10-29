@@ -1824,7 +1824,7 @@ function renderEventModal(event) {
 }
 
 // Единый размер кнопок боевого интерфейса: одинаковая высота, ширина и центрированный текст.
-const BATTLE_BTN_STYLE = "height: 40px; min-height: 40px; max-height: 40px; width: 100%; box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
+const BATTLE_BTN_STYLE = "height: 44px; min-height: 44px; max-height: 44px; width: 100%; box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
 
 function zoneButtons() {
   const st = stats();
@@ -2068,7 +2068,6 @@ function battleModalHtml() {
 
   if (isAbilities) {
     const techReady = battle.rage >= 3 && state.mana >= TECH_COST;
-    const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
 
     body = [
       card({
@@ -2084,32 +2083,30 @@ function battleModalHtml() {
         name: "Сменить оружие",
         meta: "Потратит ход: вы не атакуете, враг ударит.",
       }),
-      `<div class="battle-modal-section">Зелья</div>`,
-      potionItems.length
-        ? potionItems.map((i) => card({
-            act: "drink-battle",
-            id: i.id,
-            icon: iconHtml(i.icon, 24),
-            name: esc(i.name),
-            meta: esc(i.desc || ""),
-            count: state.potions[i.id],
-            disabled: !canDrinkPotion(i.id),
-          })).join("")
-        : `<p class="battle-modal-empty">Нет зелий</p>`,
     ].join("");
-    tip = "Питьё зелья заменит вашу атаку, но вы сохраните блок.";
   } else {
+    const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
     const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
-    body = battleItems.length
-      ? battleItems.map((i) => card({
-          act: "use-battle-item",
-          id: i.id,
-          icon: iconHtml(i.icon, 24),
-          name: esc(i.name),
-          meta: esc(i.desc || ""),
-          count: state.potions[i.id],
-        })).join("")
-      : `<p class="battle-modal-empty">Нет расходников</p>`;
+    const potionCards = potionItems.map((i) => card({
+      act: "drink-battle",
+      id: i.id,
+      icon: iconHtml(i.icon, 24),
+      name: esc(i.name),
+      meta: esc(i.desc || ""),
+      count: state.potions[i.id],
+      disabled: !canDrinkPotion(i.id),
+    }));
+    const itemCards = battleItems.map((i) => card({
+      act: "use-battle-item",
+      id: i.id,
+      icon: iconHtml(i.icon, 24),
+      name: esc(i.name),
+      meta: esc(i.desc || ""),
+      count: state.potions[i.id],
+    }));
+
+    body = potionCards.concat(itemCards).join("")
+      || `<p class="battle-modal-empty">Нет расходников</p>`;
     tip = "Расходник заменит вашу атаку, но вы сохраните блок.";
   }
 

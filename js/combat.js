@@ -188,8 +188,8 @@ function reflectThorns(battle, uniques, damage) {
 }
 // Базовая сила удара до вычета защиты. Вынесено, чтобы прогноз и размен
 // считали урон по одной формуле.
-function computeStrikeBase(st, { power = 1, zoneMult = 1, styleMult = 1, stanceMult = 1, armorMult = 1, variance = 1 } = {}) {
-  return st.atk * power * zoneMult * styleMult * stanceMult * armorMult * variance;
+function computeStrikeBase(st, { power = 1, zoneMult = 1, styleMult = 1, armorMult = 1, variance = 1 } = {}) {
+  return st.atk * power * zoneMult * styleMult * armorMult * variance;
 }
 
 function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
@@ -361,15 +361,9 @@ function exchange(state, battle, action, weaponInst = null) {
       if (styleMult <= 0) return { error: "Это оружие не бьёт таким стилем." };
 
       const armorType = e.armorType || "leather";
-      let armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
-      let monkStanceMult = 1;
-      if (isMonkUnarmed) {
-        if (style === "slashing") monkStanceMult = 1.1;
-        else if (style === "piercing") monkStanceMult = 0.9;
-        else if (style === "bludgeoning") { monkStanceMult = 0.9; armorMult *= 1.3; }
-      }
+      const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
 
-      let base = computeStrikeBase(st, { power, zoneMult, styleMult, stanceMult: monkStanceMult, armorMult, variance: rnd(0.9, 1.1) });
+      let base = computeStrikeBase(st, { power, zoneMult, styleMult, armorMult, variance: rnd(0.9, 1.1) });
       const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
       const crit = !tech && Math.random() * 100 < critChance;
       if (crit) base *= 1.7;
