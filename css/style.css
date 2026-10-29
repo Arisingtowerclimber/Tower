@@ -664,36 +664,6 @@ kbd {
 .hotel-status { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .hotel-status span { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: #130f0c; color: var(--dim); font-size: 12px; }
 
-.hotel-rest {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 26px;
-  padding: 20px;
-  border: 1px solid #5c4322;
-  border-radius: 16px;
-  background:
-    radial-gradient(360px 160px at 10% 0%, rgba(217, 169, 75, 0.12), transparent 70%),
-    linear-gradient(180deg, #1d1510, #120d0b);
-}
-
-.hotel-rest-icon {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  flex: 0 0 64px;
-  border: 1px solid var(--line2);
-  border-radius: 16px;
-  background: radial-gradient(circle at 30% 20%, #3a2618, #150f0c);
-  font-size: 32px;
-}
-
-.hotel-rest-body { flex: 1; min-width: 0; }
-.hotel-rest-body h2 { margin-bottom: 4px; }
-.hotel-rest-body p { color: var(--dim); font-size: 13.5px; }
-.hotel-rest-buy { display: flex; flex-direction: column; align-items: stretch; gap: 7px; min-width: 140px; text-align: center; }
-
 .companion-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 10px; }
 
 .companion-card {
@@ -1639,9 +1609,6 @@ kbd {
   .locations { grid-template-columns: 1fr; }
   .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .status-item.buff { grid-column: 1 / -1; }
-  .hotel-rest { flex-direction: column; align-items: flex-start; }
-  .hotel-rest-buy { width: 100%; }
-  .hotel-rest-buy .btn { width: 100%; }
   .companion-grid { grid-template-columns: 1fr; }
   .tower-status > div { flex: 1 1 45%; min-width: 0; }
   .tower-foot .btn { width: 100%; }

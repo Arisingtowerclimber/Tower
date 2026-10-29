@@ -554,7 +554,7 @@ function hubHtml(st) {
 
 const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "stella", training: "ivan" };
 
-function npcDialogueBar(npcId, buyLabel, sellLabel) {
+function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
   const tab = view.shopTab;
   const npcName = NPC_NAMES[npcId] || npcId;
   
@@ -597,6 +597,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
         <p class="npc-dialogue">«${esc(phrase)}»</p>
       </div>
       <div class="npc-dialogue-actions">
+        ${extraAction}
         ${btn("buy", buyLabel)}
         ${sellLabel ? btn("sell", sellLabel) : ""}
         ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
@@ -742,13 +743,12 @@ function hotelHtml() {
       ? npcQuestHtml("stella")
       : tab === "story"
         ? storyQuestPanelHtml("stella")
-        : `<section class="hotel-rest"><div class="hotel-rest-icon">🛏️</div><div class="hotel-rest-body"><h2>Снять номер</h2><p>Полностью восстановит HP, ману и энергию и перенесёт на утро следующего дня.</p></div><div class="hotel-rest-buy"><button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер · ${HOTEL_PRICE} 💰</button></div></section>
-         <h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
+        : `<h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
     ${subHeader("Гостиница", "Тёплый свет и чужие истории", "hub", "← В Йорстед")}
-    ${npcDialogueBar("stella", "Снять номер", "")}
+    ${npcDialogueBar("stella", "Спутницы", "", `<button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер · ${HOTEL_PRICE} 💰</button>`)}
     ${content}
   `;
 }
