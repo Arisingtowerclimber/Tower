@@ -1144,20 +1144,20 @@ const ITEMS = {
   smoke_bomb: { id: "smoke_bomb", name: "Дымовая бомба", icon: "💨", type: "combat", effect: "smoke", price: 30, desc: "Враг пропускает следующий удар.", slot: "potion" },
   fire_flask: { id: "fire_flask", name: "Греческий огонь", icon: "🔥", type: "combat", effect: "fire", damage: 20, price: 40, desc: "Наносит 20 урона, игнорируя броню.", slot: "potion" },
   poison_vial: { id: "poison_vial", name: "Флакон с ядом", icon: "🧪", type: "combat", effect: "poison", damage: 5, turns: 3, price: 35, desc: "Наносит 5 урона в течение 3 ходов.", slot: "potion", shopTier: 1 },
-// === ITEMS: Бронза (этаж 2) ===
-  bronze_sword: { id: "bronze_sword", name: "Бронзовый меч", slot: "mainhand", icon: "🗡️", atk: 30, crit: 4, dodge: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 12, bludgeoning: 0 }, price: 130, shopTier: 2, desc: "Тусклая бронза, выкованная в глубине шахты, — режет не хуже стали." },
-  bronze_axe: { id: "bronze_axe", name: "Бронзовый топор", slot: "mainhand", icon: "🪓", atk: 34, crit: 2, dodge: 2, weaponType: "axe", handed: "1h", damage: { slashing: 26, piercing: 0, bludgeoning: 8 }, price: 150, shopTier: 2, desc: "Лёгкий топор с бронзовым лезвием, что входит в кость с одного замаха." },
-  bronze_mace: { id: "bronze_mace", name: "Бронзовая булава", slot: "mainhand", icon: "🏏", atk: 38, crit: 2, dodge: 2, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 35 }, price: 170, shopTier: 2, desc: "Шиповатое бронзовое навершие дробит шлемы и черепа одинаково легко." },
+// === ITEMS: Холодное железо (этаж 2) ===
+  cold_iron_sword: { id: "cold_iron_sword", name: "Меч из холодного железа", slot: "mainhand", icon: "🗡️", atk: 30, crit: 4, dodge: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 12, bludgeoning: 0 }, price: 130, shopTier: 2, desc: "Клинок из холодного железа леденит ладонь даже через рукоять. Нежить чует его и отступает." },
+  cold_iron_axe: { id: "cold_iron_axe", name: "Топор из холодного железа", slot: "mainhand", icon: "🪓", atk: 34, crit: 2, dodge: 2, weaponType: "axe", handed: "1h", damage: { slashing: 26, piercing: 0, bludgeoning: 8 }, price: 150, shopTier: 2, desc: "Лезвие из холодного железа холодно на ощупь и входит в мёртвую плоть без сопротивления." },
+  cold_iron_mace: { id: "cold_iron_mace", name: "Булава из холодного железа", slot: "mainhand", icon: "🏏", atk: 38, crit: 2, dodge: 2, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 35 }, price: 170, shopTier: 2, desc: "Шиповатое навершие из холодного железа дробит кости и жжёт нежить холодом." },
 
-  bronze_shield: { id: "bronze_shield", name: "Бронзовый щит", slot: "offhand", icon: "🛡️", def: 4, block: 1, dodge: 2, price: 90, shopTier: 2, desc: "Лёгкий бронзовый щит, за которым проще уйти от удара." },
+  cold_iron_shield: { id: "cold_iron_shield", name: "Щит из холодного железа", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 4, block: 1, dodge: 2, price: 90, shopTier: 2, desc: "Щит из холодного железа. Металл холодит руку и не подпускает нежить вплотную." },
 
-  bronze_head: gearItem("bronze_head", "Бронзовый шлем", "head", "⛑️", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Бронзовый шлем рудокопа, что гасит и камнепад, и удар."),
-  bronze_chest: gearItem("bronze_chest", "Бронзовый нагрудник", "chest", "🥋", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из звонкой бронзы, лёгкий настолько, что не мешает уклоняться."),
-  bronze_hands: gearItem("bronze_hands", "Бронзовые перчатки", "hands", "🧤", 60, 2, { def: 4, hp: 40, dodge: 3, armorType: "leather" }, "Бронзовые перчатки, оставляющие пальцы свободными для кирки."),
-  bronze_feet: gearItem("bronze_feet", "Бронзовые сапоги", "feet", "🥾", 70, 2, { def: 5, hp: 45, dodge: 3, armorType: "leather" }, "Лёгкие бронзовые сапоги, в которых шаг становится тише."),
+  cold_iron_head: gearItem("cold_iron_head", "Шлем из холодного железа", "head", "assets/icons/iron_helmet.webp", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Шлем из холодного железа холодит виски — и нежить обходит его стороной."),
+  cold_iron_chest: gearItem("cold_iron_chest", "Нагрудник из холодного железа", "chest", "assets/icons/iron_breastplate.webp", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из холодного железа: лёгкий, холодный на ощупь и смертельно неприятный для нежити."),
+  cold_iron_hands: gearItem("cold_iron_hands", "Перчатки из холодного железа", "hands", "assets/icons/hands_iron.webp", 60, 2, { def: 4, hp: 40, dodge: 3, armorType: "leather" }, "Перчатки из холодного железа оставляют пальцы свободными для кирки, а металл стынет на коже."),
+  cold_iron_feet: gearItem("cold_iron_feet", "Сапоги из холодного железа", "feet", "assets/icons/iron_boots.webp", 70, 2, { def: 5, hp: 45, dodge: 3, armorType: "leather" }, "Сапоги из холодного железа: шаг тише, а нежить слышит его хуже."),
 
-  bronze_ring: gearItem("bronze_ring", "Бронзовое кольцо", "ring", "💍", 60, 2, { crit: 2 }, "Простое бронзовое кольцо, отполированное до зеркального блеска."),
-  bronze_neck: gearItem("bronze_neck", "Бронзовый амулет", "neck", "📿", 65, 2, { dodge: 2 }, "Амулет из бронзы, чей тихий звон отводит беду."),
+  cold_iron_ring: gearItem("cold_iron_ring", "Кольцо из холодного железа", "ring", "💍", 60, 2, { crit: 2 }, "Простое кольцо из холодного железа, отполированное до блеска. Нежить его не любит."),
+  cold_iron_neck: gearItem("cold_iron_neck", "Амулет из холодного железа", "neck", "📿", 65, 2, { dodge: 2 }, "Амулет из холодного железа, чей тихий звон отводит беду и нежить."),
 // === ITEMS: Сталь (этаж 3) ===
   steel_knight_sword: { id: "steel_knight_sword", name: "Рыцарский стальной меч", slot: "mainhand", icon: "⚔️", atk: 42, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 16, bludgeoning: 0 }, price: 220, shopTier: 2, desc: "Прямой рыцарский клинок из холодной стали." },
   steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 2, desc: "Двуручник, чей клинок длиннее человеческой тени." },
@@ -1201,7 +1201,7 @@ const ITEMS = {
   hell_ring: gearItem("hell_ring", "Кольцо из адского камня", "ring", "💍", 550, 4, { crit: 4, hp: 30 }, "Кольцо из адского камня, что питает удар жизнью."),
   hell_trinket: gearItem("hell_trinket", "Амулет из адского камня", "trinket", "🔮", 580, 4, { crit: 3, hp: 50 }, "Амулет из адского камня, что делает тело крепче и удар точнее."),
 // === ITEMS: Сеты (Рудокоп / Страж склепа / Адский клинок) ===
-  // — Рудокоп (бронза, leather, этаж 2) —
+  // — Рудокоп (холодное железо, leather, этаж 2) —
   set_miner_head: gearItem("set_miner_head", "Шлем рудокопа", "head", "⛑️", 90, 2, { def: 4, hp: 40, dodge: 2, armorType: "leather", rarity: "legendary", unique: "lucky" }, "Шлем рудокопа с тусклой лампой — говорят, он приносит удачу."),
   set_miner_chest: gearItem("set_miner_chest", "Доспех рудокопа", "chest", "🦺", 150, 2, { def: 8, hp: 70, dodge: 2, armorType: "leather" }, "Кожаный доспех рудокопа, пропитанный рудной пылью и потом."),
   set_miner_legs: gearItem("set_miner_legs", "Штаны рудокопа", "legs", "👖", 120, 2, { def: 6, hp: 55, dodge: 3, armorType: "leather" }, "Штаны рудокопа, усиленные на коленях для долгой работы."),
@@ -1388,7 +1388,7 @@ const FLOORS = [
   },
   // === FLOORS[1] — Кобольды (шахты) ===
   { id: 2, name: "Шахты Кобольдов", subtitle: "Под землёй стучат кирки, и стук всё ближе", icon: "⚙️",
-    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы бронзы. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и шипение колдовских заклинаний.",
+    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы холодного железа. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и шипение колдовских заклинаний.",
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
@@ -1400,10 +1400,10 @@ const FLOORS = [
           { id: "wood", chance: 0.2, min: 1, max: 2 },
         ] }),
       enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "⚙️", hp: 378, atk: 50, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
-        desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки бронзы, целясь в живот и грудь.",
+        desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки холодного железа, целясь в живот и грудь.",
         drops: [
           { id: "kobold_gear", chance: 0.4, min: 1, max: 2 },
-          { id: "bronze_ingot", chance: 0.25, min: 1, max: 1 },
+          { id: "cold_iron_ingot", chance: 0.25, min: 1, max: 1 },
           { id: "rust", chance: 0.2, min: 1, max: 2 },
         ] }),
       enemy({ id: "kobold_sorcerer", name: "Кобольд-колдун", icon: "💀", hp: 432, atk: 55, def: 10, gold: 80, xp: 105, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
@@ -1417,8 +1417,8 @@ const FLOORS = [
     boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "👹", hp: 1728, atk: 89, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Огромный, перемазанный рудой кобольд с молотом в лапах. В ярости его удары разбрызгивают кровь по стенам шахты.",
       drops: [
-        { id: "bronze_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
-        { id: "bronze_ingot", chance: 0.6, min: 2, max: 3 },
+        { id: "cold_iron_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "cold_iron_ingot", chance: 0.6, min: 2, max: 3 },
         { id: "copper_ore", chance: 0.5, min: 2, max: 3 },
       ] }),
   },
@@ -1613,7 +1613,7 @@ const FLOOR_RESOURCES = {
     { id: "tin_ore", name: "Оловянная руда", icon: "⚪", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "ron" },
     { id: "kobold_gear", name: "Шестерёнка", icon: "⚙️", minAmount: 1, maxAmount: 3, sellPrice: 22, npc: "elize" },
     { id: "cave_mushroom", name: "Пещерный гриб", icon: "🍄", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "elain" },
-    { id: "bronze_ingot", name: "Бронзовый слиток", icon: "🟫", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "ron" },
+    { id: "cold_iron_ingot", name: "Слиток холодного железа", icon: "🟫", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "ron" },
   ],
   3: [
     { id: "bone", name: "Кости", icon: "🦴", minAmount: 1, maxAmount: 3, sellPrice: 12, npc: "ron" },
@@ -1772,7 +1772,7 @@ const UPGRADE_PATHS = {
     id: "weapon", name: "Оружие", icon: "⚒️",
     materials: [
       { copper_ore: 3, tin_ore: 2 },
-      { bronze_ingot: 3, kobold_gear: 2 },
+      { cold_iron_ingot: 3, kobold_gear: 2 },
       { grave_iron: 3, rune_dust: 2 },
       { mithril_ore: 3, war_crystal: 1 },
       { hellstone: 3, void_crystal: 1 },
@@ -1782,7 +1782,7 @@ const UPGRADE_PATHS = {
     id: "armor", name: "Броня", icon: "🛡️",
     materials: [
       { copper_ore: 3, tin_ore: 3 },
-      { bronze_ingot: 2, kobold_gear: 3 },
+      { cold_iron_ingot: 2, kobold_gear: 3 },
       { grave_iron: 4, rune_dust: 2 },
       { mithril_ore: 3, iron_chain: 2 },
       { hellstone: 4, void_crystal: 2 },
@@ -1894,23 +1894,23 @@ const RECIPES = [
   { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { silver: 5, bone: 3 } },
   { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { silver: 3, steel: 4, leather: 2 } },
 
-  // ── 2-Й ЭТАЖ (Бронза/сет «Рудокоп») ──
-  { id: "recipe_bronze_sword", station: "forge", result: "bronze_sword", desc: "Бронзовый меч", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 2, bronze_ingot: 2 } },
-  { id: "recipe_bronze_axe", station: "forge", result: "bronze_axe", desc: "Бронзовый топор", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 3, bronze_ingot: 2 } },
-  { id: "recipe_bronze_mace", station: "forge", result: "bronze_mace", desc: "Бронзовая булава", floor: 2, dropChance: 0.05, materials: { copper_ore: 5, tin_ore: 2, bronze_ingot: 3 } },
-  { id: "recipe_bronze_shield", station: "forge", result: "bronze_shield", desc: "Бронзовый щит", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 3, tin_ore: 1 } },
-  { id: "recipe_bronze_head", station: "forge", result: "bronze_head", desc: "Бронзовый шлем", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 2 } },
-  { id: "recipe_bronze_chest", station: "forge", result: "bronze_chest", desc: "Бронзовый нагрудник", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 4, copper_ore: 3, tin_ore: 2 } },
-  { id: "recipe_bronze_hands", station: "forge", result: "bronze_hands", desc: "Бронзовые перчатки", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2, tin_ore: 1 } },
-  { id: "recipe_bronze_feet", station: "forge", result: "bronze_feet", desc: "Бронзовые сапоги", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 2, tin_ore: 2 } },
-  { id: "recipe_bronze_ring", station: "jewelry", result: "bronze_ring", desc: "Бронзовое кольцо", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2 } },
-  { id: "recipe_bronze_neck", station: "jewelry", result: "bronze_neck", desc: "Бронзовый амулет", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 1, tin_ore: 1 } },
-  // Сет «Рудокоп» (бронза, этаж 2)
-  { id: "recipe_set_miner_head", station: "forge", result: "set_miner_head", desc: "Шлем рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, kobold_gear: 1, copper_ore: 2 } },
-  { id: "recipe_set_miner_chest", station: "forge", result: "set_miner_chest", desc: "Доспех рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 3, kobold_gear: 2, copper_ore: 3 } },
-  { id: "recipe_set_miner_legs", station: "forge", result: "set_miner_legs", desc: "Штаны рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 2, copper_ore: 3, tin_ore: 2 } },
-  { id: "recipe_set_miner_hands", station: "forge", result: "set_miner_hands", desc: "Перчатки рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, kobold_gear: 1, tin_ore: 2 } },
-  { id: "recipe_set_miner_feet", station: "forge", result: "set_miner_feet", desc: "Сапоги рудокопа", floor: 2, dropChance: 0.05, materials: { bronze_ingot: 1, copper_ore: 2, tin_ore: 2 } },
+  // ── 2-Й ЭТАЖ (Холодное железо/сет «Рудокоп») ──
+  { id: "recipe_cold_iron_sword", station: "forge", result: "cold_iron_sword", desc: "Меч из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 2, cold_iron_ingot: 2 } },
+  { id: "recipe_cold_iron_axe", station: "forge", result: "cold_iron_axe", desc: "Топор из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 3, cold_iron_ingot: 2 } },
+  { id: "recipe_cold_iron_mace", station: "forge", result: "cold_iron_mace", desc: "Булава из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 5, tin_ore: 2, cold_iron_ingot: 3 } },
+  { id: "recipe_cold_iron_shield", station: "forge", result: "cold_iron_shield", desc: "Щит из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 3, tin_ore: 1 } },
+  { id: "recipe_cold_iron_head", station: "forge", result: "cold_iron_head", desc: "Шлем из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 2 } },
+  { id: "recipe_cold_iron_chest", station: "forge", result: "cold_iron_chest", desc: "Нагрудник из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, copper_ore: 3, tin_ore: 2 } },
+  { id: "recipe_cold_iron_hands", station: "forge", result: "cold_iron_hands", desc: "Перчатки из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, copper_ore: 2, tin_ore: 1 } },
+  { id: "recipe_cold_iron_feet", station: "forge", result: "cold_iron_feet", desc: "Сапоги из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 2, tin_ore: 2 } },
+  { id: "recipe_cold_iron_ring", station: "jewelry", result: "cold_iron_ring", desc: "Кольцо из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, copper_ore: 2 } },
+  { id: "recipe_cold_iron_neck", station: "jewelry", result: "cold_iron_neck", desc: "Амулет из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 1, tin_ore: 1 } },
+  // Сет «Рудокоп» (холодное железо, этаж 2)
+  { id: "recipe_set_miner_head", station: "forge", result: "set_miner_head", desc: "Шлем рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, kobold_gear: 1, copper_ore: 2 } },
+  { id: "recipe_set_miner_chest", station: "forge", result: "set_miner_chest", desc: "Доспех рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, kobold_gear: 2, copper_ore: 3 } },
+  { id: "recipe_set_miner_legs", station: "forge", result: "set_miner_legs", desc: "Штаны рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 3, tin_ore: 2 } },
+  { id: "recipe_set_miner_hands", station: "forge", result: "set_miner_hands", desc: "Перчатки рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, kobold_gear: 1, tin_ore: 2 } },
+  { id: "recipe_set_miner_feet", station: "forge", result: "set_miner_feet", desc: "Сапоги рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, copper_ore: 2, tin_ore: 2 } },
 
   // ── 3-Й ЭТАЖ (Сталь/сет «Страж склепа») ──
   { id: "recipe_steel_knight_sword", station: "forge", result: "steel_knight_sword", desc: "Рыцарский стальной меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2, silver: 1 } },
