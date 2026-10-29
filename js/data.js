@@ -1055,7 +1055,7 @@ const ITEMS = {
   neck_guard: gearItem("neck_guard", "Медальон караульного", "neck", "📿", 110, 2, { hp: 40, crit: 1 }, "Знак поста, который давно не сменяли."),
   neck_crystal: gearItem("neck_crystal", "Кристальный подвесок", "neck", "💠", 330, 3, { hp: 60, crit: 2 }, "Внутри что-то медленно пульсирует."),
   ring_copper: gearItem("ring_copper", "Медное кольцо", "ring", "💍", 35, 1, { crit: 1 }, "Тусклое, но своё."),
-  ring_silver: gearItem("ring_silver", "Серебряное кольцо", "ring", "💍", 120, 2, { crit: 2, hp: 20 }, "На внутренней стороне стёрта чужая надпись."),
+  ring_silver: gearItem("ring_silver", "Кольцо из холодного железа", "ring", "💍", 120, 2, { crit: 2, hp: 20 }, "Тяжелое кольцо, выкованное из холодного железа. Охраняет владельца от злых чар."),
   ring_crystal: gearItem("ring_crystal", "Кристальное кольцо", "ring", "💍", 350, 3, { crit: 3, hp: 20 }, "Осколок, оправленный в серебро."),
   trinket_coin: gearItem("trinket_coin", "Счастливая монета", "trinket", "💰", 35, 1, { dodge: 1 }, "Счастливая, пока не потрачена."),
   trinket_totem: gearItem("trinket_totem", "Железный тотем", "trinket", "🔮", 120, 2, { dodge: 2, hp: 20 }, "Тёплый, если долго держать."),
@@ -1892,7 +1892,7 @@ const RECIPES = [
   { id: "recipe_scout_boots", station: "forge", result: "scout_boots", desc: "Сапоги разведчика", floor: 2, dropChance: 0.05, materials: { steel: 3, leather: 6 } },
   
   // Ювелирка 2-го этажа
-  { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Серебряное кольцо", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, malachite: 2 } },
+  { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Кольцо из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, malachite: 2 } },
   { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 5, bone: 3 } },
   { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, steel: 4, leather: 2 } },
 
