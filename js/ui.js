@@ -24,6 +24,7 @@ const view = {
   weaponSwap: false,
   battleModal: null,
   titleModal: false,
+  talentsModal: false,
   settingsOpen: false, settingsTab: "audio",
   shopFilterSlot: "all", shopFilterType: "all", shopFilterStyle: null,
 };
@@ -2037,15 +2038,6 @@ function heroHtml(st) {
       </section>
 
       <section class="panel doll-panel">
-        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-          <button class="btn${view.inventoryTab === "talents" ? " primary" : " ghost"}" data-act="inventory-tab" data-tab="talents" type="button" style="min-width: 200px;">
-            🌟 Таланты
-          </button>
-          <button class="btn ghost" data-act="title-open" type="button" style="min-width: 200px;">
-            🏅 Сменить титул
-          </button>
-        </div>
-
         <div class="doll-stage">${paperDollHtml()}</div>
         ${dollMenuHtml()}
         ${invMenuHtml()}
@@ -2062,6 +2054,16 @@ function heroHtml(st) {
           ${heroInventoryHtml()}
         </div>
       </section>
+    </div>
+    <div class="hero-actions-bar">
+      <button class="hero-action-btn" data-act="talents-open" type="button">
+        <span class="hero-action-icon">🌟</span>
+        <span class="hero-action-label">Таланты</span>
+      </button>
+      <button class="hero-action-btn" data-act="title-open" type="button">
+        <span class="hero-action-icon">🏅</span>
+        <span class="hero-action-label">Сменить титул</span>
+      </button>
     </div>
     <div class="danger-zone"><button class="btn tiny danger" data-act="reset" type="button">Сбросить прогресс</button></div>
   `;
@@ -2795,6 +2797,7 @@ function render() {
   if (view.timmyTip) html += timmyModalHtml();
   if (view.settingsOpen) html += settingsModalHtml();
   if (view.titleModal) html += titleModalHtml();
+  if (view.talentsModal) html += talentsModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
@@ -3110,6 +3113,18 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
           ${buttonsHtml}
         </div>
       </div>
+    </div>
+  `;
+}
+function talentsModalHtml() {
+  return `
+    <div class="settings-backdrop" data-act="talents-close"></div>
+    <div class="settings-modal talents-modal" role="dialog" aria-label="Таланты">
+      <div class="settings-head">
+        <h3>🌟 Таланты</h3>
+        <button class="settings-close" data-act="talents-close" type="button">✕</button>
+      </div>
+      <div class="talents-modal-body">${talentsHtml()}</div>
     </div>
   `;
 }
@@ -3527,6 +3542,8 @@ function onClick(event) {
     case "inv-filter": view.invFilter = el.dataset.filter || "all"; render(); break;
     case "add-attr": res = addAttr(el.dataset.attr); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "title-open": view.titleModal = true; render(); break;
+    case "talents-open": view.talentsModal = true; render(); break;
+    case "talents-close": view.talentsModal = false; render(); break;
     case "title-close": view.titleModal = false; render(); break;
     case "title-pick": {
       const res = selectTitle(el.dataset.title);
