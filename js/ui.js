@@ -22,6 +22,7 @@ const view = {
   exploreResult: null,
   weaponSwap: false,
   battleLeftTab: "abilities",
+  settingsOpen: false, settingsTab: "audio",
 };
 
 let toastTimer = null;
@@ -439,6 +440,7 @@ function topbarHtml(st) {
     <nav class="topnav${lockNav}">
       <button class="nav-btn icon-btn${hasRewards ? " ok" : ""}" data-act="quests-open" type="button" title="Журнал заданий">📋</button>
       <button class="nav-btn icon-btn" data-act="bestiary-open" type="button" title="Бестиарий">📖</button>
+      <button class="nav-btn icon-btn" data-act="settings-open" type="button" title="Настройки">⚙️</button>
       <button class="nav-btn icon-btn" data-act="goto" data-screen="hero" type="button" title="Меню Героя">👤</button>
       <button class="nav-btn icon-btn" data-act="goto" data-screen="hub" type="button" title="Вернуться в Йорстед">🏰</button>
     </nav>
@@ -481,11 +483,6 @@ function hubHtml(st) {
             <small>${companion.buffText} · ещё ${companionDaysLeft()} дн.</small>
           </div>
         ` : ""}
-        <div class="status-item" style="margin: 0; padding: 8px 12px; display: flex; gap: 8px; align-items: center;" data-tip="Громкость звуковых эффектов">
-          <span>🔊 Звуки</span>
-          <input type="range" min="0" max="1" step="0.05" value="${Sfx.getVolume()}" data-role="sfx-volume" class="sfx-volume" title="Громкость звуковых эффектов">
-          <small data-role="sfx-volume-label">${Math.round(Sfx.getVolume() * 100)}%</small>
-        </div>
       </div>
 
             <div class="locations">
@@ -803,6 +800,62 @@ function questsModalHtml() {
       <p class="hint" style="margin: 0 0 12px;">Заказы выдаются в понедельник утром, до конца недели. Взять — у NPC лично.</p>
       <div class="quest-grid" style="grid-template-columns: 1fr; gap: 8px;">
         ${cards || `<p class="empty">На этой неделе предложений нет.</p>`}
+      </div>
+    </div>
+  `;
+}
+
+// ── Модальное окно Настроек (Этап 7) ───────────────────────────────────────
+// Табы: audio (звук), ui (интерфейс), controls (управление).
+function settingsModalHtml() {
+  const tab = view.settingsTab || "audio";
+  const savedMusic = platform.storage.get("tower_music_volume");
+  const musicVol = savedMusic !== null && savedMusic !== undefined && savedMusic !== "" ? parseFloat(savedMusic) : 0.3;
+
+  const tabBtn = (id, label) =>
+    `<button class="settings-tab${tab === id ? " active" : ""}" data-act="settings-tab" data-tab="${id}" type="button">${label}</button>`;
+
+  let content = "";
+  if (tab === "audio") {
+    content = `
+      <div class="settings-row">
+        <label for="music-volume">Музыка</label>
+        <input type="range" id="music-volume" min="0" max="1" step="0.01" value="${musicVol}">
+        <span class="settings-val">${Math.round(musicVol * 100)}%</span>
+      </div>
+      <div class="settings-row">
+        <label>Звуки (SFX)</label>
+        <input type="range" min="0" max="1" step="0.05" value="${Sfx.getVolume()}" data-role="sfx-volume">
+        <span class="settings-val" data-role="sfx-volume-label">${Math.round(Sfx.getVolume() * 100)}%</span>
+      </div>
+      <div class="settings-row" style="justify-content: flex-start;">
+        <button class="btn small" data-act="test-sound" type="button">Проверить звук</button>
+      </div>
+    `;
+  } else if (tab === "ui") {
+    content = `<p class="settings-stub">В разработке</p>`;
+  } else {
+    content = `
+      <p class="settings-help">Хоткеи боя:</p>
+      <p class="settings-help"><b>1–5</b> — выбрать зону удара</p>
+      <p class="settings-help"><b>Shift + 1–5</b> — включить/выключить зону блока</p>
+    `;
+  }
+
+  return `
+    <div class="settings-backdrop" data-act="settings-close"></div>
+    <div class="settings-modal" role="dialog" aria-label="Настройки">
+      <div class="settings-head">
+        <h3>⚙️ Настройки</h3>
+        <button class="settings-close" data-act="settings-close" type="button">✕</button>
+      </div>
+      <div class="settings-body">
+        <aside class="settings-sidebar">
+          ${tabBtn("audio", "🔊 Звук")}
+          ${tabBtn("ui", "🖥 Интерфейс")}
+          ${tabBtn("controls", "⌨ Управление")}
+        </aside>
+        <div class="settings-content">${content}</div>
       </div>
     </div>
   `;
@@ -2054,6 +2107,7 @@ function render() {
   }
   
   if (view.questsOpen) html += questsModalHtml();
+  if (view.settingsOpen) html += settingsModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
@@ -2448,6 +2502,10 @@ function onClick(event) {
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
     case "quests-close": view.questsOpen = false; render(); break;
+    case "settings-open": view.settingsOpen = true; render(); break;
+    case "settings-close": view.settingsOpen = false; render(); break;
+    case "settings-tab": view.settingsTab = el.dataset.tab || "audio"; render(); break;
+    case "test-sound": Sfx.play("open"); break;
     case "bestiary-open": view.bestiaryOpen = true; render(); break;
     case "bestiary-close": view.bestiaryOpen = false; render(); break;
     case "levelup-close": view.levelUp = null; render(); break;

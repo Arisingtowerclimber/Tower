@@ -1735,6 +1735,120 @@ kbd {
     width: 95vw !important;
   }
 }
+
+/* ── Настройки (Этап 7) ─────────────────────────────────────── */
+.settings-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(5, 3, 2, 0.66);
+  backdrop-filter: blur(2px);
+}
+.settings-modal {
+  position: fixed; top: 50%; left: 50%; z-index: 201;
+  width: min(620px, calc(100vw - 24px));
+  max-height: min(80vh, 640px);
+  display: flex; flex-direction: column;
+  padding: 16px;
+  border: 1px solid var(--gold); border-radius: 14px;
+  background: linear-gradient(180deg, #1b1512, #120e0b);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+.settings-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-head h3 { margin: 0; font-size: 17px; color: var(--gold2); }
+.settings-close {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--line2); border-radius: 8px; background: #130f0c;
+  color: var(--dim); cursor: pointer;
+}
+.settings-close:hover { border-color: var(--gold); color: var(--gold2); }
+.settings-body { display: flex; gap: 14px; min-height: 0; }
+.settings-sidebar {
+  display: flex; flex-direction: column; gap: 6px; flex: 0 0 150px;
+  border-right: 1px solid var(--line); padding-right: 12px;
+}
+.settings-tab {
+  padding: 8px 10px; text-align: left; font-size: 13px;
+  border: 1px solid var(--line); border-radius: 8px; background: #150f0c;
+  color: #cfc0ab; cursor: pointer;
+}
+.settings-tab:hover { border-color: var(--gold); }
+.settings-tab.active {
+  border-color: var(--gold); background: rgba(201, 152, 78, 0.12);
+  color: var(--gold2);
+}
+.settings-content { flex: 1; min-width: 0; overflow-y: auto; padding-right: 4px; }
+.settings-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; font-size: 13.5px;
+}
+.settings-row label { flex: 0 0 110px; color: var(--dim); }
+.settings-row input[type="range"] { flex: 1; min-width: 120px; }
+.settings-val { flex: 0 0 44px; text-align: right; font-size: 12px; color: var(--gold2); }
+.settings-stub {
+  padding: 24px 12px; text-align: center; font-style: italic;
+  color: var(--dim); border: 1px dashed var(--line2); border-radius: 10px;
+}
+.settings-help { margin: 0 0 10px; font-size: 13px; color: #cfc0ab; }
+.settings-help b { color: var(--gold2); }
+@media (max-width: 640px) {
+  .settings-body { flex-direction: column; }
+  .settings-sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 10px; }
+}
+
+/* ── Горизонтальные карточки товаров (Этап 8) ───────────────── */
+.shop-filters {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.shop-filter-sub {
+  margin: 0 0 12px;
+  padding-left: 4px;
+  border-left: 2px solid var(--line);
+}
+.shop-filter-btn {
+  padding: 5px 12px; font-size: 12px;
+  border: 1px solid var(--line); border-radius: 16px; background: #150f0c;
+  color: #cfc0ab; cursor: pointer;
+}
+.shop-filter-btn:hover { border-color: var(--gold); color: var(--gold2); }
+.shop-filter-btn.active {
+  border-color: var(--gold); background: rgba(201, 152, 78, 0.12);
+  color: var(--gold2);
+}
+.gear-rows { display: flex; flex-direction: column; }
+.gear-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #191310, #14100d);
+}
+.gear-row:hover { background: #1d1713; }
+.gear-row-icon {
+  flex: 0 0 44px; width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 10px; background: #130f0c;
+  overflow: hidden;
+}
+.gear-row-main { flex: 1; min-width: 0; }
+.gear-row-main h3 { margin: 0 0 2px; font-size: 14px; }
+.gear-row-main .item-desc { margin: 0 0 4px; font-size: 12px; line-height: 1.4; }
+.gear-row-main .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.gear-row-side {
+  display: flex; flex-direction: column; align-items: stretch; gap: 7px;
+  flex: 0 0 auto; min-width: 128px; text-align: right;
+}
+.gear-row-side .price { white-space: nowrap; }
+.gear-row.owned { box-shadow: inset 3px 0 0 #3c4a35; }
+@media (max-width: 640px) {
+  .gear-row { flex-wrap: wrap; }
+  .gear-row-side { flex-direction: row; align-items: center; justify-content: flex-end; flex: 1 1 auto; }
+}
+
 .pill.ok {
   border-color: #3c573f;
   background: #142016;
