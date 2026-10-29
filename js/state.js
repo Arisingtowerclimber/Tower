@@ -39,7 +39,7 @@ function defaultState() {
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
     activeEvent: null, tempDebuffs: [], eventCooldown: 0,
     killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, list: [] },
-    unlockedAchievements: [], critCount: 0, brinkSurvived: false,
+    unlockedAchievements: [], currentTitle: null, critCount: 0, brinkSurvived: false,
     huntContracts: { weekStartDay: 0, list: [] }, contractsDone: 0,
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
@@ -294,6 +294,8 @@ function loadState() {
       : [];
     state.critCount = Number.isFinite(state.critCount) ? Math.max(0, Math.floor(state.critCount)) : 0;
     state.brinkSurvived = Boolean(state.brinkSurvived);
+    // Титул: только открытый титул, иначе сбрасываем.
+    state.currentTitle = unlockedTitles(state).some((a) => a.title === state.currentTitle) ? state.currentTitle : null;
 
     // Контракты Гильдии Охотников: чистка мусора из сейва.
     state.contractsDone = Number.isFinite(state.contractsDone) ? Math.max(0, Math.floor(state.contractsDone)) : 0;
@@ -509,18 +511,52 @@ function archetypeMods(archetypeId = state?.archetype) {
 }
 
 // ── Достижения (глобальные пассивные бонусы) ────────────────────────────────
-// Сумма бонусов всех открытых ачивок: creds для stats() и rollDrops.
+// Сумма бонусов обычных (не-титульных) ачивок для stats() и rollDrops.
+// Титулы (поле `race`) сюда не попадают — их бонусы считает titleBonusVsMob.
 function achievementBonuses(s = state) {
-  const out = { atk: 0, crit: 0, dodge: 0, hp: 0, loot: 0, goblinAtk: 0, undeadPct: 0 };
+  const out = { atk: 0, crit: 0, dodge: 0, hp: 0, loot: 0 };
   const unlocked = (s && s.unlockedAchievements) || [];
   for (const id of unlocked) {
     const ach = ACHIEVEMENT_MAP[id];
     if (!ach || !ach.bonus || typeof ach.bonus !== "object") continue;
+    if (ach.race) continue; // титулы: только против своей расы
     for (const [key, value] of Object.entries(ach.bonus)) {
       if (key in out && Number.isFinite(value)) out[key] += value;
     }
   }
   return out;
+}
+
+// Открытые титулы (достижения с полем `title`).
+function unlockedTitles(s = state) {
+  const unlocked = (s && s.unlockedAchievements) || [];
+  return ACHIEVEMENTS.filter((a) => a.title && unlocked.includes(a.id));
+}
+
+// Бонусы титулов против конкретного врага (по id моба). Проверка расы —
+// строго по списку id: драконид не считается кобольдом и т.п.
+function titleBonusVsMob(s, enemyId) {
+  const out = { atk: 0, dmgPct: 0, crit: 0, dodge: 0 };
+  const unlocked = (s && s.unlockedAchievements) || [];
+  for (const id of unlocked) {
+    const ach = ACHIEVEMENT_MAP[id];
+    if (!ach || !ach.race || !ach.bonus) continue;
+    const raceIds = ACH_RACE_IDS[ach.race];
+    if (!raceIds || !raceIds.includes(enemyId)) continue;
+    for (const [key, value] of Object.entries(ach.bonus)) {
+      if (key in out && Number.isFinite(value)) out[key] += value;
+    }
+  }
+  return out;
+}
+
+// Выбор носимого титула. Сохраняется строка названия в state.currentTitle.
+function selectTitle(title) {
+  const ach = unlockedTitles(state).find((a) => a.title === title);
+  if (!ach) return { ok: false, text: "Этот титул ещё не открыт." };
+  state.currentTitle = ach.title;
+  saveState();
+  return { ok: true, text: `Титул надет: «${ach.title}».` };
 }
 
 // Проверяет условия и выдаёт новые ачивки. Возвращает список открытых сейчас;

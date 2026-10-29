@@ -645,14 +645,23 @@ const TALENTS = [
 
 const TALENT_MAP = Object.fromEntries(TALENTS.map((t) => [t.id, t]));
 
-// ── Достижения (глобальные пассивные бонусы) ────────────────────────────────
-// Каждая ачивка — условие по state и бонус. Обычные бонусы (atk/crit/dodge/hp/loot)
-// суммируются в stats(), особые модификаторы боя (goblinAtk, undeadPct)
-// учитываются отдельно в combat.js. progress(s) → [есть, нужно] для полоски в UI.
+// ── Достижения и титулы ────────────────────────────────────────────────────
+// Ачивка с полем `title` — это титул: игрок носит один из открытых (см.
+// state.currentTitle). Бонусы титула применяются ТОЛЬКО против мобов своей
+// расы (поле `race` + список id ниже) — их считает titleBonusVsMob в combat.js.
+// Обычные ачивки (без `race`) дают глобальные пассивные бонусы через stats().
 const ACH_GOBLIN_IDS  = ["goblin_scout", "goblin_chief", "hobgoblin", "bugbear"];
 const ACH_KOBOLD_IDS  = ["kobold_miner", "kobold_tinker", "kobold_sorcerer", "kobold_master"];
 const ACH_UNDEAD_IDS  = ["skeleton_warrior", "unquiet_ghost", "crypt_ghoul", "dark_knight"];
 const ACH_DEMON_IDS   = ["fire_imp", "hell_hound", "horned_devil", "demon_lord"];
+
+// Раса → список id мобов. Драконид (id: "dragonborn") сюда не входит — это
+// отдельная раса, поэтому бонусы кобольдов на него НЕ распространяются.
+const ACH_RACE_IDS = {
+  goblin: ACH_GOBLIN_IDS,
+  kobold: ACH_KOBOLD_IDS,
+  undead: ACH_UNDEAD_IDS,
+};
 
 function achKillSum(s, ids) {
   const kills = s.bestiaryKills || {};
@@ -660,27 +669,51 @@ function achKillSum(s, ids) {
 }
 
 const ACHIEVEMENTS = [
+  // ── Титулы (выбираемые): бонусы только против своей расы ─────────────────
   {
-    id: "ach_goblin_slayer", name: "Убийца гоблинов", icon: "👺",
-    desc: "Убить 10 гоблинов. Бонус: +2 урона по гоблинам и +1% к криту.",
-    condition: (s) => achKillSum(s, ACH_GOBLIN_IDS) >= 10,
-    progress: (s) => [Math.min(10, achKillSum(s, ACH_GOBLIN_IDS)), 10],
-    bonus: { crit: 1, goblinAtk: 2 },
+    id: "ach_goblin_slayer", name: "Убийца гоблинов", title: "Убийца гоблинов", icon: "👺", race: "goblin",
+    desc: "Убить 30 гоблинов. Бонус против гоблинов: +5% урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_GOBLIN_IDS) >= 30,
+    progress: (s) => [Math.min(30, achKillSum(s, ACH_GOBLIN_IDS)), 30],
+    bonus: { dmgPct: 5, crit: 2, dodge: 2 },
   },
   {
-    id: "ach_collector", name: "Коллекционер", icon: "💠",
-    desc: "Убить 20 кобольдов. Бонус: +5% к шансу найти ресурсы.",
-    condition: (s) => achKillSum(s, ACH_KOBOLD_IDS) >= 20,
-    progress: (s) => [Math.min(20, achKillSum(s, ACH_KOBOLD_IDS)), 20],
-    bonus: { loot: 5 },
+    id: "ach_goblin_exterminator", name: "Истребитель гоблинов", title: "Истребитель гоблинов", icon: "🔥", race: "goblin",
+    desc: "Убить 100 гоблинов. Бонус против гоблинов: +10 урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_GOBLIN_IDS) >= 100,
+    progress: (s) => [Math.min(100, achKillSum(s, ACH_GOBLIN_IDS)), 100],
+    bonus: { atk: 10, crit: 2, dodge: 2 },
   },
   {
-    id: "ach_undead_bane", name: "Гроза нежити", icon: "💀",
-    desc: "Убить 15 неупокоенных. Бонус: +5% урона по нежити.",
-    condition: (s) => achKillSum(s, ACH_UNDEAD_IDS) >= 15,
-    progress: (s) => [Math.min(15, achKillSum(s, ACH_UNDEAD_IDS)), 15],
-    bonus: { undeadPct: 5 },
+    id: "ach_kobold_slayer", name: "Убийца кобольдов", title: "Убийца кобольдов", icon: "🦎", race: "kobold",
+    desc: "Убить 30 кобольдов. Бонус против кобольдов: +5% урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_KOBOLD_IDS) >= 30,
+    progress: (s) => [Math.min(30, achKillSum(s, ACH_KOBOLD_IDS)), 30],
+    bonus: { dmgPct: 5, crit: 2, dodge: 2 },
   },
+  {
+    id: "ach_kobold_exterminator", name: "Истребитель кобольдов", title: "Истребитель кобольдов", icon: "🐲", race: "kobold",
+    desc: "Убить 100 кобольдов. Бонус против кобольдов: +10 урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_KOBOLD_IDS) >= 100,
+    progress: (s) => [Math.min(100, achKillSum(s, ACH_KOBOLD_IDS)), 100],
+    bonus: { atk: 10, crit: 2, dodge: 2 },
+  },
+  {
+    id: "ach_crypt_storm", name: "Гроза склепа", title: "Гроза склепа", icon: "💀", race: "undead",
+    desc: "Убить 30 неупокоенных. Бонус против нежити: +5% урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_UNDEAD_IDS) >= 30,
+    progress: (s) => [Math.min(30, achKillSum(s, ACH_UNDEAD_IDS)), 30],
+    bonus: { dmgPct: 5, crit: 2, dodge: 2 },
+  },
+  {
+    id: "ach_undead_bane", name: "Погибель нежити", title: "Погибель нежити", icon: "☠️", race: "undead",
+    desc: "Убить 100 неупокоенных. Бонус против нежити: +10 урона, +2% крита и уворота.",
+    condition: (s) => achKillSum(s, ACH_UNDEAD_IDS) >= 100,
+    progress: (s) => [Math.min(100, achKillSum(s, ACH_UNDEAD_IDS)), 100],
+    bonus: { atk: 10, crit: 2, dodge: 2 },
+  },
+
+  // ── Обычные достижения (пассивные, без титула) ────────────────────────────
   {
     id: "ach_demon_hunter", name: "Охотник на демонов", icon: "😈",
     desc: "Убить 10 демонов. Бонус: +5% к увороту.",

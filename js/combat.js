@@ -141,13 +141,15 @@ function defeatSummary(state, battle, e) {
   return { defeat: true, enemyName: e.name, lostGold: lost, lostItemsText };
 }
 
-// ── Модификаторы урона от достижений (по расам мобов) ────────────────────────
-// «Убийца гоблинов»: плоский +2 к урону; «Гроза нежити»: множитель по нежити.
+// ── Модификаторы урона/крита/уворота от титулов (по расе моба) ─────────────
+// Бонусы применяются только если цель совпадает по расе (проверка id моба).
 function achievementVsMobBonus(state, enemyId) {
-  const ach = achievementBonuses(state);
+  const b = titleBonusVsMob(state, enemyId);
   return {
-    flat: ach.goblinAtk || 0,
-    mult: 1 + (ach.undeadPct || 0) / 100 * (ACH_UNDEAD_IDS.includes(enemyId) ? 1 : 0),
+    flat: b.atk || 0,       // плоский бонус урона
+    dmgPct: b.dmgPct || 0,  // % урона
+    crit: b.crit || 0,      // % крита
+    dodge: b.dodge || 0,    // % уворота (защита против этой расы)
   };
 }
 
@@ -255,10 +257,10 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   let avg = Math.max(1, Math.round(base - effectiveDef * 0.6));
   // Прогноз тоже учитывает уязвимость моба.
   if (Array.isArray(e.weakTo) && e.weakTo.includes(actualStyle)) avg = Math.max(1, Math.round(avg * WEAKNESS_DAMAGE_MULT));
-  // Прогноз учитывает достижения (гоблины/нежить).
+  // Прогноз учитывает бонусы титулов против этой расы.
   const achVs = achievementVsMobBonus(state, e.id);
+  if (achVs.dmgPct) avg = Math.max(1, Math.round(avg * (1 + achVs.dmgPct / 100)));
   avg += achVs.flat;
-  if (achVs.mult !== 1) avg = Math.max(1, Math.round(avg * achVs.mult));
   return avg;
 }
 
@@ -267,6 +269,7 @@ function exchange(state, battle, action, weaponInst = null) {
 
   const st = stats();
   const e = battle.enemy;
+  const achVs = achievementVsMobBonus(state, e.id);
   const uniques = equippedUniques();
   const blocks = Array.isArray(action.blocks) ? action.blocks : [];
   const enemyAction = chooseEnemyAction(battle, battle.lastPlayerAttack);
@@ -429,7 +432,7 @@ function exchange(state, battle, action, weaponInst = null) {
       const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
 
       let base = computeStrikeBase(st, { power, zoneMult, styleMult, armorMult, variance: rnd(0.9, 1.1) });
-      const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
+      const critChance = st.crit + achVs.crit + (tech ? 0 : (zone.critBonus || 0));
       // навык «Точный выстрел» гарантирует крит, приём криту не мешает
       const crit = tech ? false : (skillEffect === "aim" ? true : Math.random() * 100 < critChance);
       if (crit) { base *= 1.7; state.critCount = (state.critCount || 0) + 1; }
@@ -445,13 +448,9 @@ function exchange(state, battle, action, weaponInst = null) {
         weaknessMark = " — уязвим!";
       }
 
-      // Достижения: +2 плоского урона по гоблинам, +5% по нежити.
-      const achVs = achievementVsMobBonus(state, e.id);
+      // Бонусы титулов против этой расы: % урона и плоский урон.
+      if (achVs.dmgPct) damage = Math.max(1, Math.round(damage * (1 + achVs.dmgPct / 100)));
       damage += achVs.flat;
-      if (achVs.mult !== 1) {
-        damage = Math.max(1, Math.round(damage * achVs.mult));
-        weaknessMark = `${weaknessMark} Божество смерти на вашей стороне.`.trim();
-      }
 
       battle.hp = Math.max(0, battle.hp - damage);
       battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
@@ -526,7 +525,7 @@ function exchange(state, battle, action, weaponInst = null) {
           battle.hp = Math.max(0, battle.hp - retaliation);
           battleLog(battle, `Страж отвечает на блок: ${e.name} теряет ${retaliation} HP.`, "hit");
         }
-      } else if (Math.random() * 100 < st.dodge) {
+      } else if (Math.random() * 100 < st.dodge + achVs.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
         Sfx.play("miss");
         
