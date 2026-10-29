@@ -89,6 +89,7 @@ function createBattle(enemyDef, floorId) {
     playerBlocksHistory: [], // <--- ДОБАВЛЕНО
     playerDebuffs: [],
     monkStance: MONK_DEFAULT_STANCE,
+    skillCd: {}, // откат активных навыков: { talentId: ходов до готовности }
   };
   
   const label = variationLabel(enemy);
@@ -177,6 +178,28 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
 
 function battleLog(battle, text, cls) {
   battle.log.push({ text, cls: cls || "info" });
+}
+
+// ── Активные навыки (таланты с умениями) ─────────────────────────────────────
+// Проверяет изученность, откат, ману и кураж; списывает стоимость и ставит
+// откат. Возвращает { talent, error } — при ошибке бой продолжается без списаний.
+function activateSkill(state, battle, talentId) {
+  const talent = TALENT_MAP[talentId];
+  const skill = talent && talent.active ? talent.skill : null;
+  if (!skill) return { talent, error: "Неизвестный навык." };
+  if (!((state.talents || {})[talentId])) return { talent, error: `Навык «${skill.name}» ещё не изучен. Он открывается в ветке талантов.` };
+  battle.skillCd = battle.skillCd || {};
+  if ((battle.skillCd[talentId] || 0) > 0) {
+    return { talent, error: `«${skill.name}» будет готов через ${battle.skillCd[talentId]} х.` };
+  }
+  if (state.mana < skill.manaCost) return { talent, error: `Не хватает маны: ${state.mana}/${skill.manaCost}.` };
+  if (skill.rageCost && battle.rage < skill.rageCost) return { talent, error: `Нужно ${skill.rageCost} ед. куража.` };
+
+  state.mana -= skill.manaCost;
+  if (skill.rageCost) battle.rage -= skill.rageCost;
+  battle.skillCd[talentId] = skill.cooldown || 1;
+  battleLog(battle, `Вы применяете навык «${skill.name}».`, "info");
+  return { talent, error: null };
 }
 
 // Шипы: часть полученного урона возвращается атакующему.
@@ -328,6 +351,29 @@ function exchange(state, battle, action, weaponInst = null) {
     battleLog(battle, "Вы меняете оружие.", "info");
   } else {
     const tech = action.type === "tech";
+    const isSkill = action.type === "skill";
+    let skillInfo = null;
+    if (isSkill) {
+      skillInfo = activateSkill(state, battle, action.id);
+      if (skillInfo.error) return { error: skillInfo.error };
+    }
+
+    // «Щит веры» не требует зоны удара: лечение + иммунитет к яду.
+    if (skillInfo && skillInfo.talent.skill.effect === "faith") {
+      const heal = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
+      if (heal > 0) {
+        state.hp += heal;
+        battleLog(battle, `Щит веры заживляет раны: +${heal} HP.`, "heal");
+      } else {
+        battleLog(battle, "Щит веры окутывает вас сиянием — раны уже чисты.", "heal");
+      }
+      battle.poisonImmune = true;
+      if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.some((d) => d.id === "poison")) {
+        battle.playerDebuffs = battle.playerDebuffs.filter((d) => d.id !== "poison");
+        battleLog(battle, "Свет сжигает яд!", "heal");
+      }
+      battle.lastPlayerAttack = null;
+    } else {
     if (!action.zone || !ZONE_NAME[action.zone]) return { error: "Выберите зону удара." };
 
     if (tech) {
@@ -339,7 +385,9 @@ function exchange(state, battle, action, weaponInst = null) {
 
     const zone = ZONE_MAP[action.zone];
     const zoneName = zone.name;
-    const blocked = !tech && !battle.staggered && enemyAction.blocks.includes(action.zone);
+    const skillEffect = skillInfo ? skillInfo.talent.skill.effect : null;
+    const skillUnblockable = skillEffect === "fury" || skillEffect === "aim"; // «в 2 зоны»: блок не помогает
+    const blocked = !tech && !skillUnblockable && !battle.staggered && enemyAction.blocks.includes(action.zone);
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
@@ -351,7 +399,7 @@ function exchange(state, battle, action, weaponInst = null) {
       battleLog(battle, `${e.name} уклоняется от удара в «${zoneName}».`, "miss");
       Sfx.play("miss");
     } else {
-      const power = tech ? 1.8 : 1;
+      const power = tech || skillEffect === "fury" ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
       const wanted = STYLE_ORDER.includes(action.style) ? action.style : "slashing";
       const mainInst = weaponInst !== undefined ? weaponInst : (state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null);
@@ -368,7 +416,8 @@ function exchange(state, battle, action, weaponInst = null) {
 
       let base = computeStrikeBase(st, { power, zoneMult, styleMult, armorMult, variance: rnd(0.9, 1.1) });
       const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
-      const crit = !tech && Math.random() * 100 < critChance;
+      // навык «Точный выстрел» гарантирует крит, приём криту не мешает
+      const crit = tech ? false : (skillEffect === "aim" ? true : Math.random() * 100 < critChance);
       if (crit) base *= 1.7;
 
       const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
@@ -413,6 +462,7 @@ function exchange(state, battle, action, weaponInst = null) {
     }
 
     battle.lastPlayerAttack = action.zone;
+    } // конец ветки удара (обычная атака / приём / навык-удар)
   }
 
   battle.staggered = false;
@@ -492,14 +542,18 @@ function exchange(state, battle, action, weaponInst = null) {
           battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
         }
         if (e.ability === "poison") {
-          if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
-          const existing = battle.playerDebuffs.find((d) => d.id === "poison");
-          if (existing) {
-            existing.turns = POISON_TURNS;
-            battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
+          if (battle.poisonImmune) {
+            battleLog(battle, "Щит веры отражает яд!", "heal");
           } else {
-            battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
-            battleLog(battle, `${e.name} отравляет вас!`, "warn");
+            if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
+            const existing = battle.playerDebuffs.find((d) => d.id === "poison");
+            if (existing) {
+              existing.turns = POISON_TURNS;
+              battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
+            } else {
+              battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
+              battleLog(battle, `${e.name} отравляет вас!`, "warn");
+            }
           }
         }
       }
@@ -507,6 +561,14 @@ function exchange(state, battle, action, weaponInst = null) {
   }
 
   state.mana = Math.min(st.maxMana, state.mana + MANA_REGEN);
+
+  // Тик откатов активных навыков: −1 ход за размен.
+  if (battle.skillCd) {
+    for (const id of Object.keys(battle.skillCd)) {
+      if (battle.skillCd[id] > 0) battle.skillCd[id] -= 1;
+    }
+  }
+
   battle.turn += 1;
 
   const brokenGear = wearEquipment();

@@ -505,7 +505,7 @@ function stats() {
   const tal = { atk: 0, crit: 0, def: 0, dodge: 0, hp: 0, hpRegen: 0, lootChance: 0, maxEnergy: 0, counterOnDodge: 0, armorPierce: 0, lifesteal: 0, secondWind: 0 };
   for (const [talentId, rank] of Object.entries(state.talents || {})) {
     const t = TALENT_MAP[talentId];
-    if (!t || !rank) continue;
+    if (!t || !rank || t.active) continue; // активные навыки — умения: пассивного стата не дают
     tal[t.stat] = (tal[t.stat] || 0) + t.value * rank;
   }
   const a = {

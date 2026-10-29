@@ -2440,6 +2440,26 @@ function battleModalHtml() {
   if (isAbilities) {
     const techReady = battle.rage >= 3 && state.mana >= TECH_COST;
 
+    // Изученные активные навыки: проверяем ману, кураж и откат.
+    const learnedSkills = TALENTS.filter((t) => t.active && ((state.talents || {})[t.id] || 0) > 0);
+    const skillCards = learnedSkills.map((t) => {
+      const cd = (battle.skillCd || {})[t.id] || 0;
+      const ready = state.mana >= t.skill.manaCost
+        && (!t.skill.rageCost || battle.rage >= t.skill.rageCost)
+        && cd <= 0;
+      const metaParts = [`Мана ${state.mana}/${t.skill.manaCost}`];
+      if (t.skill.rageCost) metaParts.push(`Кураж ${battle.rage}/${t.skill.rageCost}`);
+      if (cd > 0) metaParts.push(`Откат: ${cd} х.`);
+      return card({
+        act: "skill",
+        id: t.id,
+        icon: t.skill.icon || "✨",
+        name: esc(t.skill.name),
+        meta: metaParts.join(" · "),
+        disabled: !ready,
+      });
+    });
+
     body = [
       card({
         act: "tech",
@@ -2448,6 +2468,7 @@ function battleModalHtml() {
         meta: `Кураж ${battle.rage}/3 · Мана ${state.mana}/${TECH_COST}`,
         disabled: !techReady,
       }),
+      ...skillCards,
       card({
         act: "switch-weapon",
         icon: "🔄",
@@ -2455,6 +2476,7 @@ function battleModalHtml() {
         meta: "Потратит ход: вы не атакуете, враг ударит.",
       }),
     ].join("");
+    tip = skillCards.length ? "" : "Активные навыки появляются здесь после изучения в ветке талантов.";
   } else {
     const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
     const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
@@ -3507,6 +3529,11 @@ function onClick(event) {
       shake();
       doExchange("tech"); 
       render();
+      break;
+    case "skill":
+      view.battleModal = null;
+      shake();
+      doExchange("skill", el.dataset.id);
       break;
     
     case "switch-weapon": view.battleModal = null; view.weaponSwap = true; render(); break;

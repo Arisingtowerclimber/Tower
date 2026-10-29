@@ -615,6 +615,23 @@ const TALENTS = [
   { id: "t_crit",           branch: "war",  name: "Точный удар",     desc: "+3% к шансу крита за ранг.",          maxRank: 3, stat: "crit",           value: 3 },
   { id: "t_armorPierce",    branch: "war",  name: "Знание брони",    desc: "+5% к пробитию брони за ранг.",       maxRank: 3, stat: "armorPierce",    value: 5 },
   { id: "t_lifesteal",      branch: "war",  name: "Вампирская хватка", desc: "Атаки восстанавливают 10% HP урона.", maxRank: 1, stat: "lifesteal",      value: 10 },
+  // Активные навыки (умения): учатся как таланты, применяются в бою
+  // через модалку «Приёмы». Списывают ману (и кураж), имеют откат в ходах.
+  {
+    id: "sk_berserk", branch: "war", name: "Ярость берсерка", active: true, maxRank: 1, stat: null,
+    desc: "Активный навык: 10 маны и 3 куража — неудержимый удар силой ×1.8, который враг не может заблокировать. Откат: 3 хода.",
+    skill: { name: "Ярость берсерка", icon: "🪓", manaCost: 10, rageCost: 3, cooldown: 3, effect: "fury" },
+  },
+  {
+    id: "sk_shield", branch: "def", name: "Щит веры", active: true, maxRank: 1, stat: null,
+    desc: "Активный навык: 15 маны — лечение на 30% максимума HP и иммунитет к яду до конца боя. Снимает яд. Откат: 4 хода.",
+    skill: { name: "Щит веры", icon: "🛡️", manaCost: 15, rageCost: 0, cooldown: 4, effect: "faith" },
+  },
+  {
+    id: "sk_precise", branch: "util", name: "Точный выстрел", active: true, maxRank: 1, stat: null,
+    desc: "Активный навык: 12 маны — выверенный удар точно в уязвимое место: гарантированный крит, враг не успевает закрыться. Откат: 3 хода.",
+    skill: { name: "Точный выстрел", icon: "🎯", manaCost: 12, rageCost: 0, cooldown: 3, effect: "aim" },
+  },
   // Ветка «Стойкость»
   { id: "t_hp",             branch: "def",  name: "Крепкое тело",    desc: "+30 к максимуму HP за ранг.",         maxRank: 5, stat: "hp",             value: 30 },
   { id: "t_def",            branch: "def",  name: "Упорный",         desc: "+1 к защите за ранг.",                maxRank: 5, stat: "def",            value: 1 },
