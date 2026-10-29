@@ -1238,6 +1238,24 @@ for (const [id, armorType] of Object.entries(ARMOR_TYPE_BY_ID)) {
   if (ITEMS[id] && !ITEMS[id].armorType) ITEMS[id].armorType = armorType;
 }
 
+// Автопути иконок всех предметов 1-го тира: assets/icons/<id>.webp.
+// Прежний эмодзи сохраняем запасным вариантом — если файла ещё нет,
+// iconHtml покажет его вместо пустого слота.
+for (const item of Object.values(ITEMS)) {
+  if (item.shopTier !== 1) continue;
+  if (typeof item.icon === "string" && item.icon.startsWith("assets/")) continue;
+  if (!item.iconFallback) item.iconFallback = item.icon || "";
+  item.icon = `assets/icons/${item.id}.webp`;
+}
+
+// Текстовая (эмодзи) иконка предмета — для тостов и строк лога.
+function itemEmoji(item) {
+  if (!item) return "";
+  if (item.iconFallback) return item.iconFallback;
+  if (typeof item.icon === "string" && !item.icon.startsWith("assets/")) return item.icon;
+  return SLOT_ICON[item.slot] || "";
+}
+
 const MOB_ICONS = {
   goblin_scout: "assets/mobs/goblin_scout.webp",
   hobgoblin: "assets/mobs/hobgoblin.webp",

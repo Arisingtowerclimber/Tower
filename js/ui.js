@@ -54,6 +54,7 @@ function iconFallbackEmoji(resolved) {
   const m = /([^/]+)\.(webp|png|jpe?g|svg)(\?|$)/i.exec(resolved);
   const id = m ? m[1] : null;
   const item = id && ITEMS[id] ? ITEMS[id] : null;
+  if (item && item.iconFallback) return item.iconFallback;
   const slot = item ? item.slot : null;
   return (slot && SLOT_ICON[slot]) || "❔";
 }
@@ -1286,7 +1287,7 @@ function storyQuestRewardText(def) {
   const parts = [`💰 ${r.gold || 0}`, `✦ ${r.xp || 0}`];
   if (r.rep) parts.push(`⭐ +${r.rep}`);
   if (r.potions) parts.push(`🧪 +${r.potions}`);
-  if (r.item && ITEMS[r.item]) parts.push(`${ITEMS[r.item].icon} ${ITEMS[r.item].name}${(r.itemCount || 1) > 1 ? ` ×${r.itemCount}` : ""}`);
+  if (r.item && ITEMS[r.item]) parts.push(`${itemEmoji(ITEMS[r.item])} ${ITEMS[r.item].name}${(r.itemCount || 1) > 1 ? ` ×${r.itemCount}` : ""}`);
   if (r.recipe && RECIPE_MAP[r.recipe]) parts.push(`📜 ${RECIPE_MAP[r.recipe].desc}`);
   return parts.join(" · ");
 }

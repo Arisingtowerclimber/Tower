@@ -1106,10 +1106,10 @@ function claimStoryQuest(qId) {
     const count = reward.itemCount || 1;
     if (item.slot === "potion") {
       state.potions[reward.item] = (state.potions[reward.item] || 0) + count;
-      texts.push(`${item.icon} ${item.name} ×${count}`);
+      texts.push(`${itemEmoji(item)} ${item.name} ×${count}`);
     } else {
       for (let i = 0; i < count; i++) addItemInstance(reward.item, DURABILITY_MAX, "rare");
-      texts.push(`${item.icon} ${item.name}${count > 1 ? ` ×${count}` : ""}`);
+      texts.push(`${itemEmoji(item)} ${item.name}${count > 1 ? ` ×${count}` : ""}`);
     }
   }
   if (reward.recipe && RECIPE_MAP[reward.recipe] && !state.knownRecipes.includes(reward.recipe)) {
@@ -1249,8 +1249,8 @@ function exploreFloor(floorId) {
 
 function getTraderInventory() {
   const stock = [
-    { kind: "potion", id: "hp_small", name: ITEMS.hp_small.name, icon: ITEMS.hp_small.icon, price: Math.round(ITEMS.hp_small.price * TRADER_PRICE_MULT) },
-    { kind: "potion", id: "mana_small", name: ITEMS.mana_small.name, icon: ITEMS.mana_small.icon, price: Math.round(ITEMS.mana_small.price * TRADER_PRICE_MULT) },
+    { kind: "potion", id: "hp_small", name: ITEMS.hp_small.name, icon: itemEmoji(ITEMS.hp_small), price: Math.round(ITEMS.hp_small.price * TRADER_PRICE_MULT) },
+    { kind: "potion", id: "mana_small", name: ITEMS.mana_small.name, icon: itemEmoji(ITEMS.mana_small), price: Math.round(ITEMS.mana_small.price * TRADER_PRICE_MULT) },
   ];
   
   // Берем только оружие и броню, доступные на текущем максимальном этаже
