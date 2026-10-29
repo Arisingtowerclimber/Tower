@@ -9,7 +9,7 @@ const view = {
   autoExploreMode: "safe",
   npcShopOpen: false, traderStock: null,
   talkNpc: null, talkNpcText: null,
-  shopTab: null, sellSelection: [], activeShopNpc: null, shopNpcPhrase: null,
+  shopTab: "buy", sellSelection: [], activeShopNpc: null, shopNpcPhrase: null, shopFilterArmor: null,
   trainingTab: "train",
   inventoryTab: "gear",
   invItemUid: null,
@@ -996,8 +996,13 @@ function shopItemsHtml(tabs, activeId, shopName) {
   const shopSlots = new Set(tabs.flatMap((t) => t.slots));
   const shopItems = Object.values(ITEMS).filter((i) => shopSlots.has(i.slot) && i.price > 0 && shopFloorFor(i) <= state.maxFloor);
 
+  // Группа «Украшения» — только в ювелирной лавке, в Кузнице её нет.
+  const slotGroups = shopName === "jewelry"
+    ? SHOP_SLOT_GROUPS
+    : SHOP_SLOT_GROUPS.filter((g) => g.id !== "jewelry");
+
   // Верхняя панель: группы слотов, по которым вообще есть товар.
-  const presentGroups = SHOP_SLOT_GROUPS.filter((g) => g.slots.some((s) => shopSlots.has(s) && shopItems.some((i) => i.slot === s)));
+  const presentGroups = slotGroups.filter((g) => g.slots.some((s) => shopSlots.has(s) && shopItems.some((i) => i.slot === s)));
   const filtersHtml = `
     <div class="shop-filters">
       <button class="shop-filter-btn${slotFilter === "all" ? " active" : ""}" data-act="shop-filter-slot" data-slot="all" type="button">Все</button>
@@ -1009,7 +1014,7 @@ function shopItemsHtml(tabs, activeId, shopName) {
 
   // Слот-препикат: выбранная группа перекрывает текущую вкладку,
   // «Все» показывает ассортимент активной вкладки (как раньше).
-  const group = SHOP_SLOT_GROUPS.find((g) => g.id === slotFilter);
+  const group = slotGroups.find((g) => g.id === slotFilter);
   const candidates = group ? shopItems.filter((i) => group.slots.includes(i.slot)) : shopItems.filter((i) => activeTab.slots.includes(i.slot));
 
   // Вторая строка (только для Оружия): 1H / 2H.
@@ -1029,10 +1034,21 @@ function shopItemsHtml(tabs, activeId, shopName) {
     return item.handed === typeFilter;
   };
 
-  // Третья строка: сортировка по типу урона. Активный стиль оставляет
-  // только оружие с уроном этого типа и сортирует его по убыванию.
+  // Вторая строка для Брони: фильтр по типу брони.
+  const armorFilter = view.shopFilterArmor || null;
+  const armorBtn = (id, label) =>
+    `<button class="shop-filter-btn${(armorFilter || "all") === id ? " active" : ""}" data-act="shop-filter-armor" data-armor="${id}" type="button">${label}</button>`;
+  const armorRowHtml = slotFilter === "armor"
+    ? `<div class="shop-filters shop-filter-sub">
+         ${armorBtn("all", "Все")}
+         ${["cloth", "leather", "chain", "plate"].map((a) => armorBtn(a, ARMOR_TYPE_NAMES[a])).join("")}
+       </div>`
+    : "";
+
+  // Третья строка (только для Оружия): сортировка по типу урона. Активный стиль
+  // оставляет только оружие с уроном этого типа и сортирует его по убыванию.
   const styleFilter = view.shopFilterStyle || null;
-  const styleRowHtml = (activeTab.slots.includes("mainhand") || activeTab.slots.includes("offhand") || styleFilter)
+  const styleRowHtml = slotFilter === "weapon"
     ? `<div class="shop-filters shop-filter-sub">
          ${STYLE_ORDER.map((st) =>
            `<button class="shop-filter-btn${styleFilter === st ? " active" : ""}" data-act="shop-filter-style" data-style="${st}" type="button">${STYLE_NAMES[st] || st}</button>`
@@ -1040,8 +1056,11 @@ function shopItemsHtml(tabs, activeId, shopName) {
        </div>`
     : "";
   let effective = candidates;
+  if (slotFilter === "armor" && armorFilter) {
+    effective = effective.filter((i) => i.armorType === armorFilter);
+  }
   if (styleFilter) {
-    effective = candidates
+    effective = effective
       .filter((i) => (i.damage?.[styleFilter] || 0) > 0)
       .sort((a, b) => (b.damage[styleFilter] || 0) - (a.damage[styleFilter] || 0));
   }
@@ -1083,7 +1102,7 @@ function shopItemsHtml(tabs, activeId, shopName) {
 
   // Панель фильтров — одна, над всеми секциями слотов (и она не исчезает
   // при пустом результате, иначе из фильтра не выбраться).
-  const panel = `<section class="shop-group">${filtersHtml}${subHtml}${styleRowHtml}</section>`;
+  const panel = `<section class="shop-group">${filtersHtml}${subHtml}${armorRowHtml}${styleRowHtml}</section>`;
   return panel + (sections || `<section class="shop-group"><p class="empty">Под этот фильтр товаров нет.</p></section>`);
 }
 
@@ -1201,7 +1220,7 @@ function craftPanelHtml(station) {
 }
 
 function forgeHtml() {
-  const tab = view.shopTab;
+  const tab = view.shopTab || "buy";
   const content =
     tab === "sell" ? sellPanelHtml("forge")
     : tab === "quests" ? npcQuestHtml("ron")
@@ -1214,13 +1233,13 @@ function forgeHtml() {
 
   return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
-    ${npcDialogueBar("ron", "🛒 Показать товары", "💰 Хочу продать")}
+    ${npcDialogueBar("ron", "🛒 Купить", "💰 Хочу продать")}
     <div class="shop-grid"><div class="shop-main">${content}</div></div>
   `;
 }
 
 function jewelryHtml() {
-  const tab = view.shopTab;
+  const tab = view.shopTab || "buy";
   const content =
     tab === "sell" ? sellPanelHtml("jewelry")
     : tab === "quests" ? npcQuestHtml("elize")
@@ -1232,13 +1251,13 @@ function jewelryHtml() {
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
-    ${npcDialogueBar("elize", "🛒 Показать товары", "💰 Хочу продать")}
+    ${npcDialogueBar("elize", "🛒 Купить", "💰 Хочу продать")}
     <div class="shop-grid"><div class="shop-main">${content}</div></div>
   `;
 }
 
 function alchemyHtml() {
-  const tab = view.shopTab;
+  const tab = view.shopTab || "buy";
   let content = "";
   
   if (tab === "sell") {
@@ -1275,7 +1294,7 @@ function alchemyHtml() {
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
-    ${npcDialogueBar("elain", "🛒 Показать товары", "💰 Хочу продать")}
+    ${npcDialogueBar("elain", "🛒 Купить", "💰 Хочу продать")}
     <div class="shop-grid single"><div class="shop-main">${content}</div></div>
   `;
 }
@@ -2750,14 +2769,13 @@ function onClick(event) {
     }
     case "shop-tab": {
       const tab = el.dataset.tab || "buy";
-      const newTab = (view.shopTab === tab) ? null : tab;
-      
-      if (view.shopTab === "sell" && newTab !== "sell") view.sellSelection = [];
-      view.shopTab = newTab;
+      if (view.shopTab === "sell" && tab !== "sell") view.sellSelection = [];
+      view.shopTab = tab;
       view.activeShopNpc = el.dataset.npc || view.activeShopNpc;
       view.shopFilterSlot = "all";
       view.shopFilterType = "all";
       view.shopFilterStyle = null;
+      view.shopFilterArmor = null;
       render();
       break;
     }
@@ -2765,6 +2783,11 @@ function onClick(event) {
       view.shopFilterSlot = el.dataset.slot || "all";
       view.shopFilterType = "all"; // при смене слота сбрасываем подкатегорию
       view.shopFilterStyle = null;
+      view.shopFilterArmor = null;
+      render();
+      break;
+    case "shop-filter-armor":
+      view.shopFilterArmor = (el.dataset.armor && el.dataset.armor !== "all") ? el.dataset.armor : null;
       render();
       break;
     case "shop-filter-type":

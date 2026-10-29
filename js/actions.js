@@ -60,7 +60,11 @@ function go(screen) {
     if (view.activeShopNpc !== shopNpc) { 
       view.activeShopNpc = shopNpc; 
       view.sellSelection = []; 
-      view.shopTab = null; 
+      view.shopTab = "buy"; 
+      view.shopFilterSlot = "all";
+      view.shopFilterType = "all";
+      view.shopFilterStyle = null;
+      view.shopFilterArmor = null;
     }
     view.shopNpcPhrase = getRandomPhrase(shopNpc, "greetings");
     view.talkNpcPhase = 0;
@@ -68,7 +72,7 @@ function go(screen) {
   } else {
     view.activeShopNpc = null; 
     view.sellSelection = []; 
-    view.shopTab = null;
+    view.shopTab = "buy";
   }
   
   if (view.autoExplore) stopAutoExplore("Авто-исследование остановлено.");
