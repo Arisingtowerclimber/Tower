@@ -148,6 +148,16 @@ function battleShake() {
   setTimeout(() => document.body.classList.remove("screen-shake"), 400);
 }
 
+// Тряска контейнера боя при крите (Этап 4): класс shake-screen на 0.3 сек.
+function shakeBattleContainer() {
+  const panel = document.querySelector("section.battle");
+  if (!panel) return;
+  panel.classList.remove("shake-screen");
+  void panel.offsetWidth; // Принудительный рефлоу для перезапуска анимации
+  panel.classList.add("shake-screen");
+  setTimeout(() => panel.classList.remove("shake-screen"), 300);
+}
+
 function previewStats(attrs, archetypeId = null) {
   const gear = gearBonuses();
   const arch = ARCHETYPE_MAP[archetypeId];
@@ -2400,6 +2410,32 @@ function scrollLog() { const log = platform.dom.byId("battle-log"); if (log) log
 
 // Точечное обновление боевого экрана: полосы, счётчики, лог и прогноз.
 // Полный render() остаётся для смены экрана и показа summary.
+// Всплывающие цифры боя (Этап 4): над карточкой моба — урон (красный) и крит
+// (жёлтый), над героем — входящий урон (красный) и «Блок!» (синий).
+function battlePopupsHtml(newLines) {
+  if (!Array.isArray(newLines) || !newLines.length) return "";
+  const cardPos = (sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return "left:50%; top:35%;";
+    const r = el.getBoundingClientRect();
+    return `left:${Math.round(r.left + r.width * 0.12)}px; top:${Math.round(r.top + 16)}px;`;
+  };
+  const enemyPos = cardPos(".fighter.enemy-fighter");
+  const heroPos = cardPos(".fighter.hero-fighter");
+  let dmgPopups = "";
+  let popupShift = 0;
+  for (const line of newLines) {
+    const num = (line.text.match(/\d+/) || ["?"])[0];
+    const shiftStyle = `margin-left:${popupShift * 16}px;`;
+    popupShift += 1;
+    if (line.cls === "hit") dmgPopups += `<div class="dmg-popup dmg-dmg" style="${enemyPos}${shiftStyle}">−${num}</div>`;
+    else if (line.cls === "crit") dmgPopups += `<div class="dmg-popup dmg-crit" style="${enemyPos}${shiftStyle}">−${num}</div>`;
+    else if (line.cls === "block" && /блокиру/.test(line.text)) dmgPopups += `<div class="dmg-popup dmg-block" style="${heroPos}${shiftStyle}">Блок!</div>`;
+    else if (line.cls === "enemy") dmgPopups += `<div class="dmg-popup dmg-taken" style="${heroPos}${shiftStyle}">−${num}</div>`;
+  }
+  return dmgPopups ? `<div class="dmg-overlay">${dmgPopups}</div>` : "";
+}
+
 function renderBattle() {
   const battle = view.battle;
   if (!battle) { render(); return; }
@@ -2444,12 +2480,8 @@ function renderBattle() {
   view.prevLog = battle.log.length;
 
   document.querySelector(".dmg-overlay")?.remove();
-  let dmgPopups = "";
-  for (const line of newLines) {
-    if (line.cls === "enemy") dmgPopups += `<div class="dmg-popup dmg-enemy">-${line.text.match(/\d+/) || "?"}</div>`;
-    if (line.cls === "hit" || line.cls === "crit") dmgPopups += `<div class="dmg-popup dmg-player">-${line.text.match(/\d+/) || "?"}</div>`;
-  }
-  if (dmgPopups) document.body.insertAdjacentHTML("beforeend", `<div class="dmg-overlay">${dmgPopups}</div>`);
+  const popups = battlePopupsHtml(newLines);
+  if (popups) document.body.insertAdjacentHTML("beforeend", popups);
 }
 
 function levelUpModalHtml() {
@@ -2523,12 +2555,7 @@ function render() {
   const prevLog = view.prevLog || 0;
   const newLines = view.battle && view.battle.log.length > prevLog ? view.battle.log.slice(prevLog) : [];
   if (view.battle) view.prevLog = view.battle.log.length;
-  let dmgPopups = "";
-  for (const line of newLines) {
-    if (line.cls === "enemy") dmgPopups += `<div class="dmg-popup dmg-enemy">-${line.text.match(/\d+/) || "?"}</div>`;
-    if (line.cls === "hit" || line.cls === "crit") dmgPopups += `<div class="dmg-popup dmg-player">-${line.text.match(/\d+/) || "?"}</div>`;
-  }
-  if (dmgPopups) html += `<div class="dmg-overlay">${dmgPopups}</div>`;
+  html += battlePopupsHtml(newLines);
   if (view.screen === "battle" && (!view.battle || view.battle.turn === 0)) view.prevLog = 0;
 
   screen.innerHTML = html;

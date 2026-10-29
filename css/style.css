@@ -317,7 +317,7 @@ p { margin: 0; }
   display: block;
   height: 100%;
   border-radius: inherit;
-  transition: width 0.25s ease;
+  transition: width 0.3s ease-out;
 }
 
 .bar.hp span { background: linear-gradient(90deg, #7d2a22, #c2483c); }
@@ -1183,6 +1183,10 @@ kbd {
 .log-line.loot { color: #a9d3b1; }
 .log-line.lose { color: #d97a6c; font-weight: 700; }
 .log-line.info { color: #8f7a61; }
+/* Стилевые классы строк лога (Этап 4): совпадают с cls из battleLog. */
+.log-crit { color: #e03a2e; font-weight: 700; }
+.log-block { color: #8fb8e0; }
+.log-heal { color: #8fc79b; }
 
 /* ── Итог боя ───────────────────────────────────────────── */
 
@@ -1481,7 +1485,7 @@ kbd {
 }
 .bar span {
   box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4), 0 0 5px rgba(0, 0, 0, 0.6);
-  transition: width 0.3s ease, background 0.3s ease;
+  transition: width 0.3s ease-out, background 0.3s ease;
 }
 
 .bar.hp span { 
@@ -2200,15 +2204,20 @@ kbd {
 .warn-pulse { animation: warnPulse 1.5s infinite; border-color: #c2483c !important; }
 @keyframes warnPulse { 0% { box-shadow: 0 0 0 0 rgba(194, 72, 60, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(194, 72, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(194, 72, 60, 0); } }
 
-/* Всплывающий урон */
-.dmg-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 50; display: flex; justify-content: center; align-items: center; }
-.dmg-popup { position: absolute; font-family: Georgia, serif; font-weight: bold; font-size: 32px; opacity: 0; animation: floatUp 1s ease-out forwards; }
-.dmg-player { color: #ff6b6b; text-shadow: 0 0 10px #000; right: 35%; top: 40%; }
-.dmg-enemy { color: #f2cc60; text-shadow: 0 0 10px #000; left: 65%; top: 40%; }
+/* Всплывающий урон: обычный — красный над мобом, крит — жёлтый,
+   блок — синий над героем, входящий урон — красный над героем. (Этап 4) */
+.dmg-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 50; }
+.dmg-popup { position: absolute; font-family: Georgia, serif; font-weight: bold; font-size: 32px; animation: floatUp 1s ease-out forwards; }
+.dmg-dmg { color: #ff6b6b; text-shadow: 0 0 10px #000; }
+.dmg-crit { color: #f2cc60; font-size: 40px; text-shadow: 0 0 14px #000; }
+.dmg-taken { color: #ff6b6b; text-shadow: 0 0 10px #000; }
+.dmg-block { color: #8fb8e0; font-size: 24px; text-shadow: 0 0 10px #000; }
 @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.5); opacity: 0; } }
 
 /* Тряска экрана */
 .screen-shake { animation: shake 0.3s; }
+/* Тряска контейнера боя при крите (Этап 4) */
+.shake-screen { animation: shake 0.3s; }
 @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
 
 /* Гармонизация кнопок */

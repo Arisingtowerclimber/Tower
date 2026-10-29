@@ -16,7 +16,7 @@ function startBattle(floorId, mobKey) {
 function doExchange(type, potionId) {
   if (!view.battle || view.battle.over) return;
 
-  battleShake();
+  const logBefore = view.battle.log.length;
 
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
 
@@ -33,6 +33,11 @@ function doExchange(type, potionId) {
     return; 
   } 
   
+  // Крит в размене — трясём контейнер боя (Этап 4).
+  if (view.battle.log.slice(logBefore).some((l) => l.cls === "crit")) {
+    shakeBattleContainer();
+  }
+
   if (result.summary) { 
     view.summary = result.summary;
     // Звуковые эффекты исхода боя (Этап 4): победа/поражение + лут/уровень.
