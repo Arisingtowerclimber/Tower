@@ -1023,7 +1023,7 @@ kbd {
 
 /* ── Башня ──────────────────────────────────────────────── */
 
-.floors { display: flex; flex-direction: column; gap: 18px; }
+.floors { display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 100%; margin: 0; }
 .floor-card { 
   padding: 20px; 
   border: 1px solid var(--line2); /* Сделали рамку чуть заметнее (line2) */
@@ -1037,6 +1037,16 @@ kbd {
 .floor-icon { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--line2); border-radius: 12px; background: #17100d; font-size: 23px; }
 .floor-head h2 { font-size: 20px; }
 .floor-head .badge { margin-left: auto; }
+.floor-desc {
+  max-width: 65%;
+  margin: 0 0 22px 0;
+  color: #d1c0aa;
+  font-size: 15px;
+  line-height: 1.6;
+  font-style: italic;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.floor-card .btn.primary { align-self: flex-start; }
 .mobs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 
 .mob-row, .boss-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #130f0c; }
@@ -1643,6 +1653,7 @@ kbd {
 
 @media (max-width: 680px) {
   .app { padding: 10px 10px 40px; }
+  .floor-desc { max-width: 100%; }
   .topbar { position: static; grid-template-columns: 1fr auto; gap: 10px; padding: 10px; }
   .brand { grid-column: 1; }
   .brand-text small { display: none; }

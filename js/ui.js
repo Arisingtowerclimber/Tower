@@ -2084,11 +2084,11 @@ function towerHtml() {
 
     return `
       <article class="floor-card${locked ? " locked" : ""}${cleared ? " cleared" : ""}" 
-               style="position: relative; overflow: hidden; min-height: 220px; border: 1px solid var(--line); border-radius: 16px; padding: 0;">
+               style="position: relative; overflow: hidden; min-height: 250px; border: 1px solid var(--line); border-radius: 16px; padding: 0;">
         
          <div style="position: absolute; inset: 0; background-image: url('${floor.cardImg || floor.bg || "assets/backgrounds/tower.webp"}'); background-size: cover; background-position: center; z-index: 0; ${locked ? 'filter: grayscale(1) brightness(0.6);' : 'filter: brightness(0.6);'}"></div>
         
-        <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.05) 0%, rgba(10, 8, 7, 0.00) 100%); height: 100%; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.05) 0%, rgba(10, 8, 7, 0.00) 100%); height: 100%; padding: 32px 36px; display: flex; flex-direction: column; justify-content: center;">
           
           <span class="loc-kicker" style="color: var(--gold); font-size: 11px; letter-spacing: 0.1em;">
             ЭТАЖ ${floor.id} ${locked ? "· ЗАПЕЧАТАН" : cleared ? "· ПРОЙДЕН" : ""}
@@ -2096,7 +2096,7 @@ function towerHtml() {
           
           <h2 style="font-size: 28px; margin: 6px 0 10px 0; color: var(--gold2); text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${floor.name}</h2>
           
-          <p class="item-desc" style="color: #d1c0aa; font-size: 14px; line-height: 1.5; max-width: 600px; margin: 0 0 20px 0; font-style: italic;">
+          <p class="item-desc floor-desc">
             ${floor.desc}
           </p>
 
@@ -2116,7 +2116,7 @@ function towerHtml() {
     ${subHeader("Башня", "Поход в неизвестность", "hub", "← В Йорстед")}
     ${reason ? `<div class="banner warn-banner">${reason}</div>` : ""}
     
-    <div class="floors" style="display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 0 auto;">
+    <div class="floors">
       ${floors}
     </div>
   `;
