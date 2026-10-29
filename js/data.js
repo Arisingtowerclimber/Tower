@@ -1296,6 +1296,10 @@ const MOB_ICONS = {
   hobgoblin: "assets/mobs/hobgoblin.webp",
   bugbear: "assets/mobs/bugbear.webp",
   goblin_chief: "assets/mobs/goblin_chief.webp",
+  kobold_miner: "assets/portraits/kobold_miner.webp",
+  kobold_servant: "assets/portraits/kobold_servant.webp",
+  kobold_overseer: "assets/portraits/kobold_overseer.webp",
+  dragonborn: "assets/portraits/dragonborn.webp",
   skeleton_warrior: "assets/mobs/skeleton_warrior.webp",
   unquiet_ghost: "assets/mobs/unquiet_ghost.webp",
   crypt_ghoul: "assets/mobs/crypt_ghoul.webp",
@@ -1391,14 +1395,14 @@ const FLOORS = [
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "⚙️", hp: 324, atk: 46, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 324, atk: 46, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
         desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
           { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.3, min: 1, max: 2 },
           { id: "wood", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "⚙️", hp: 378, atk: 50, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
+      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "kobold_servant", hp: 378, atk: 50, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
         desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки холодного железа, целясь в живот и грудь.",
         drops: [
           { id: "kobold_gear", chance: 0.4, min: 1, max: 2 },
@@ -1413,7 +1417,7 @@ const FLOORS = [
           { id: "mushroom", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "👹", hp: 1728, atk: 89, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "kobold_overseer", hp: 1728, atk: 89, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Огромный, перемазанный рудой кобольд с молотом в лапах. В ярости его удары разбрызгивают кровь по стенам шахты.",
       drops: [
         { id: "cold_iron_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
