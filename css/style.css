@@ -2553,3 +2553,94 @@ kbd {
   30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
   40%, 60% { transform: translate3d(6px, 0, 0); }
 }
+/* Battle action buttons: fixed 40px, lists now live in a modal. */
+
+/* Rows keep their fixed height instead of growing with the column. */
+.deck-col .zones,
+.deck-col .deck-style-row,
+.deck-col .deck-tabs {
+  flex: 0 0 auto !important;
+}
+.deck-col .zones { height: 44px !important; }
+.deck-col .deck-style-row { height: 44px !important; }
+.deck-col .deck-tabs { height: 44px !important; }
+
+.deck-tabs.deck-actions {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex: 0 0 40px !important;
+}
+.deck-tabs.deck-actions .deck-tab {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex: 1 1 0 !important;
+}
+
+/* Battle action modals (abilities / items) */
+.battle-modal-backdrop {
+  position: fixed; inset: 0; z-index: 190;
+  background: rgba(5, 3, 2, 0.66);
+  backdrop-filter: blur(2px);
+}
+.battle-modal {
+  position: fixed; top: 50%; left: 50%; z-index: 191;
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(80vh, 620px);
+  display: flex; flex-direction: column;
+  padding: 16px;
+  border: 1px solid var(--gold); border-radius: 14px;
+  background: linear-gradient(180deg, #1b1512, #120e0b);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+.battle-modal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.battle-modal-head h3 { margin: 0; font-size: 17px; color: var(--gold2); }
+.battle-modal-close {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--line2); border-radius: 8px; background: #130f0c;
+  color: var(--dim); cursor: pointer;
+}
+.battle-modal-close:hover { border-color: var(--gold); color: var(--gold2); }
+.battle-modal-body {
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 0; overflow-y: auto; padding-right: 4px;
+}
+.battle-modal-section {
+  margin-top: 6px; font-size: 11px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold2);
+}
+.battle-modal-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 10px 12px; text-align: left;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #150f0c; color: #e7dccb;
+  cursor: pointer; font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.battle-modal-card:hover:not(:disabled) {
+  border-color: var(--gold); background: rgba(201, 152, 78, 0.08);
+}
+.battle-modal-card:disabled { opacity: 0.45; cursor: not-allowed; }
+.battle-modal-icon {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #0f0b09; border: 1px solid var(--line2);
+}
+.battle-modal-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.battle-modal-card-name { font-size: 14px; font-weight: 600; color: var(--gold2); }
+.battle-modal-card-meta { font-size: 11.5px; line-height: 1.35; color: var(--dim); }
+.battle-modal-card-count { flex: 0 0 auto; font-size: 12px; color: var(--gold2); }
+.battle-modal-empty {
+  margin: 0; padding: 18px 12px; text-align: center; font-style: italic;
+  color: var(--dim); border: 1px dashed var(--line2); border-radius: 10px;
+}
+.battle-modal-tip {
+  margin: 10px 0 0; font-size: 11px; font-style: italic; color: var(--dim);
+}

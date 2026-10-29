@@ -21,7 +21,7 @@ const view = {
   storyJustPlayed: false,
   exploreResult: null,
   weaponSwap: false,
-  battleLeftTab: "abilities",
+  battleModal: null,
   settingsOpen: false, settingsTab: "audio",
   shopFilterSlot: "all", shopFilterType: "all", shopFilterStyle: null,
 };
@@ -1940,44 +1940,6 @@ function battleHtml(st) {
   const activeZoneTip = ZONE_MAP[view.attackZone]?.tip || "";
   const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
   const estimatedDmg = estimateDamage(state, battle, view.attackZone, currentStyle, mainInst);
-  const leftTab = view.battleLeftTab || "abilities";
-
-  // Боевые вкладки (Этап 9): «Приёмы» — тяжёлый удар, смена оружия и зелья;
-  // «Расходники» — боевые предметы (броски).
-  const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
-  const potionsPanel = potionItems.length
-    ? potionItems.map((i) => {
-        const count = state.potions[i.id];
-        const disabled = !canDrinkPotion(i.id);
-        return `<button class="btn small ghost" data-act="drink-battle" data-id="${i.id}" ${disabled ? "disabled" : ""} type="button" style="justify-content:flex-start; text-align:left; width: 100%; font-size: 11px; padding: 6px 8px;">${iconHtml(i.icon, 14)} ${i.name} ×${count}</button>`;
-      }).join("")
-    : `<p class="empty" style="margin: 0; font-size: 11px;">Нет зелий</p>`;
-
-  const leftPanel = leftTab === "abilities" ? `
-    <div class="deck-content">
-      <div class="stack-buttons" style="justify-content: flex-start;">
-        <button class="btn small primary" data-act="tech" ${(battle.rage >= 3 && state.mana >= TECH_COST) ? "" : "disabled"} type="button" title="Кураж ${battle.rage}/3 · Мана ${state.mana}/${TECH_COST}">💥 Тяжёлый удар</button>
-        <button class="btn small" data-act="switch-weapon" type="button">🔄 Сменить оружие</button>
-      </div>
-      <div class="deck-title" style="margin-top: 8px;">Зелья</div>
-      ${potionsPanel}
-      <div class="deck-tip hint">Питьё зелья заменит вашу атаку, но вы сохраните блок.</div>
-    </div>
-  ` : "";
-
-  const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
-  const itemsPanel = leftTab === "items" ? `
-    <div class="deck-content">
-      <div class="deck-title">Расходники</div>
-      ${battleItems.length
-        ? battleItems.map((i) => {
-            const count = state.potions[i.id];
-            return `<button class="btn small ghost" data-act="use-battle-item" data-id="${i.id}" type="button" style="justify-content:flex-start; text-align:left; width: 100%; font-size: 11px; padding: 6px 8px;">${iconHtml(i.icon, 14)} ${i.name} ×${count}</button>`;
-          }).join("")
-        : `<p class="empty" style="margin: 0; font-size: 11px;">Нет расходников</p>`}
-    </div>
-  ` : "";
-
   const controls = battle.over ? "" : `
     <div class="combat-deck">
       
@@ -1993,12 +1955,10 @@ function battleHtml(st) {
       <div class="deck-col">
         <div class="deck-title">Блок (${zones.limit})</div>
         <div class="zones">${zones.block}</div>
-        <div class="deck-tabs">
-          <button class="deck-tab${leftTab === "abilities" ? " active" : ""}" data-act="battle-left-tab" data-tab="abilities" type="button">Приёмы</button>
-          <button class="deck-tab${leftTab === "items" ? " active" : ""}" data-act="battle-left-tab" data-tab="items" type="button">Расходники</button>
+        <div class="deck-tabs deck-actions">
+          <button class="deck-tab" data-act="battle-left-tab" data-tab="abilities" type="button" style="${BATTLE_BTN_STYLE}">Приёмы</button>
+          <button class="deck-tab" data-act="battle-left-tab" data-tab="items" type="button" style="${BATTLE_BTN_STYLE}">Расходники</button>
         </div>
-        ${leftPanel}
-        ${itemsPanel}
       </div>
 
       <!-- ПРАВАЯ КОЛОНКА: Прогноз и Размен -->
@@ -2079,6 +2039,90 @@ function battleHtml(st) {
 
       ${resultHtml()}
     </section>
+    ${view.battleModal ? battleModalHtml() : ""}
+  `;
+}
+
+// Контекстное окно боевых действий: «Приёмы» и «Расходники» (Этап 9).
+// Открывается поверх боя, закрывается по фону/крестику или после действия.
+function battleModalHtml() {
+  const battle = view.battle;
+  if (!battle || !view.battleModal) return "";
+
+  const isAbilities = view.battleModal === "abilities";
+  const title = isAbilities ? "Приёмы" : "Расходники";
+
+  const card = ({ act, id, icon, name, meta, count, disabled = false }) => `
+    <button class="battle-modal-card" data-act="${act}"${id ? ` data-id="${id}"` : ""} ${disabled ? "disabled" : ""} type="button">
+      <span class="battle-modal-icon">${icon}</span>
+      <span class="battle-modal-card-body">
+        <span class="battle-modal-card-name">${name}</span>
+        ${meta ? `<span class="battle-modal-card-meta">${meta}</span>` : ""}
+      </span>
+      ${count !== undefined ? `<span class="battle-modal-card-count">×${count}</span>` : ""}
+    </button>
+  `;
+
+  let body = "";
+  let tip = "";
+
+  if (isAbilities) {
+    const techReady = battle.rage >= 3 && state.mana >= TECH_COST;
+    const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
+
+    body = [
+      card({
+        act: "tech",
+        icon: "💥",
+        name: "Тяжёлый удар",
+        meta: `Кураж ${battle.rage}/3 · Мана ${state.mana}/${TECH_COST}`,
+        disabled: !techReady,
+      }),
+      card({
+        act: "switch-weapon",
+        icon: "🔄",
+        name: "Сменить оружие",
+        meta: "Потратит ход: вы не атакуете, враг ударит.",
+      }),
+      `<div class="battle-modal-section">Зелья</div>`,
+      potionItems.length
+        ? potionItems.map((i) => card({
+            act: "drink-battle",
+            id: i.id,
+            icon: iconHtml(i.icon, 24),
+            name: esc(i.name),
+            meta: esc(i.desc || ""),
+            count: state.potions[i.id],
+            disabled: !canDrinkPotion(i.id),
+          })).join("")
+        : `<p class="battle-modal-empty">Нет зелий</p>`,
+    ].join("");
+    tip = "Питьё зелья заменит вашу атаку, но вы сохраните блок.";
+  } else {
+    const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
+    body = battleItems.length
+      ? battleItems.map((i) => card({
+          act: "use-battle-item",
+          id: i.id,
+          icon: iconHtml(i.icon, 24),
+          name: esc(i.name),
+          meta: esc(i.desc || ""),
+          count: state.potions[i.id],
+        })).join("")
+      : `<p class="battle-modal-empty">Нет расходников</p>`;
+    tip = "Расходник заменит вашу атаку, но вы сохраните блок.";
+  }
+
+  return `
+    <div class="battle-modal-backdrop" data-act="battle-modal-close"></div>
+    <div class="battle-modal" role="dialog" aria-label="${title}">
+      <div class="battle-modal-head">
+        <h3>${title}</h3>
+        <button class="battle-modal-close" data-act="battle-modal-close" type="button">✕</button>
+      </div>
+      <div class="battle-modal-body">${body}</div>
+      ${tip ? `<p class="battle-modal-tip">${tip}</p>` : ""}
+    </div>
   `;
 }
 
@@ -2291,6 +2335,7 @@ function beginBattle(def, floorId, opts = {}) {
   }
   view.screen = "battle";
   view.summary = null;
+  view.battleModal = null;
   view.dollSlot = null;
   view.invItemUid = null;
   view.attackZone = "chest";
@@ -2887,14 +2932,19 @@ function onClick(event) {
     
     // БОЕВЫЕ ДЕЙСТВИЯ С ТРЯСКОЙ
     case "drink-battle": 
+      view.battleModal = null;
       shake();
-      doExchange("heal", id); 
+      doExchange("heal", id);
+      render();
       break;
     case "use-battle-item": 
+      view.battleModal = null;
       shake();
       doExchange("item", id); 
+      render();
       break;
-    case "battle-left-tab": view.battleLeftTab = el.dataset.tab; render(); break;
+    case "battle-left-tab": view.battleModal = el.dataset.tab; render(); break;
+    case "battle-modal-close": view.battleModal = null; render(); break;
     case "sell-resource": res = sellResource(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "explore": {
@@ -2971,11 +3021,13 @@ function onClick(event) {
       doExchange("attack"); 
       break;
     case "tech": 
+      view.battleModal = null;
       shake();
       doExchange("tech"); 
+      render();
       break;
     
-    case "switch-weapon": view.weaponSwap = true; render(); break;
+    case "switch-weapon": view.battleModal = null; view.weaponSwap = true; render(); break;
     case "weapon-swap-close": view.weaponSwap = false; render(); break;
     case "equip-in-battle": {
       const inst = getInstance(el.dataset.uid);
@@ -2992,11 +3044,11 @@ function onClick(event) {
       break;
     }
     
-    case "flee": view.battle = null; view.summary = null; view.ambush = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); saveState(); render(); break;
+    case "flee": view.battle = null; view.summary = null; view.ambush = null; view.battleModal = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); saveState(); render(); break;
     case "result-continue": {
       const victory = view.summary?.victory;
       const ambush = victory ? view.ambush : null;
-      view.battle = null; view.summary = null;
+      view.battle = null; view.summary = null; view.battleModal = null;
       if (ambush) {
         const floor = FLOORS.find((f) => f.id === ambush.floorId);
         const def = floor ? floor.mobs[ambush.nextMobIndex] : null;
