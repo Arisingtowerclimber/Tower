@@ -1234,7 +1234,7 @@ function exploreFloor(floorId) {
     encounter = { floorId: floor.id, mobIndex };
     text = `На вас напал патруль: ${floor.mobs[mobIndex].name}!`;
   } else if (roll < 0.80) {
-    if (Math.random() < 0.5 && NPCS.arthur) {
+    if (Math.random() < 0.2 && NPCS.arthur) {
       state.activeNpcId = NPCS.arthur.id;
       npc = true;
       text = `Из тени вышел ${NPCS.arthur.name} и поманил вас пальцем.`;
