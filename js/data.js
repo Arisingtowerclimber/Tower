@@ -73,6 +73,7 @@ const NPC_PORTRAITS = {
   stella: "assets/portraits/stella.webp",
   arthur: "assets/portraits/arthur.webp",
   ivan: "assets/portraits/ivan.webp",
+  timmy: "assets/portraits/m2.webp",
   mira: "assets/portraits/mira.webp",
   alva: "assets/portraits/alva.webp",
   solveig: "assets/portraits/solveig.webp",
@@ -350,6 +351,9 @@ const FACTIONS = [
   { id: "smiths", name: "Гильдия кузнецов", npc: "ron", icon: "⚒️" },
   { id: "alchemists", name: "Цех алхимиков", npc: "elain", icon: "⚗️" },
   { id: "jewelers", name: "Ювелирный дом", npc: "elize", icon: "💍" },
+  // Гильдия Охотников: контракты в Зале Охотников. У фракции нет лавки
+  // (npc: null), репутация растёт за сданные контракты на доске объявлений.
+  { id: "hunters", name: "Гильдия Охотников", npc: null, icon: "🏹" },
 ];
 const FACTION_MAP = Object.fromEntries(FACTIONS.map((f) => [f.id, f]));
 const FACTION_TIERS = [
@@ -835,6 +839,48 @@ const TRAININGS = [
 ];
 
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));
+
+// ── Доска объявлений Зала Охотников (контракты) ─────────────────────────────
+// Шаблоны предложений. state.js раз в неделю разворачивает их в активные
+// предложения на доске (state.huntContracts); прогресс растёт в
+// checkQuestProgress(mobId), награда — золото + репутация Гильдии Охотников.
+// type: "weekly" — большой «Недельный заказ Ивана» (по одному на этаж),
+// остальное — контракты на охоту вида «Истребить 5 [имя моба] на [этаж]».
+const HUNT_CONTRACTS = [
+  // Недельные заказы Ивана — по шаблону на каждый этаж.
+  { id: "ivan_weekly_f1", type: "weekly", mobId: "goblin_scout", floorId: 1, target: 10, gold: 420, xp: 280, rep: 2, desc: "Капитан собирает трофейные счёты: десять гостей Тёмного Леса к концу недели." },
+  { id: "ivan_weekly_f2", type: "weekly", mobId: "kobold_miner", floorId: 2, target: 10, gold: 620, xp: 420, rep: 2, desc: "Кобольды копают слишком близко к караванным путям. Ивану это не нравится." },
+  { id: "ivan_weekly_f3", type: "weekly", mobId: "skeleton_warrior", floorId: 3, target: 10, gold: 860, xp: 560, rep: 2, desc: "Из склепа доносится стук костей. Капитан платит за тишину." },
+  { id: "ivan_weekly_f4", type: "weekly", mobId: "orc_raider", floorId: 4, target: 10, gold: 1150, xp: 740, rep: 2, desc: "Орочьи набеги участились. Заплатят за каждый клинок, что не вернётся в лагерь." },
+  { id: "ivan_weekly_f5", type: "weekly", mobId: "fire_imp", floorId: 5, target: 10, gold: 1500, xp: 980, rep: 2, desc: "Бесы жгут леса на подходах к Башне. Гильдия объявила облаву." },
+
+  // Контракты на охоту — на доске висят по два.
+  { id: "hc_hobgoblin", type: "hunt", mobId: "hobgoblin", floorId: 1, target: 5, gold: 180, xp: 120, rep: 1, desc: "Хобгоблины топчут покосы и пугают дровосеков." },
+  { id: "hc_bugbear", type: "hunt", mobId: "bugbear", floorId: 1, target: 5, gold: 220, xp: 160, rep: 1, desc: "Багбиры ломают изгороди по краю Тёмного Леса." },
+  { id: "hc_kobold_tinker", type: "hunt", mobId: "kobold_tinker", floorId: 2, target: 5, gold: 280, xp: 190, rep: 1, desc: "Кобольдские тележки гремят по ночам хуже бандитов." },
+  { id: "hc_kobold_sorcerer", type: "hunt", mobId: "kobold_sorcerer", floorId: 2, target: 5, gold: 300, xp: 210, rep: 1, desc: "Кобольдские искры подожгли склад у шахт." },
+  { id: "hc_unquiet_ghost", type: "hunt", mobId: "unquiet_ghost", floorId: 3, target: 5, gold: 380, xp: 250, rep: 1, desc: "Призраки шепчут путникам странные вещи." },
+  { id: "hc_crypt_ghoul", type: "hunt", mobId: "crypt_ghoul", floorId: 3, target: 5, gold: 400, xp: 270, rep: 1, desc: "Упыри растащили половину старого кладбища." },
+  { id: "hc_orc_shaman", type: "hunt", mobId: "orc_shaman", floorId: 4, target: 5, gold: 460, xp: 310, rep: 1, desc: "Орочьи шаманы варят у костров что-то зловещее." },
+  { id: "hc_ogre_brute", type: "hunt", mobId: "ogre_brute", floorId: 4, target: 5, gold: 520, xp: 350, rep: 1, desc: "Огр выворачивает валуны прямо на тракте." },
+  { id: "hc_hell_hound", type: "hunt", mobId: "hell_hound", floorId: 5, target: 5, gold: 600, xp: 400, rep: 1, desc: "Гончие псарни Бездны вырвались на прогалины." },
+  { id: "hc_horned_devil", type: "hunt", mobId: "horned_devil", floorId: 5, target: 5, gold: 680, xp: 450, rep: 1, desc: "Рогатый дьявол вершит свой суд на пятом ярусе." },
+];
+
+// ── Советы Тимми, молодого охотника ────────────────────────────────────────
+// minFloor — минимальный этаж, с которого совет становится актуальным.
+// ui.js выбирает случайный совет из доступных (minFloor <= state.maxFloor).
+const HUNTER_TIPS = [
+  { minFloor: 1, text: "Советую бить гоблинов в живот, у них там нет брони." },
+  { minFloor: 1, text: "Капюшон и лохмотья — не броня. Багбир ломает их одним щелчком." },
+  { minFloor: 1, text: "Не путай редкость с ценностью: ржавый нож лутается часто, но стоит гроши." },
+  { minFloor: 2, text: "Кобольды ставят блоки, бери приёмы на пробитие." },
+  { minFloor: 2, text: "Кобольд-колдун шипит заклинаниями — бей его первым, пока остальные возятся с тележками." },
+  { minFloor: 3, text: "Не забудь про мифрил, он падает с орков." },
+  { minFloor: 3, text: "Скелеты ничего не чувствуют, но кости хрупкие — руби по ногам." },
+  { minFloor: 4, text: "Огр открыт, пока замахивается. Один его удар — половина твоего здоровья." },
+  { minFloor: 5, text: "Дьяволы целятся в голову и в грудь. Держи блок там, и половина урона уйдёт в сталь." },
+];
 
 const ITEMS = {
   rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp?v=2", atk: 4, weaponType: "sword", handed: "1h", damage: { slashing: 2, piercing: 4, bludgeoning: 0 }, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
@@ -1756,7 +1802,7 @@ if (typeof module !== "undefined" && module.exports) {
     ARMOR_TYPE_NAMES, ARMOR_STYLE_MULT, UNARMED_DAMAGE, MONK_STANCES,
     TALENTS, TALENT_MAP, RARITY_INFO, MOB_ABILITY_INFO, MOB_MODIFIERS,
     TIME_PHASES, COMPANIONS, COMPANION_MAP, MONTHS, WEEKDAYS, WEEKLY_EVENTS,
-    TRAININGS, TRAINING_MAP, ITEMS, ARMOR_TYPE_BY_ID, MOB_ICONS,
+    TRAININGS, TRAINING_MAP, HUNT_CONTRACTS, HUNTER_TIPS, ITEMS, ARMOR_TYPE_BY_ID, MOB_ICONS,
     RESOURCE_ICONS, FLOORS, FLOOR_RESOURCES, ALL_RESOURCES, FLOOR_SCENES,
     NPCS, RECIPES, RECIPE_MAP,
     getRecipeById, getRecipes, todaysEvent, forgeDiscountToday,

@@ -39,6 +39,7 @@ function defaultState() {
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
     activeEvent: null, tempDebuffs: [], eventCooldown: 0,
     killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
+    huntContracts: { weekStartDay: 0, list: [] }, contractsDone: 0,
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
     knownRecipes: [],
@@ -280,6 +281,25 @@ function loadState() {
     state.killCount = state.killCount || {};
     state.bestiary = state.bestiary && typeof state.bestiary === "object" ? state.bestiary : {};
 
+    // Контракты Гильдии Охотников: чистка мусора из сейва.
+    state.contractsDone = Number.isFinite(state.contractsDone) ? Math.max(0, Math.floor(state.contractsDone)) : 0;
+    if (!state.huntContracts || typeof state.huntContracts !== "object" || !Array.isArray(state.huntContracts.list)) {
+      state.huntContracts = { weekStartDay: 0, list: [] };
+    }
+    state.huntContracts = {
+      weekStartDay: Number.isFinite(state.huntContracts.weekStartDay) ? state.huntContracts.weekStartDay : 0,
+      list: state.huntContracts.list
+        .filter((c) => c && typeof c === "object" && huntContractDef(c.id))
+        .map((c) => {
+          const def = huntContractDef(c.id);
+          return {
+            id: c.id,
+            progress: Math.min(def.target, Math.max(0, Math.floor(Number(c.progress) || 0))),
+            status: ["offered", "active", "done", "claimed"].includes(c.status) ? c.status : "offered",
+          };
+        }),
+    };
+
     if (!state.weekQuests || typeof state.weekQuests !== "object" || !Array.isArray(state.weekQuests.list)) {
       state.weekQuests = { weekStartDay: 0, list: [] };
     }
@@ -299,6 +319,7 @@ function loadState() {
     delete state.quests;
     delete state.npcQuests;
     ensureWeekQuests();
+    ensureHuntContracts();
     return { ok: true };
   } catch (err) {
     // Сырой текст сохранения возвращается наверх: main.js успевает сделать
@@ -731,6 +752,7 @@ function acceptWeekQuest(npcId) {
 
 function checkQuestProgress(mobId) {
   ensureWeekQuests();
+  ensureHuntContracts();
   let changed = false;
   for (const q of state.weekQuests.list) {
     if (q.type === "kill" && q.status === "active" && q.mobId === mobId && q.progress < q.target) {
@@ -739,8 +761,92 @@ function checkQuestProgress(mobId) {
       changed = true;
     }
   }
-  if (changed) saveState();
+  // Контракты с доски объявлений Гильдии Охотников.
+  let contractChanged = false;
+  for (const c of state.huntContracts.list) {
+    const def = huntContractDef(c.id);
+    if (!def || def.mobId !== mobId) continue;
+    if (c.status !== "active" || c.progress >= def.target) continue;
+    c.progress = Math.min(def.target, c.progress + 1);
+    if (c.progress >= def.target) c.status = "done";
+    contractChanged = true;
+  }
+  if (changed || contractChanged) saveState();
   checkStoryQuestKill(mobId);
+}
+
+// ── Доска объявлений Зала Охотников (контракты) ─────────────────────────────
+// Раз в неделю доска меняется: «Недельный заказ Ивана» + 2 контракта на охоту,
+// доступные по текущему максимальному этажу. Взять — acceptHuntContract,
+// прогресс — checkQuestProgress (выше), сдать — claimHuntContract.
+
+function huntContractDef(id) { return HUNT_CONTRACTS.find((c) => c.id === id) || null; }
+
+function huntFloorName(floorId) {
+  const floor = FLOORS.find((f) => f.id === floorId);
+  return floor ? floor.name : `этаж ${floorId}`;
+}
+
+function ensureHuntContracts(force = false) {
+  if (!state.huntContracts || !Array.isArray(state.huntContracts.list)) {
+    state.huntContracts = { weekStartDay: 0, list: [] };
+  }
+  const anchor = weekAnchorDay();
+  if (!force && state.huntContracts.weekStartDay === anchor && state.huntContracts.list.length) return;
+
+  const maxFloor = Math.max(1, state.maxFloor || 1);
+  const entry = (def) => ({ id: def.id, progress: 0, status: "offered" });
+  const weeklyPool = HUNT_CONTRACTS.filter((c) => c.type === "weekly" && c.floorId <= maxFloor);
+  const huntPool = HUNT_CONTRACTS.filter((c) => c.type !== "weekly" && c.floorId <= maxFloor);
+  const shuffled = [...huntPool];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const list = [];
+  if (weeklyPool.length) list.push(entry(weeklyPool[Math.floor(Math.random() * weeklyPool.length)]));
+  for (const def of shuffled.slice(0, 2)) list.push(entry(def));
+  state.huntContracts = { weekStartDay: anchor, list };
+  saveState();
+}
+
+function acceptHuntContract(id) {
+  ensureHuntContracts();
+  const c = state.huntContracts.list.find((x) => x.id === id);
+  const def = huntContractDef(id);
+  if (!c || !def) return { ok: false, text: "Контракт не найден." };
+  if (c.status !== "offered") return { ok: false, text: "Контракт уже взят." };
+  c.status = "active";
+  saveState();
+  return { ok: true, text: `Контракт принят: истребить ${def.target} × ${findMobName(def.mobId)} (${huntFloorName(def.floorId)}). Удачной охоты!` };
+}
+
+function claimHuntContract(id) {
+  ensureHuntContracts();
+  const c = state.huntContracts.list.find((x) => x.id === id);
+  const def = huntContractDef(id);
+  if (!c || !def) return { ok: false, text: "Контракт не найден." };
+  if (c.status === "claimed") return { ok: false, text: "Награда уже получена." };
+  if (c.status !== "done" || c.progress < def.target) return { ok: false, text: "Контракт ещё не выполнен." };
+
+  const gold = def.gold, xp = def.xp, rep = def.rep || 1;
+  state.gold += gold;
+  const up = gainXp(xp);
+  state.contractsDone = (state.contractsDone || 0) + 1;
+
+  // Награда Гильдии Охотников: репутация + возможный новый тир.
+  const repBefore = state.reputation.hunters || 0;
+  const tierBefore = factionTier(repBefore).tier;
+  const repAfter = repBefore + rep;
+  state.reputation.hunters = repAfter;
+  if (state.reputation.hunters >= FACTION_TIERS[2].min) state.factionPerksUnlocked.hunters = true;
+  const tierAfter = factionTier(repAfter).tier;
+
+  c.status = "claimed";
+  saveState();
+  const levelText = up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : "";
+  const tierText = tierAfter !== tierBefore ? ` Новый тир: «${tierAfter.name}»!` : "";
+  return { ok: true, text: `Контракт сдан: +${gold} 💰, +${xp} ✦, +${rep} 🏹 Гильдия Охотников${tierText}.${levelText}` };
 }
 
 function claimNpcQuest(id) {

@@ -2676,3 +2676,124 @@ kbd {
 .battle-modal-tip {
   margin: 10px 0 0; font-size: 11px; font-style: italic; color: var(--dim);
 }
+
+/* ═══ Зал Охотников: переработка (доска, тренировки, статистика, Тимми) ═══ */
+
+/* Фон зала: поверх фото проступают старые карты на стенах */
+.hall-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='460' viewBox='0 0 460 460'%3E%3Cg fill='none' stroke='%23dfb86c' stroke-width='2' opacity='0.6'%3E%3Cpath d='M20 40 h90 a10 10 0 0 1 10 10 v70 h-70 a12 12 0 0 1 -12 -12 z'/%3E%3Cpath d='M30 55 h70 M30 72 h54 M30 89 h62' stroke-width='1.4'/%3E%3Ccircle cx='330' cy='120' r='58' stroke-dasharray='7 6'/%3E%3Ccircle cx='330' cy='120' r='26'/%3E%3Cpath d='M330 62 v-24 M330 178 v24 M272 120 h-24 M388 120 h24'/%3E%3Cpath d='M60 300 l46 26 -46 26 -46 -26 z'/%3E%3Cpath d='M60 274 v106' stroke-dasharray='4 5'/%3E%3Cpath d='M340 260 q40 -18 70 6 q26 22 -4 54 q-28 26 -58 6 q-34 -22 -8 -66 z'/%3E%3Cpath d='M250 400 h96 M250 412 h70' stroke-width='1.4'/%3E%3Cpath d='M294 392 l10 10 M304 392 l-10 10' stroke-width='2.6'/%3E%3Cpath d='M110 200 q30 -36 66 -8' stroke-dasharray='6 7'/%3E%3Cpath d='M176 192 l-14 4 6 13'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 460px 460px;
+  opacity: 0.16;
+  filter: sepia(1) hue-rotate(-12deg);
+}
+
+/* Ряд NPC: Иван (диалог) + Тимми (советы) */
+.hall-npcs { display: flex; flex-wrap: wrap; align-items: stretch; gap: 18px; }
+.hall-npcs .npc-dialogue-bar { flex: 1 1 460px; margin-bottom: 0; }
+.timmy-card {
+  flex: 1 1 260px; max-width: 360px;
+  display: flex; gap: 14px; align-items: center;
+  padding: 16px 18px;
+  background: rgba(18, 13, 11, 0.85);
+  border: 1px solid var(--line); border-radius: 12px;
+}
+.timmy-portrait {
+  width: 84px; height: 84px; flex-shrink: 0;
+  object-fit: cover; border-radius: 12px;
+  border: 2px solid #5a7d9c; background-color: #171210;
+}
+.timmy-card .timmy-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.timmy-name {
+  margin: 0; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 0.95rem; color: #9ec2e0;
+}
+.timmy-modal .timmy-portrait { width: 96px; height: 96px; }
+.timmy-modal-body { display: flex; gap: 14px; align-items: flex-start; }
+.timmy-modal .npc-dialogue { margin: 0; }
+
+/* Нижняя сетка: тренировки + свершения */
+.hall-lower { display: flex; flex-wrap: wrap; gap: 18px; align-items: stretch; }
+.hall-lower .training-section { flex: 1 1 480px; min-width: 0; }
+.hall-lower .hall-stats { flex: 0 1 320px; min-width: 270px; margin-bottom: 0; }
+
+/* Доска объявлений */
+.hunt-board {
+  border: 1px solid #5e4520;
+  background:
+    repeating-linear-gradient(90deg, rgba(94, 69, 32, 0.55) 0 3px, rgba(94, 69, 32, 0) 3px 9px),
+    linear-gradient(180deg, #211812, #181009);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+.hunt-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.hunt-board-head .group-title { margin-bottom: 0; color: var(--gold2); }
+.contract-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.contract-card {
+  position: relative;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 18px 14px 14px; margin-top: 10px;
+  border: 1px solid #6b5122; border-radius: 10px;
+  background: linear-gradient(178deg, #3b2d20 0%, #322619 55%, #2a1f14 100%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+.contract-card.weekly { border-color: #8a6a2c; background: linear-gradient(178deg, #44331f 0%, #3a2c1b 55%, #301f10 100%); }
+.contract-card.done { border-color: #3c573f; }
+.contract-card.claimed { opacity: 0.6; }
+.contract-pin {
+  position: absolute; top: -11px; left: 50%; margin-left: -7px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #d84f3f, #7e2318);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.contract-head { display: flex; align-items: center; gap: 10px; }
+.contract-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.28); border-radius: 10px;
+}
+.contract-head h3 { margin: 0; font-size: 15px; color: var(--gold2); line-height: 1.25; }
+.contract-kicker { display: block; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(223, 184, 108, 0.65); }
+.board-badge { border-color: #6b5122; color: #cdb489; margin-left: auto; }
+.board-badge.weekly { border-color: var(--gold); color: var(--gold2); }
+.contract-goal { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.contract-card .item-desc { margin: 0; font-size: 12px; font-style: italic; }
+.contract-progress { display: flex; align-items: center; gap: 10px; }
+.contract-progress .bar { flex: 1; height: 8px; margin: 0; }
+.contract-progress .bar span { background: linear-gradient(90deg, #86621f, var(--gold2)); }
+.contract-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-top: auto;
+}
+.contract-foot .price { white-space: nowrap; }
+
+/* Тренировки: карточки в стиле магазина + прогресс */
+.training-progress { display: flex; flex-direction: column; gap: 6px; }
+.training-attr { font-size: 0.9rem; opacity: 0.8; }
+.training-bar { height: 8px; margin: 0; }
+.training-bar span { background: linear-gradient(90deg, #86621f, var(--gold2)); }
+.training-effect { display: block; font-size: 12px; color: var(--gold); }
+.training-card.disabled .training-bar { opacity: 0.5; }
+.training-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; flex-wrap: wrap; }
+.training-foot .btn { flex: 0 1 auto; max-width: 100%; }
+.training-icon { font-size: 1.8rem; }
+
+/* Панель «Мои свершения» */
+.hall-stats-list { display: flex; flex-direction: column; gap: 10px; }
+.hall-stat-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: linear-gradient(180deg, #191310, #14100d);
+}
+.hall-stat-icon { flex-shrink: 0; font-size: 1.1rem; }
+.hall-stat-label { flex: 1; min-width: 0; font-size: 13px; color: var(--dim); }
+.hall-stat-value { color: var(--gold2); text-align: right; }
+
+@media (max-width: 680px) {
+  .timmy-card { flex-direction: column; text-align: center; align-items: center; }
+  .hall-npcs .npc-dialogue-bar { margin-bottom: 0; }
+  .contract-foot { justify-content: center; }
+}

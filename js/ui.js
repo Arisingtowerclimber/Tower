@@ -2,6 +2,7 @@ const view = {
   screen: "hub", battle: null, attackZone: "chest", attackStyle: "slashing", blocks: ["head", "chest"],
   summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry", talentsTab: "war",
   questsOpen: false, bestiaryOpen: false,
+  timmyTip: null,
   currentFloor: null,
   levelUp: null,
   dollSlot: null, tripActive: false,
@@ -524,7 +525,7 @@ function hubHtml(st) {
         </button>
 
         <button class="loc-card${isNight() ? " locked" : ""}" data-act="goto" data-screen="training" type="button">
-          <img class="loc-image" src="assets/backgrounds/training.webp" onerror="this.style.display='none'" alt="">
+          <img class="loc-image" src="assets/backgrounds/hunters_hall.webp" onerror="this.style.display='none'" alt="">
           <div class="loc-content">
             <span class="loc-body">
               <span class="loc-kicker">${isNight() ? "Закрыто до утра" : "Тренировки и Задания"}</span>
@@ -598,7 +599,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel) {
         ${sellLabel ? btn("sell", sellLabel) : ""}
         ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
         ${npcId === "ron" ? btn("exchange", "🔁 Обмен") : ""}
-        ${btn("quests", "📜 Есть задания?")}
+        ${npcId === "ivan" ? "" : btn("quests", "📜 Есть задания?")}
         ${storyQuestBarBtn(npcId)}
       </div>
     </div>
@@ -759,30 +760,174 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
-  const tab = view.shopTab === "quests" ? "quests" : view.shopTab === "story" ? "story" : "buy";
+  ensureHuntContracts();
   const cap = trainingCap(state.level);
   const warning = state.phase === 0
     ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
     : `<div class="banner warn-banner">🌙 Сейчас не утро.</div>`;
 
-  let content = "";
-  if (tab === "quests") content = trainingQuestsListHtml();
-  else if (tab === "story") content = storyQuestPanelHtml("ivan");
-  else if (tab === "buy") content = `${warning}<div class="training-grid">${TRAININGS.map((t) => {
-    const avail = trainingAvailability(t); const current = state.attrs[t.attr]; const atCap = current >= cap;
-    return `<article class="training-card${avail.ok ? "" : " disabled"}"><div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-attr">${ATTR_INFO.find((a) => a.id === t.attr).name}: ${current} / ${cap}</span></div></div><p class="item-desc">${t.desc}</p><div class="training-foot"><button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? `Тренироваться` : avail.reason}</button></div></article>`;
-  }).join("")}</div>`;
+  const trainingCards = TRAININGS.map((t) => {
+    const avail = trainingAvailability(t);
+    const current = state.attrs[t.attr];
+    const attrName = ATTR_INFO.find((a) => a.id === t.attr).name;
+    const pct = Math.max(0, Math.min(100, Math.round((current / cap) * 100)));
+    const cost = `<span class="price">⚡ ${TRAINING_ENERGY_COST} · ⏳ ${TRAINING_PHASES} фазы</span>`;
+    return `<article class="training-card${avail.ok ? "" : " disabled"}">
+      <div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-effect">${esc(t.effect || "")}</span></div></div>
+      <p class="item-desc">${t.desc}</p>
+      <div class="training-progress">
+        <span class="training-attr">${attrName}: ${current} / ${cap}</span>
+        <div class="bar training-bar"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="training-foot">${cost}<button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? "Тренироваться" : avail.reason}</button></div>
+    </article>`;
+  }).join("");
 
   return `
-    <div class="screen-bg" style="background-image: url('assets/backgrounds/training.webp');"></div>
+    <div class="screen-bg hall-bg" style="background-image: url('assets/backgrounds/hunters_hall.webp');"></div>
     ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}
-    ${npcDialogueBar("ivan", "Тренировки", "")}
-    ${content}
+    <div class="hall-npcs">
+      ${npcDialogueBar("ivan", "Тренировки", "")}
+      ${timmyCardHtml()}
+    </div>
+    ${warning}
+    ${view.shopTab === "story" ? storyQuestPanelHtml("ivan") : ""}
+    ${huntBoardHtml()}
+    <div class="hall-lower">
+      <section class="shop-group training-section">
+        <h2 class="group-title">💪 Тренировочный зал</h2>
+        <div class="training-grid">${trainingCards}</div>
+      </section>
+      ${hunterStatsHtml()}
+    </div>
   `;
 }
 
-function trainingQuestsListHtml() {
-  return npcQuestHtml("ivan");
+// ── Доска объявлений Зала Охотников ────────────────────────────────────────
+// Карточки контрактов: «Взять» → «В работе (2/5)» → «Сдать» → «Сдано».
+function findMobIcon(mobId) {
+  for (const f of FLOORS) {
+    const mob = (f.mobs || []).find((m) => m.id === mobId);
+    if (mob) return mob.icon;
+    if (f.boss && f.boss.id === mobId) return f.boss.icon;
+  }
+  return "";
+}
+
+function huntBoardHtml() {
+  ensureHuntContracts();
+  const cards = state.huntContracts.list.map((c) => {
+    const def = huntContractDef(c.id);
+    if (!def) return "";
+    const isWeekly = def.type === "weekly";
+    const title = isWeekly ? "Недельный заказ Ивана" : "Контракт на охоту";
+    const goal = `Истребить ${def.target} × ${findMobName(def.mobId)} — ${huntFloorName(def.floorId)}`;
+    const pct = Math.max(0, Math.min(100, Math.round((c.progress / def.target) * 100)));
+
+    let button;
+    if (c.status === "offered") button = `<button class="btn small primary" data-act="hunt-accept" data-id="${def.id}" type="button">Взять</button>`;
+    else if (c.status === "active") button = `<button class="btn small" disabled type="button">В работе (${c.progress}/${def.target})</button>`;
+    else if (c.status === "done") button = `<button class="btn small primary" data-act="hunt-claim" data-id="${def.id}" type="button">Сдать</button>`;
+    else button = `<button class="btn small" disabled type="button">Сдано</button>`;
+
+    const badge = isWeekly
+      ? `<span class="badge board-badge weekly">📌 Заказ недели</span>`
+      : `<span class="badge board-badge">📌 Контракт</span>`;
+
+    return `<article class="contract-card${isWeekly ? " weekly" : ""}${c.status === "claimed" ? " claimed" : c.status === "done" ? " done" : ""}">
+      <div class="contract-pin" aria-hidden="true"></div>
+      <div class="contract-head">
+        <span class="contract-icon">${iconHtml(findMobIcon(def.mobId), 36)}</span>
+        <div>
+          <span class="contract-kicker">${isWeekly ? "От капитана" : "Доска Гильдии"}</span>
+          <h3>${esc(title)}</h3>
+        </div>
+        ${badge}
+      </div>
+      <p class="contract-goal">🎯 ${esc(goal)}</p>
+      <p class="item-desc">${esc(def.desc || "")}</p>
+      <div class="contract-progress">
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <span class="quest-count">${c.progress} / ${def.target}</span>
+      </div>
+      <div class="contract-foot">
+        <span class="price">💰 ${def.gold} · ✦ ${def.xp} · 🏹 +${def.rep || 1} реп.</span>
+        ${button}
+      </div>
+    </article>`;
+  }).join("");
+
+  return `
+    <section class="shop-group hunt-board">
+      <div class="hunt-board-head">
+        <h2 class="group-title">📋 Доска объявлений</h2>
+        <span class="hint">Награда: золото и репутация Гильдии Охотников 🏹</span>
+      </div>
+      <div class="contract-grid">${cards}</div>
+    </section>
+  `;
+}
+
+// ── Статистика охотника («Мои свершения») ──────────────────────────────────
+function hunterStatsHtml() {
+  const weapon = getEquippedItem("mainhand");
+  const weaponName = weapon && weapon.item ? weapon.item.name : "Кулаки";
+  const rows = [
+    { icon: "⚔️", label: "Убито мобов", value: String(state.kills || 0) },
+    { icon: "👑", label: "Повержено боссов", value: `${Object.keys(state.cleared).length} из 5` },
+    { icon: "🗡️", label: "Любимое оружие", value: weaponName },
+    { icon: "📜", label: "Выполнено контрактов", value: String(state.contractsDone || 0) },
+  ];
+  return `
+    <section class="shop-group hall-stats">
+      <h2 class="group-title">🏆 Мои свершения</h2>
+      <div class="hall-stats-list">
+        ${rows.map((r) => `<div class="hall-stat-row"><span class="hall-stat-icon">${r.icon}</span><span class="hall-stat-label">${r.label}</span><b class="hall-stat-value">${esc(r.value)}</b></div>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
+// ── Тимми, молодой охотник ─────────────────────────────────────────────────
+// Совет выбирается случайно из доступных для текущего прогресса (maxFloor).
+function timmyTipsForProgress() {
+  const maxFloor = Math.max(1, state.maxFloor || 1);
+  return HUNTER_TIPS.filter((tip) => maxFloor >= tip.minFloor).map((tip) => tip.text);
+}
+
+function randomTimmyTip() {
+  const tips = timmyTipsForProgress();
+  return tips.length ? tips[Math.floor(Math.random() * tips.length)] : "Пока нечему учить. Возвращайся, когда выйдешь на новый этаж.";
+}
+
+function timmyCardHtml() {
+  return `
+    <aside class="hall-npc timmy-card">
+      <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="Тимми" onerror="this.style.display='none'">
+      <div class="timmy-info">
+        <p class="timmy-name">Тимми, молодой охотник</p>
+        <p class="hint">Знает слабости всех тварей Башни. Или думает, что знает.</p>
+        <button class="btn small primary" data-act="timmy-open" type="button">💬 Спросить совет</button>
+      </div>
+    </aside>
+  `;
+}
+
+function timmyModalHtml() {
+  return `
+    <div class="doll-menu-backdrop" data-act="timmy-close"></div>
+    <div class="doll-menu quest-modal timmy-modal" role="dialog">
+      <div class="doll-menu-head">
+        <h3>💬 Совет Тимми</h3>
+        <button class="doll-menu-close" data-act="timmy-close" type="button">✕</button>
+      </div>
+      <div class="timmy-modal-body">
+        <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="" onerror="this.style.display='none'">
+        <p class="npc-dialogue">«${esc(view.timmyTip || randomTimmyTip())}»</p>
+      </div>
+      <button class="btn small ghost" data-act="timmy-open" type="button" style="margin-top: 12px;">🔄 Спросить ещё</button>
+    </div>
+  `;
 }
 
 function questsModalHtml() {
@@ -2527,6 +2672,7 @@ function render() {
   }
   
   if (view.questsOpen) html += questsModalHtml();
+  if (view.timmyTip) html += timmyModalHtml();
   if (view.settingsOpen) html += settingsModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
@@ -3239,6 +3385,10 @@ function onClick(event) {
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "train": res = trainAttr(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "hunt-accept": res = acceptHuntContract(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "hunt-claim": res = claimHuntContract(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "timmy-open": view.timmyTip = randomTimmyTip(); render(); break;
+    case "timmy-close": view.timmyTip = null; render(); break;
     case "buy": res = buyItem(id, el.dataset.shop || "forge"); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell": res = sellItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
