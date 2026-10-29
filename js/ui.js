@@ -352,11 +352,6 @@ function createSummaryHtml(c, portrait) {
 
           <div class="field"><label>Портрет</label><div class="portrait-picker">${PORTRAITS.map((p) => `<button class="portrait-option${p.id === c.portrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" style="aspect-ratio: 1 / 1;" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
           
-          <div class="preview-portrait" style="margin-bottom: 20px;">
-            <img src="${portrait.src}" alt="${esc(c.name || "Странник")}">
-            <div class="preview-portrait-caption"><b>${esc(c.name || "Странник")}</b></div>
-          </div>
-
           <h2 class="group-title">Итоговые атрибуты</h2>
           <div class="attr-list">
             ${ATTR_INFO.map((a) => `<div class="attr-row"><div class="attr-info"><b>${a.name}</b><span class="hint">${a.effect}</span></div><div class="attr-controls"><span class="attr-value">${attrs[a.id]}</span></div></div>`).join("")}
@@ -376,6 +371,11 @@ function createSummaryHtml(c, portrait) {
         </section>
 
         <section class="panel">
+          <div class="preview-portrait">
+            <img src="${portrait.src}" alt="${esc(c.name || "Странник")}">
+            <div class="preview-portrait-caption"><b>${esc(c.name || "Странник")}</b></div>
+          </div>
+
           <h2 class="group-title">Выбор архетипа</h2>
           <div class="archetype-grid">${archetypeCards}</div>
           
