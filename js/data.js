@@ -228,7 +228,6 @@ const ATTR_INFO = [
   { id: "int", name: "Интеллект", effect: "+10 к максимуму маны" },
 ];
 
-const START_ATTR_POINTS = 10;
 const LEVEL_ATTR_POINTS = 3;
 const AGILITY_DODGE_PERCENT = 1;
 const AGILITY_CRIT_PERCENT = 0.5;
@@ -267,6 +266,113 @@ const LIFESTEAL_PERCENT = 0.05;
 const THORNS_PERCENT = 0.1;
 const CRAFT_RARITY_BONUS_PER_LEVEL = 0.01;
 const ELITE_RARITY_BONUS = 0.1;
+const BACKGROUND_STEPS = [
+  {
+    id: "childhood",
+    title: "Детство",
+    text: "Кем ты был до того, как Башня позвала тебя?",
+    options: [
+      { 
+        id: "slums", 
+        label: "Вырос в трущобах", 
+        desc: "+2 Ловкость, +10 золота", 
+        icon: "🏚️",
+        effects: { agi: 2, gold: 10 } 
+      },
+      { 
+        id: "smith", 
+        label: "Сын кузнеца", 
+        desc: "+2 Сила, +1 Выносливость, дубина", 
+        icon: "⚒️",
+        effects: { str: 2, end: 1, equipment: ["wood_club"] } 
+      },
+      { 
+        id: "monastery", 
+        label: "Ученик монастыря", 
+        desc: "+2 Интеллект, +10 маны", 
+        icon: "📖",
+        effects: { int: 2, mana: 10 } 
+      },
+      { 
+        id: "farm", 
+        label: "Работал на ферме", 
+        desc: "+2 Выносливость, +20 HP", 
+        icon: "🌾",
+        effects: { end: 2, hp: 20 } 
+      }
+    ]
+  },
+  {
+    id: "youth",
+    title: "Юность",
+    text: "Чему ты научился, когда вырос?",
+    options: [
+      { 
+        id: "guard", 
+        label: "Служил в страже", 
+        desc: "+2 Выносливость, деревянный щит", 
+        icon: "🛡️",
+        effects: { end: 2, equipment: ["wood_shield"] } 
+      },
+      { 
+        id: "thief", 
+        label: "Был вором", 
+        desc: "+2 Ловкость, кинжал", 
+        icon: "🗡️",
+        effects: { agi: 2, equipment: ["dagger"] } 
+      },
+      { 
+        id: "alchemist", 
+        label: "Ученик алхимика", 
+        desc: "+2 Интеллект, 2 зелья лечения", 
+        icon: "🧪",
+        effects: { int: 2, potions: ["hp_small", "hp_small"] } 
+      },
+      { 
+        id: "mercenary", 
+        label: "Наёмник", 
+        desc: "+1 Сила, +1 Ловкость, +30 золота", 
+        icon: "⚔️",
+        effects: { str: 1, agi: 1, gold: 30 } 
+      }
+    ]
+  },
+  {
+    id: "reason",
+    title: "Причина прихода в Йорстед",
+    text: "Почему ты здесь? Что гонит тебя к Башне?",
+    options: [
+      { 
+        id: "glory", 
+        label: "Ищу славу и золото", 
+        desc: "+50 золота", 
+        icon: "💰",
+        effects: { gold: 50 } 
+      },
+      { 
+        id: "revenge", 
+        label: "Месть за семью", 
+        desc: "+1 Сила, +1 Ловкость", 
+        icon: "🔥",
+        effects: { str: 1, agi: 1 } 
+      },
+      { 
+        id: "exile", 
+        label: "Меня сослали сюда", 
+        desc: "+2 Выносливость", 
+        icon: "⛓️",
+        effects: { end: 2 } 
+      },
+      { 
+        id: "knowledge", 
+        label: "Ищу древние знания", 
+        desc: "+2 Интеллект, +15 маны", 
+        icon: "📜",
+        effects: { int: 2, mana: 15 } 
+      }
+    ]
+  }
+];
 
 const ARCHETYPES = [
   {
@@ -293,6 +399,14 @@ const ARCHETYPES = [
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 60, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
   },
+  {
+    id: "monk",
+    name: "Монах",
+    icon: "🧘",
+    desc: "Дерётся голыми руками: урон растёт от Силы и Ловкости. Три стойки — Тигр, Журавль и Змея. Оружие запрещено полностью, но предел уворота повышен до 50%.",
+    mods: { atk: 1.0, maxHp: 1.0, dodgeCap: 50, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
+    startEquipment: ["rags", "worn_hood", "patched_pants", "worn_boots"]
+  },
 ];
 
 const ARCHETYPE_MAP = Object.fromEntries(ARCHETYPES.map((a) => [a.id, a]));
@@ -309,6 +423,13 @@ const ARMOR_STYLE_MULT = {
   bludgeoning: { cloth: 1.3, leather: 0.8, chain: 1.1, plate: 1.3 },
 };
 const UNARMED_DAMAGE = { slashing: 6, piercing: 4, bludgeoning: 6 }; // кулаки: любой стиль доступен
+const MONK_UNARMED_STYLE_MULT = 1.0;
+const MONK_DEFAULT_STANCE = "bludgeoning";
+const MONK_STANCES = [
+  { id: "slashing", name: "Тигр", icon: "🐯", desc: "Стойка Тигра: +10% урона, −10% уклонения." },
+  { id: "piercing", name: "Журавль", icon: "🦢", desc: "Стойка Журавля: +10% уклонения, −10% урона." },
+  { id: "bludgeoning", name: "Змея", icon: "🐍", desc: "Стойка Змеи: игнорирует 30% брони, −10% урона." },
+];
 
 // ── Таланты: 3 ветки, очко раз в 3 уровня ────────────────────────────────────
 const TALENT_BRANCHES = [
@@ -336,31 +457,29 @@ const TALENTS = [
 
 const TALENT_MAP = Object.fromEntries(TALENTS.map((t) => [t.id, t]));
 
-// Урон оружия по стилям (без оружия — кулаки). Активный экземпляр выставляется перед боем
-// (doExchange в ui.js), чтобы редкость влияла на damage без правок combat.js.
-let ACTIVE_WEAPON_INSTANCE = null;
-function setActiveWeaponInstance(inst) { ACTIVE_WEAPON_INSTANCE = inst || null; }
-function weaponDamageFor(weapon) {
+// Урон оружия по стилям (без оружия — кулаки). Экземпляр оружия передаётся
+// явно из боя/UI, чтобы редкость влияла на damage без глобального состояния.
+function weaponDamageFor(weapon, inst = null) {
   if (!weapon) return UNARMED_DAMAGE;
   if (!weapon.damage) return UNARMED_DAMAGE;
-  if (ACTIVE_WEAPON_INSTANCE && ITEMS[ACTIVE_WEAPON_INSTANCE.id] === weapon) {
-    const scaled = getInstanceStats(ACTIVE_WEAPON_INSTANCE).damage;
+  if (inst && ITEMS[inst.id] === weapon) {
+    const scaled = getInstanceStats(inst).damage;
     if (scaled) return scaled;
   }
   return weapon.damage;
 }
-function weaponStyleValue(weapon, style) { return weaponDamageFor(weapon)[style] || 0; }
+function weaponStyleValue(weapon, style, inst = null) { return weaponDamageFor(weapon, inst)[style] || 0; }
 // Множитель стиля: лучший стиль оружия = 1.0, слабые 0.55–1.0, ноль = не бьёт.
-function weaponStyleMult(weapon, style) {
-  const d = weaponDamageFor(weapon);
+function weaponStyleMult(weapon, style, inst = null) {
+  const d = weaponDamageFor(weapon, inst);
   const v = d[style] || 0;
   if (v <= 0) return 0;
   const best = Math.max(d.slashing, d.piercing, d.bludgeoning, 1);
   return 0.55 + 0.45 * (v / best);
 }
 // Сильнейший стиль оружия (для подписи «Вооружен: … (Колющий)»).
-function weaponBestStyle(weapon) {
-  const d = weaponDamageFor(weapon);
+function weaponBestStyle(weapon, inst = null) {
+  const d = weaponDamageFor(weapon, inst);
   return STYLE_ORDER.reduce((acc, s) => (d[s] > d[acc] ? s : acc), "slashing");
 }
 
@@ -635,6 +754,9 @@ const ITEMS = {
   hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 60, price: 20, shopTier: 1, desc: "Восстанавливает 60 HP." },
   hp_big:   { id: "hp_big",   name: "Большое зелье лечения", slot: "potion", icon: "⚗️", type: "potion", effect: "hp", amount: 120, price: 45, shopTier: 1, desc: "Восстанавливает 120 HP." },
   mana_small: { id: "mana_small", name: "Зелье маны", slot: "potion", icon: "🔷", type: "potion", effect: "mana", amount: 20, price: 20, shopTier: 1, desc: "Восстанавливает 20 маны." },
+  smoke_bomb: { id: "smoke_bomb", name: "Дымовая бомба", icon: "💨", type: "combat", effect: "smoke", price: 30, desc: "Враг пропускает следующий удар.", slot: "potion" },
+  fire_flask: { id: "fire_flask", name: "Греческий огонь", icon: "🔥", type: "combat", effect: "fire", damage: 20, price: 40, desc: "Наносит 20 урона, игнорируя броню.", slot: "potion" },
+  poison_vial: { id: "poison_vial", name: "Флакон с ядом", icon: "🧪", type: "combat", effect: "poison", damage: 5, turns: 3, price: 35, desc: "Наносит 5 урона в течение 3 ходов.", slot: "potion", shopTier: 1 },
 };
 
 // armorType старой gearItem()-брони (голова/плечи/спина/руки/пояс/ноги/ступни).
@@ -996,31 +1118,6 @@ const NPCS = {
     ],
   },
 };
-
-// Атмосферные ивенты: вешают дебафф на N боёв (списывается в result-continue / flee).
-const EVENTS = [
-  // ── Для 1-го этажа (Тёмный Лес) ──
-  { id: "forest_cold", floor: 1,
-    text: "Ночной ветер пробирается под одежду, пальцы немеют от холода.",
-    debuff: { id: "cowardice", name: "Озноб", icon: "🥶", mult: 0.9, battles: 1, desc: "−10% урона на 1 бой" } },
-  { id: "forest_whispers", floor: 1,
-    text: "Из густых зарослей доносятся шорохи и чьё-то злобное хихиканье — вы то и дело оглядываетесь.",
-    debuff: { id: "fear", name: "Страх", icon: "😱", mult: 0.85, battles: 1, desc: "−15% урона на 1 бой" } },
-  { id: "forest_spores", floor: 1,
-    text: "Вы вдохнули облако гнилой трухи. Горло саднит, дыхание сбивается.",
-    debuff: { id: "wheeze", name: "Одышка", icon: "💨", mult: 0.95, battles: 2, desc: "−5% урона на 2 боя" } },
-
-  // ── Для 2-го этажа (Древний Склеп) ──
-  { id: "crypt_cold", floor: 2,
-    text: "Могильный холод пробирает до костей, пальцы почти не слушаются.",
-    debuff: { id: "cowardice", name: "Озноб", icon: "🥶", mult: 0.9, battles: 1, desc: "−10% урона на 1 бой" } },
-  { id: "crypt_whispers", floor: 2,
-    text: "Из сырых каменных стен доносится шёпот и смешки — вы то и дело оглядываетесь.",
-    debuff: { id: "fear", name: "Страх", icon: "😱", mult: 0.85, battles: 1, desc: "−15% урона на 1 бой" } },
-  { id: "crypt_dust", floor: 2,
-    text: "Воздух пахнет ржавчиной и вековой пылью, дыхание сбивается.",
-    debuff: { id: "wheeze", name: "Одышка", icon: "💨", mult: 0.95, battles: 2, desc: "−5% урона на 2 боя" } },
-];
 
 const RECIPES = [
   // ── 1-Й ЭТАЖ (Тир 0 и Железо/Тир 1) ──

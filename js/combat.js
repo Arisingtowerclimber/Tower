@@ -86,6 +86,7 @@ function createBattle(enemyDef, floorId) {
     enemyAttackHistory: [],
     playerBlocksHistory: [], // <--- ДОБАВЛЕНО
     playerDebuffs: [],
+    monkStance: MONK_DEFAULT_STANCE,
   };
   
   const label = variationLabel(enemy);
@@ -183,26 +184,35 @@ function reflectThorns(battle, uniques, damage) {
   battle.hp = Math.max(0, battle.hp - reflected);
   battleLog(battle, `Шипы отражают ${reflected} урона.`, "hit");
 }
-function estimateDamage(state, battle, zoneId, style) {
+// Базовая сила удара до вычета защиты. Вынесено, чтобы прогноз и размен
+// считали урон по одной формуле.
+function computeStrikeBase(st, { power = 1, zoneMult = 1, styleMult = 1, stanceMult = 1, armorMult = 1, variance = 1 } = {}) {
+  return st.atk * power * zoneMult * styleMult * stanceMult * armorMult * variance;
+}
+
+function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   if (!battle || battle.over) return 0;
   const st = stats();
   const e = battle.enemy;
   const zone = ZONE_MAP[zoneId];
   if (!zone) return 0;
 
-  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  const mainInst = weaponInst !== undefined ? weaponInst : (state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null);
   const weapon = mainInst ? ITEMS[mainInst.id] : null;
   
   // Проверяем, бьет ли оружие этим стилем, иначе берем лучший
-  const actualStyle = weaponStyleValue(weapon, style) > 0 ? style : weaponBestStyle(weapon);
-  const styleMult = weaponStyleMult(weapon, actualStyle);
+  const isMonkUnarmed = state.archetype === "monk" && !weapon;
+  const actualStyle = isMonkUnarmed
+    ? (STYLE_ORDER.includes(style) ? style : "slashing")
+    : (weaponStyleValue(weapon, style, mainInst) > 0 ? style : weaponBestStyle(weapon, mainInst));
+  const styleMult = isMonkUnarmed ? MONK_UNARMED_STYLE_MULT : weaponStyleMult(weapon, actualStyle, mainInst);
   
   const armorType = e.armorType || "leather";
   const armorMult = ARMOR_STYLE_MULT[actualStyle][armorType] || 1;
   const zoneMult = zone.damageMult || 1;
   
   // Считаем средний урон (без учета крита и случайного разброса)
-  let base = st.atk * 1 * zoneMult * styleMult * armorMult;
+  const base = computeStrikeBase(st, { zoneMult, styleMult, armorMult });
   
   const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
   const effectiveDef = e.def * (1 - pierce);
@@ -210,7 +220,7 @@ function estimateDamage(state, battle, zoneId, style) {
   return Math.max(1, Math.round(base - effectiveDef * 0.6));
 }
 
-function exchange(state, battle, action) {
+function exchange(state, battle, action, weaponInst = null) {
   if (!battle || battle.over) return { error: "Бой уже закончился." };
 
   const st = stats();
@@ -242,6 +252,17 @@ function exchange(state, battle, action) {
       poison.turns -= 1;
       if (poison.turns <= 0) battle.playerDebuffs = battle.playerDebuffs.filter((d) => d !== poison);
       battleLog(battle, `Яд разъедает раны: ${damage} урона.`, "warn");
+    }
+  }
+
+  if (Array.isArray(battle.enemyDebuffs) && battle.enemyDebuffs.length) {
+    const poison = battle.enemyDebuffs.find((d) => d.id === "poison");
+    if (poison) {
+      const damage = Number(poison.damage) || 5;
+      battle.hp = Math.max(0, battle.hp - damage);
+      poison.turns -= 1;
+      if (poison.turns <= 0) battle.enemyDebuffs = battle.enemyDebuffs.filter((d) => d !== poison);
+      battleLog(battle, `Яд разъедает врага на ${damage} урона!`, "warn");
     }
   }
 
@@ -278,6 +299,26 @@ function exchange(state, battle, action) {
       `Вы выпиваете «${potion.name}» и восстанавливаете ${healed} ${potion.effect === "hp" ? "HP" : "маны"}.`,
       "heal"
     );
+  } else if (action.type === "item") {
+    const item = ITEMS[action.id];
+    if (!item || item.type !== "combat") return { error: "Неизвестный боевой предмет." };
+    if ((state.potions[action.id] || 0) <= 0) return { error: "Предмет закончился." };
+    if (item.effect !== "smoke" && item.effect !== "fire" && item.effect !== "poison") return { error: "Неизвестный эффект предмета." };
+
+    state.potions[action.id] -= 1;
+
+    if (item.effect === "poison") {
+      battle.enemyDebuffs = battle.enemyDebuffs || [];
+      battle.enemyDebuffs.push({ id: "poison", turns: Number(item.turns) || 3, damage: Number(item.damage) || 5 });
+      battleLog(battle, "Вы разбили флакон с ядом!", "info");
+    } else if (item.effect === "smoke") {
+      battle.tripped = true;
+      battleLog(battle, "Вы бросили дымовую бомбу. Враг дезориентирован!", "info");
+    } else {
+      const dmg = Number(item.damage) || 20;
+      battle.hp = Math.max(0, battle.hp - dmg);
+      battleLog(battle, `Греческий огонь опалил врага на ${dmg} урона!`, "crit");
+    }
   } else if (action.type === "pass") {
     battleLog(battle, "Вы меняете оружие.", "info");
   } else {
@@ -306,16 +347,25 @@ function exchange(state, battle, action) {
       const power = tech ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
       const wanted = STYLE_ORDER.includes(action.style) ? action.style : "slashing";
-      const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+      const mainInst = weaponInst !== undefined ? weaponInst : (state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null);
       const weapon = mainInst ? ITEMS[mainInst.id] : null;
-      const style = weaponStyleValue(weapon, wanted) > 0 ? wanted : weaponBestStyle(weapon);
-      const styleMult = weaponStyleMult(weapon, style);
+      const isMonkUnarmed = state.archetype === "monk" && !weapon;
+      const style = isMonkUnarmed
+        ? (STYLE_ORDER.includes(battle.monkStance) ? battle.monkStance : MONK_DEFAULT_STANCE)
+        : (weaponStyleValue(weapon, wanted, mainInst) > 0 ? wanted : weaponBestStyle(weapon, mainInst));
+      const styleMult = isMonkUnarmed ? MONK_UNARMED_STYLE_MULT : weaponStyleMult(weapon, style, mainInst);
       if (styleMult <= 0) return { error: "Это оружие не бьёт таким стилем." };
 
       const armorType = e.armorType || "leather";
-      const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
+      let armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
+      let monkStanceMult = 1;
+      if (isMonkUnarmed) {
+        if (style === "slashing") monkStanceMult = 1.1;
+        else if (style === "piercing") monkStanceMult = 0.9;
+        else if (style === "bludgeoning") { monkStanceMult = 0.9; armorMult *= 1.3; }
+      }
 
-      let base = st.atk * power * zoneMult * styleMult * armorMult * rnd(0.9, 1.1);
+      let base = computeStrikeBase(st, { power, zoneMult, styleMult, stanceMult: monkStanceMult, armorMult, variance: rnd(0.9, 1.1) });
       const critChance = st.crit + (tech ? 0 : (zone.critBonus || 0));
       const crit = !tech && Math.random() * 100 < critChance;
       if (crit) base *= 1.7;

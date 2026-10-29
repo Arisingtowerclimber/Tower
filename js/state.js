@@ -24,7 +24,8 @@ function defaultState() {
       ring1: null, ring2: null, trinket1: null, trinket2: null, 
       mainhand: uidOf("rusty_knife"), offhand: null 
     },
-    owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, debuff: null, kills: 0, bestiary: {},
+    owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
+    activeEvent: null, tempDebuffs: [], eventCooldown: 0,
     killCount: {}, weekQuests: { weekStartDay: 0, list: [] },
     resources: {},
     knownRecipes: [],
@@ -68,7 +69,11 @@ function loadState() {
     if (!sceneOk) { state.activeSceneId = null; state.activeSceneFloorId = null; }
     if (state.activeNpcId === "trader") state.activeNpcId = "arthur";
     if (state.activeNpcId && !NPCS[state.activeNpcId]) state.activeNpcId = null;
-    if (!state.debuff || !state.debuff.id || !Number.isFinite(state.debuff.mult) || !Number.isFinite(state.debuff.battles)) state.debuff = null;
+    delete state.debuff; // устаревшая система атмосферных дебаффов (заменена на tempDebuffs)
+    if (!Array.isArray(state.tempDebuffs)) state.tempDebuffs = [];
+    state.tempDebuffs = state.tempDebuffs.filter((d) => d && typeof d === "object" && Number.isFinite(d.days) && d.days > 0);
+    state.activeEvent = state.activeEvent && typeof state.activeEvent === "object" && state.activeEvent.id ? state.activeEvent : null;
+    state.eventCooldown = Number.isFinite(state.eventCooldown) ? Math.max(0, state.eventCooldown) : 0;
 
     state.mana = Number.isFinite(state.mana) ? state.mana : defaults.mana;
     state.energy = Number.isFinite(state.energy) ? state.energy : EXPLORATION_MAX;
@@ -321,11 +326,12 @@ function stats() {
 
   const maxHp = Math.round((BASE_STATS.hp + a.end * 10 + gear.hp + tal.hp) * mult.hp * mods.maxHp);
   const maxMana = Math.round((BASE_STATS.mana + a.int * 10 + gear.mana) * mult.mana);
-  let atkMult = mult.damage * mods.atk * (state.debuff && Number.isFinite(state.debuff.mult) ? state.debuff.mult : 1);
+  let atkMult = mult.damage * mods.atk * tempDebuffMultiplier("damage");
   if (state.archetype === "duelist" && mainWeapon?.handed === "1h") atkMult *= 1.3;
-  const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + gear.atk + tal.atk) * atkMult);
+  const monkBonus = state.archetype === "monk" ? a.str * 1 + a.agi * 1 : 0;
+  const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + monkBonus + gear.atk + tal.atk) * atkMult);
 
-  let def = gear.def + tal.def;
+  let def = Math.round((gear.def + tal.def) * tempDebuffMultiplier("def"));
   if (state.archetype === "guardian" && chestArmorType === "cloth") def = Math.round(def * 0.9);
 
   const crit = Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit + tal.crit);
@@ -338,8 +344,25 @@ function stats() {
     hpRegen: tal.regen || 0, counterOnDodge: tal.counterOnDodge || 0, lootChance: tal.lootChance || 0, armorPierce: round1(tal.armorPierce || 0), lifesteal: tal.lifesteal || 0, secondWind: tal.secondWind || 0 };
 }
 
-function round1(v) { return Math.round(v * 10) / 10; }
+// Множитель активных временных дебаффов (kind: "damage" | "def").
+function tempDebuffMultiplier(kind) {
+  let mult = 1;
+  for (const d of state.tempDebuffs || []) {
+    const v = kind === "damage" ? d.damageMult : d.defMult;
+    if (Number.isFinite(v)) mult *= v;
+  }
+  return mult;
+}
 
+// Тик дебаффов: уменьшает счётчик дней, удаляет истёкшие.
+function tickTempDebuffs() {
+  if (!Array.isArray(state.tempDebuffs)) state.tempDebuffs = [];
+  state.tempDebuffs = state.tempDebuffs
+    .map((d) => ({ ...d, days: (d.days || 1) - 1 }))
+    .filter((d) => d.days > 0);
+}
+
+function round1(v) { return Math.round(v * 10) / 10; }
 function xpNeeded(level) { return 200 + (level - 1) * 40; }
 function clampVitals() { const st = stats(); state.hp = Math.max(0, Math.min(state.hp, st.maxHp)); state.mana = Math.max(0, Math.min(state.mana, st.maxMana)); state.energy = Math.max(0, Math.min(state.energy, st.maxEnergy)); }
 
@@ -350,23 +373,54 @@ function applyVitalsDelta(oldStats, newStats) {
   clampVitals();
 }
 
-function createHero(name, attrs, portrait = "m1", archetype = null) {
+function createHero(biography, archetypeId, portrait = "m1", name = "") {
   state.name = (name || "").trim().slice(0, 20) || "Странник";
   state.portrait = PORTRAIT_MAP[portrait] ? portrait : "m1";
-  state.archetype = ARCHETYPE_MAP[archetype] ? archetype : null;
-  state.attrs = { str: attrs.str, agi: attrs.agi, end: attrs.end, int: attrs.int };
-  state.created = true;
-  state.points = 0;
-  state.phase = 0;
-  state.day = 1;
-  state.companion = null;
-  state.companionDay = 0;
-  state.energy = EXPLORATION_MAX;
+  state.archetype = ARCHETYPE_MAP[archetypeId] ? archetypeId : null;
+  
+  state.attrs = { str: 1, agi: 1, end: 1, int: 1 };
+  let bonusGold = 0;
+  let bonusHp = 0;
+  let bonusMana = 0;
+  const startEquipmentIds = [];
+  const startPotions = {};
+
+  if (biography && typeof biography === "object") {
+    for (const step of BACKGROUND_STEPS) {
+      const optionId = biography[step.id];
+      if (!optionId) continue;
+      const option = step.options.find((o) => o.id === optionId);
+      if (!option || !option.effects) continue;
+      const eff = option.effects;
+      
+      for (const attr of ["str", "agi", "end", "int"]) {
+        if (eff[attr]) {
+          const bonus = Math.min(4, Math.max(0, Number(eff[attr]) || 0));
+          state.attrs[attr] += bonus;
+        }
+      }
+      if (eff.gold) bonusGold += Number(eff.gold) || 0;
+      if (eff.hp) bonusHp += Number(eff.hp) || 0;
+      if (eff.mana) bonusMana += Number(eff.mana) || 0;
+      if (Array.isArray(eff.equipment)) startEquipmentIds.push(...eff.equipment);
+      if (Array.isArray(eff.potions)) {
+        for (const p of eff.potions) startPotions[p] = (startPotions[p] || 0) + 1;
+      }
+    }
+  }
 
   const arch = ARCHETYPE_MAP[state.archetype];
-  const startIds = (arch && Array.isArray(arch.startEquipment))
-    ? arch.startEquipment
-    : ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"];
+  if (arch && Array.isArray(arch.startEquipment)) {
+    for (const id of arch.startEquipment) {
+      const item = ITEMS[id];
+      if (!item) continue;
+      const alreadyHasSlot = startEquipmentIds.some((eqId) => {
+        const eq = ITEMS[eqId];
+        return eq && eq.slot === item.slot && item.slot !== "ring" && item.slot !== "trinket";
+      });
+      if (!alreadyHasSlot) startEquipmentIds.push(id);
+    }
+  }
 
   state.owned = [];
   state.nextUid = 1;
@@ -377,20 +431,29 @@ function createHero(name, attrs, portrait = "m1", archetype = null) {
     trinket1: null, trinket2: null, mainhand: null, offhand: null
   };
 
-  for (const id of startIds) {
+  for (const id of startEquipmentIds) {
     const item = ITEMS[id];
     if (!item) continue;
-
     const inst = { uid: generateUid(), id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null };
     state.owned.push(inst);
-
     const slot = targetSlotFor(item, inst);
     if (slot) state.equipped[slot] = inst.uid;
   }
 
+  state.gold = 60 + bonusGold;
+  state.potions = { hp_small: 0, hp_big: 0, mana_small: 0, ...startPotions };
+  state.created = true;
+  state.points = 0;
+  state.phase = 0;
+  state.day = 1;
+  state.companion = null;
+  state.companionDay = 0;
+  state.energy = EXPLORATION_MAX;
+
   const st = stats();
-  state.hp = st.maxHp;
-  state.mana = st.maxMana;
+  state.hp = st.maxHp + bonusHp;
+  state.mana = st.maxMana + bonusMana;
+  
   state.weekQuests = { weekStartDay: 0, list: [] };
   ensureWeekQuests(true);
   saveState();
@@ -551,6 +614,14 @@ function exploreFloor(floorId) {
   state.energy -= FIGHT_ENERGY_COST;
   state.floorProgress[floor.id] = progressBefore;
 
+  // Процедурное событие: ~15% шанс, с кулдауном. Показываем модалку и прерываем исследование.
+  const rolledEvent = rollEvent(floor.id, state);
+  if (rolledEvent) {
+    state.activeEvent = rolledEvent;
+    saveState();
+    return { ok: true, text: rolledEvent.text, event: true };
+  }
+
   const gainProgress = (amount) => {
     state.floorProgress[floor.id] = Math.min(100, state.floorProgress[floor.id] + amount);
   };
@@ -571,7 +642,6 @@ function exploreFloor(floorId) {
   let text = "";
   let encounter = null;
   let scene = false;
-  let eventData = null; // Для ивентов с дебаффами
   let npc = false;
 
   if (roll < 0.20) {
@@ -597,15 +667,9 @@ function exploreFloor(floorId) {
       state.activeNpcId = NPCS.arthur.id;
       npc = true;
       text = `Из тени вышел ${NPCS.arthur.name} и поманил вас пальцем.`;
-    } else if (EVENTS.length) {
-      const floorEvents = EVENTS.filter(e => e.floor === floor.id);
-      if (floorEvents.length) {
-        const ev = floorEvents[Math.floor(Math.random() * floorEvents.length)];
-        eventData = ev; // Возвращаем ивент, но НЕ применяем дебафф сразу
-        text = `${ev.text} ${ev.debuff.icon} ${ev.debuff.name}: ${ev.debuff.desc}.`;
-      } else {
-        text = "Вы нашли странный алтарь. Он молчит… пока что.";
-      }
+    } else {
+      gainProgress(1);
+      text = `Вы осторожно продвигаетесь.${progressText()}`;
     }
   } else if (roll < 0.90) {
     const pool = FLOOR_SCENES[floor.id] || [];
@@ -628,7 +692,7 @@ function exploreFloor(floorId) {
   }
 
   saveState();
-  return { ok: true, text, encounter, scene, npc, eventData };
+  return { ok: true, text, encounter, scene, npc };
 }
 
 function getTraderInventory() {
@@ -651,63 +715,6 @@ function getTraderInventory() {
     stock.push({ kind: "gear", uid: inst.uid, inst, price });
   }
   return stock;
-}
-
-function buyFromTrader(entryId) {
-  const stock = (typeof view !== "undefined" && view.traderStock) || [];
-  const entry = stock.find((e) => (e.kind === "gear" ? e.uid : e.id) === entryId);
-  if (!entry) return { ok: false, text: "Товар уже продан." };
-  if (state.gold < entry.price) return { ok: false, text: "Не хватает золота." };
-  
-  state.gold -= entry.price;
-  let name;
-
-  if (entry.kind === "potion") {
-    state.potions[entry.id] = (state.potions[entry.id] || 0) + 1;
-    name = ITEMS[entry.id].name;
-  } else {
-    const inst = getInstance(entry.inst.uid);
-    if (inst) {
-      // Роллим редкость при покупке
-      const newRarity = rollRarity();
-      inst.rarity = newRarity;
-      inst.affix = generateAffix(newRarity);
-      if (newRarity === "legendary" && UNIQUE_EFFECTS.length) {
-        inst.unique = UNIQUE_EFFECTS[Math.floor(Math.random() * UNIQUE_EFFECTS.length)].id;
-      }
-      name = getItemDisplayName(inst);
-    } else {
-      name = ITEMS[entry.inst.id].name;
-    }
-  }
-  saveState();
-  return { ok: true, text: `Куплено: ${name} (−${entry.price} 💰).`, entryId };
-}
-
-function applyNpcAction(action, npcId) {
-  const npc = NPCS[npcId] || NPCS[state.activeNpcId];
-  if (!npc) return { ok: false, text: "Здесь никого нет." };
-  if (action === "show-goods") {
-    if (!view.traderStock) view.traderStock = getTraderInventory();
-    view.npcShopOpen = true;
-    return { ok: true, text: `${npc.name} раскладывает товар.` };
-  }
-  if (action === "leave") {
-    closeNpcDialog();
-    return { ok: true, text: "Вы откланялись." };
-  }
-  return { ok: false, text: "Неизвестное действие." };
-}
-
-function consumeBattleDebuff() {
-  if (!state.debuff) return;
-  state.debuff.battles = (state.debuff.battles || 1) - 1;
-  if (state.debuff.battles <= 0) {
-    const lost = state.debuff;
-    state.debuff = null;
-    toast(`${lost.icon || ""} ${lost.name}: эффект прошёл.`, "ok");
-  }
-  saveState();
 }
 
 function sellResource(resId) {
@@ -751,6 +758,7 @@ function advancePhase() {
     state.phase = 0;
     state.day += 1;
     ensureWeekQuests();
+    tickTempDebuffs();
   }
   expireCompanion();
   clampVitals(); saveState(); return phaseInfo();
@@ -773,6 +781,7 @@ function hotelRest() {
   if (state.gold < HOTEL_PRICE) return { ok: false, text: `Не хватает золота: нужно ${HOTEL_PRICE} 💰.` };
   state.gold -= HOTEL_PRICE; state.day += 1; state.phase = 0;
   expireCompanion();
+  tickTempDebuffs();
   const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; state.energy = st.maxEnergy;
   ensureWeekQuests(); saveState();
   return { ok: true, text: `Номер оплачен. HP, мана и энергия восстановлены. ${phaseLabel()}.` };
@@ -978,6 +987,7 @@ function canEquipInSlot(item, slotId) {
   const slot = SLOTS.find((s) => s.id === slotId);
   if (!slot) return false;
   if (!slot.accepts.includes(item.slot)) return false;
+  if (state?.archetype === "monk" && (slotId === "mainhand" || slotId === "offhand")) return false;
   if (state?.archetype === "assassin" && slotId === "offhand") {
     if (isShield(item)) return false;
     return item.slot === "mainhand" || item.slot === "offhand";
