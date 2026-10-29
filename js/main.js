@@ -93,7 +93,14 @@ setTimeout(applyMusicSettings, 100);
 
 // ── ИНИЦИАЛИЗАЦИЯ ИГРЫ ──────────────────────────────────────
 function init() {
-  loadState();
+  const loaded = loadState();
+  // Защита от потери прогресса: повреждённый/невалидный raw сохраняем
+  // в отдельный ключ ДО первого saveState(), который перезапишет основной слот.
+  if (loaded && loaded.ok === false && loaded.raw) {
+    const backupKey = `${SAVE_KEY}.backup-${Date.now()}`;
+    storage.set(backupKey, loaded.raw);
+    console.warn("Повреждённое сохранение скопировано в", backupKey, loaded.error);
+  }
   clampVitals();
   saveState();
 

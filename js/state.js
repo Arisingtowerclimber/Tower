@@ -3,6 +3,14 @@ const SAVE_VERSION = 8;
 const OLD_SLOT_MAP = { weapon: "mainhand", armor: "chest", shield: "offhand" };
 const BASE_STATS = { hp: 140, mana: 40, damage: 5, dodgeCap: 35, critCap: 60 };
 
+// Абстракция хранилища. TODO(step4): перенести реализацию в js/platform.js
+// (platform.storage) и оставить здесь только вызовы адаптера.
+const storage = {
+  get(key) { try { return localStorage.getItem(key); } catch (err) { return null; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch (err) {} },
+  remove(key) { try { localStorage.removeItem(key); } catch (err) {} },
+};
+
 let state = null;
 
 function defaultState() {
@@ -47,10 +55,14 @@ function migrateSave(saved, fromVersion) {
 }
 
 function loadState() {
+  let raw = null;
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) { state = defaultState(); return; }
+    raw = storage.get(SAVE_KEY);
+    if (!raw) { state = defaultState(); return { ok: true, empty: true }; }
     const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) {
+      throw new Error("Некорректный формат сохранения");
+    }
     const defaults = defaultState();
     migrateSave(saved, saved.version);
 
@@ -152,11 +164,16 @@ function loadState() {
     delete state.quests;
     delete state.npcQuests;
     ensureWeekQuests();
-    
-  } catch (err) { state = defaultState(); }
+    return { ok: true };
+  } catch (err) {
+    // Сырой текст сохранения возвращается наверх: main.js успевает сделать
+    // backup до того, как saveState() перезапишет повреждённый слот.
+    state = defaultState();
+    return { ok: false, raw, error: String(err && err.message ? err.message : err) };
+  }
 }
 
-function saveState() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (err) {} }
+function saveState() { try { storage.set(SAVE_KEY, JSON.stringify(state)); } catch (err) {} }
 function resetState() { state = defaultState(); saveState(); }
 function getEquippedItem(slot) {
   const uid = state.equipped[slot];
