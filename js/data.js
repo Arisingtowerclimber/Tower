@@ -651,7 +651,7 @@ const TALENT_MAP = Object.fromEntries(TALENTS.map((t) => [t.id, t]));
 // расы (поле `race` + список id ниже) — их считает titleBonusVsMob в combat.js.
 // Обычные ачивки (без `race`) дают глобальные пассивные бонусы через stats().
 const ACH_GOBLIN_IDS  = ["goblin_scout", "goblin_chief", "hobgoblin", "bugbear"];
-const ACH_KOBOLD_IDS  = ["kobold_miner", "kobold_tinker", "kobold_sorcerer", "kobold_master"];
+const ACH_KOBOLD_IDS  = ["kobold_servant", "kobold_miner", "kobold_overseer"];
 const ACH_UNDEAD_IDS  = ["skeleton_warrior", "unquiet_ghost", "crypt_ghoul", "dark_knight"];
 const ACH_DEMON_IDS   = ["fire_imp", "hell_hound", "horned_devil", "demon_lord"];
 
@@ -803,10 +803,10 @@ const MOB_WEAKNESS = {
   bugbear: ["bludgeoning"],
   goblin_chief: ["slashing"],
 
+  kobold_servant: ["slashing"],
   kobold_miner: ["bludgeoning"],
-  kobold_tinker: ["piercing"],
-  kobold_sorcerer: ["piercing"],
-  kobold_master: ["slashing"],
+  kobold_overseer: ["slashing"],
+  dragonborn: ["bludgeoning"],
 
   skeleton_warrior: ["bludgeoning"],
   unquiet_ghost: ["slashing"],
@@ -976,8 +976,8 @@ const HUNT_CONTRACTS = [
   // Контракты на охоту — на доске висят по два.
   { id: "hc_hobgoblin", type: "hunt", mobId: "hobgoblin", floorId: 1, target: 5, gold: 180, xp: 120, rep: 1, desc: "Хобгоблины топчут покосы и пугают дровосеков." },
   { id: "hc_bugbear", type: "hunt", mobId: "bugbear", floorId: 1, target: 5, gold: 220, xp: 160, rep: 1, desc: "Багбиры ломают изгороди по краю Тёмного Леса." },
-  { id: "hc_kobold_tinker", type: "hunt", mobId: "kobold_tinker", floorId: 2, target: 5, gold: 280, xp: 190, rep: 1, desc: "Кобольдские тележки гремят по ночам хуже бандитов." },
-  { id: "hc_kobold_sorcerer", type: "hunt", mobId: "kobold_sorcerer", floorId: 2, target: 5, gold: 300, xp: 210, rep: 1, desc: "Кобольдские искры подожгли склад у шахт." },
+  { id: "hc_kobold_servant", type: "hunt", mobId: "kobold_servant", floorId: 2, target: 5, gold: 280, xp: 190, rep: 1, desc: "Кобольдские слуги таскают руду наверх и путаются под ногами у караванов." },
+  { id: "hc_kobold_overseer", type: "hunt", mobId: "kobold_overseer", floorId: 2, target: 5, gold: 300, xp: 210, rep: 1, desc: "Надсмотрщики сгоняют кобольдов в шахты и не дают им разбежаться." },
   { id: "hc_unquiet_ghost", type: "hunt", mobId: "unquiet_ghost", floorId: 3, target: 5, gold: 380, xp: 250, rep: 1, desc: "Призраки шепчут путникам странные вещи." },
   { id: "hc_crypt_ghoul", type: "hunt", mobId: "crypt_ghoul", floorId: 3, target: 5, gold: 400, xp: 270, rep: 1, desc: "Упыри растащили половину старого кладбища." },
   { id: "hc_orc_shaman", type: "hunt", mobId: "orc_shaman", floorId: 4, target: 5, gold: 460, xp: 310, rep: 1, desc: "Орочьи шаманы варят у костров что-то зловещее." },
@@ -994,7 +994,7 @@ const HUNTER_TIPS = [
   { minFloor: 1, text: "Капюшон и лохмотья — не броня. Багбир ломает их одним щелчком." },
   { minFloor: 1, text: "Не путай редкость с ценностью: ржавый нож лутается часто, но стоит гроши." },
   { minFloor: 2, text: "Кобольды ставят блоки, бери приёмы на пробитие." },
-  { minFloor: 2, text: "Кобольд-колдун шипит заклинаниями — бей его первым, пока остальные возятся с тележками." },
+  { minFloor: 2, text: "Кобольд-надсмотрщик держит два блока сразу — бей в живот, там кольчуга не спасёт." },
   { minFloor: 3, text: "Не забудь про мифрил, он падает с орков." },
   { minFloor: 3, text: "Скелеты ничего не чувствуют, но кости хрупкие — руби по ногам." },
   { minFloor: 4, text: "Огр открыт, пока замахивается. Один его удар — половина твоего здоровья." },
@@ -1296,10 +1296,10 @@ const MOB_ICONS = {
   hobgoblin: "assets/mobs/hobgoblin.webp",
   bugbear: "assets/mobs/bugbear.webp",
   goblin_chief: "assets/mobs/goblin_chief.webp",
-  kobold_miner: "assets/portraits/kobold_miner.webp",
-  kobold_servant: "assets/portraits/kobold_servant.webp",
-  kobold_overseer: "assets/portraits/kobold_overseer.webp",
-  dragonborn: "assets/portraits/dragonborn.webp",
+  kobold_miner: "assets/mobs/kobold_miner.webp",
+  kobold_servant: "assets/mobs/kobold_servant.webp",
+  kobold_overseer: "assets/mobs/kobold_overseer.webp",
+  dragonborn: "assets/mobs/dragonborn.webp",
   skeleton_warrior: "assets/mobs/skeleton_warrior.webp",
   unquiet_ghost: "assets/mobs/unquiet_ghost.webp",
   crypt_ghoul: "assets/mobs/crypt_ghoul.webp",
@@ -1391,38 +1391,39 @@ const FLOORS = [
   },
   // === FLOORS[1] — Кобольды (шахты) ===
   { id: 2, name: "Шахты Кобольдов", subtitle: "Под землёй стучат кирки, и стук всё ближе", icon: "⚙️",
-    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы холодного железа. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и шипение колдовских заклинаний.",
+    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы холодного железа. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и лязг цепей.",
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 324, atk: 46, def: 12, gold: 60, xp: 84, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+      enemy({ id: "kobold_servant", name: "Кобольд-слуга", icon: "kobold_servant", hp: 320, atk: 42, def: 8, gold: 55, xp: 75, armorType: "cloth", weapons: ["rusty_knife", "wood_club", "short_sword"], prefers: ["waist", "legs"],
+        desc: "Тощий кобольд в грязном тряпье, вечно таскающий инструменты за старшими. В драку лезет неохотно, но бьёт низко — в пояс и ноги, норовя подрезать сухожилия.",
+        drops: [
+          { id: "copper_ore", chance: 0.35, min: 1, max: 2 },
+          { id: "cave_mushroom", chance: 0.3, min: 1, max: 2 },
+          { id: "kobold_gear", chance: 0.25, min: 1, max: 1 },
+        ] }),
+      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 400, atk: 48, def: 12, gold: 68, xp: 90, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
         desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
           { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.3, min: 1, max: 2 },
-          { id: "wood", chance: 0.2, min: 1, max: 2 },
+          { id: "cold_iron_ingot", chance: 0.2, min: 1, max: 1 },
+          { id: "kobold_gear", chance: 0.2, min: 1, max: 1 },
         ] }),
-      enemy({ id: "kobold_tinker", name: "Кобольд-механик", icon: "kobold_servant", hp: 378, atk: 50, def: 14, gold: 70, xp: 95, armorType: "leather", weapons: ["dagger", "mace", "short_sword"], prefers: ["belly", "chest"],
-        desc: "Толкает перед собой скрипучую тележку с шестерёнками. Швыряет в вас осколки холодного железа, целясь в живот и грудь.",
+      enemy({ id: "kobold_overseer", name: "Кобольд-надсмотрщик", icon: "kobold_overseer", hp: 500, atk: 56, def: 18, gold: 82, xp: 110, armorType: "chain", weapons: ["mace", "short_sword", "battle_axe"], prefers: ["belly", "chest"], blocks: 2,
+        desc: "Широкоплечий кобольд в кольчуге, с плетью на поясе и тяжёлой булавой в лапе. Гоняет сородичей в забой и бьёт в живот и грудь, не давая опомниться.",
         drops: [
-          { id: "kobold_gear", chance: 0.4, min: 1, max: 2 },
-          { id: "cold_iron_ingot", chance: 0.25, min: 1, max: 1 },
-          { id: "rust", chance: 0.2, min: 1, max: 2 },
-        ] }),
-      enemy({ id: "kobold_sorcerer", name: "Кобольд-колдун", icon: "💀", hp: 432, atk: 55, def: 10, gold: 80, xp: 105, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
-        desc: "Шипит сквозь острые зубы заклинания, от которых искры сыплются на камень. Бьёт по голове и животу, пока остальные отвлекают.",
-        drops: [
-          { id: "cave_mushroom", chance: 0.35, min: 1, max: 2 },
-          { id: "copper_ore", chance: 0.25, min: 1, max: 2 },
-          { id: "mushroom", chance: 0.2, min: 1, max: 2 },
+          { id: "cold_iron_ingot", chance: 0.3, min: 1, max: 2 },
+          { id: "steel", chance: 0.2, min: 1, max: 1 },
+          { id: "kobold_gear", chance: 0.3, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "kobold_master", name: "Кобольд-Мастер Крови", icon: "kobold_overseer", hp: 1728, atk: 89, def: 22, gold: 640, xp: 840, armorType: "chain", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
-      desc: "Огромный, перемазанный рудой кобольд с молотом в лапах. В ярости его удары разбрызгивают кровь по стенам шахты.",
+    boss: enemy({ id: "dragonborn", name: "Драконид", icon: "dragonborn", hp: 1728, atk: 92, def: 26, gold: 660, xp: 880, armorType: "plate", weapons: ["steel_great_sword"], prefers: ["chest", "head"], blocks: 3, boss: true, enrage: true,
+      desc: "Чешуйчатый гигант в тяжёлых латах, поднявшийся из глубин вместе с кобольдами. Двуручный клинок в его лапах описывает широкую дугу, доставая сразу две зоны.",
       drops: [
         { id: "cold_iron_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "cold_iron_ingot", chance: 0.6, min: 2, max: 3 },
-        { id: "copper_ore", chance: 0.5, min: 2, max: 3 },
+        { id: "steel", chance: 0.5, min: 1, max: 2 },
       ] }),
   },
   // === FLOORS[2] — Нежить (склеп) ===

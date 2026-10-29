@@ -183,7 +183,7 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
   }
 
   const blocks = [];
-  const blockCount = battle.boss ? 2 : 1;
+  const blockCount = Math.max(1, Math.min(ZONES.length, Number.isFinite(battle.enemy.blocks) ? battle.enemy.blocks : (battle.boss ? 2 : 1)));
   const adaptChance = (battle.boss ? 0.5 : 0.35) * (battle.enemy.ability === "adaptive" ? ADAPTIVE_MULT : 1);
   
   if (lastPlayerAttack && Math.random() < adaptChance) {
