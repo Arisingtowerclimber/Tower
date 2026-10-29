@@ -2797,3 +2797,50 @@ kbd {
   .hall-npcs .npc-dialogue-bar { margin-bottom: 0; }
   .contract-foot { justify-content: center; }
 }
+
+/* ── Титулы героя ─────────────────────────────────────────── */
+.doll-name .hero-title {
+  display: block;
+  font-family: Georgia, "Palatino Linotype", serif;
+  font-size: 13px;
+  color: var(--gold2);
+  letter-spacing: 0.02em;
+}
+
+/* Модалка выбора титула */
+.title-modal { max-width: 520px; text-align: left; }
+.title-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.title-option {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 12px; text-align: left;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #150f0c; color: #e7dccb; cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.title-option:hover { border-color: var(--gold); background: rgba(201, 152, 78, 0.08); }
+.title-option.active { border-color: var(--gold); background: rgba(201, 152, 78, 0.12); box-shadow: 0 0 0 1px rgba(217, 169, 75, 0.3); }
+.title-option-icon { flex: 0 0 auto; font-size: 26px; line-height: 1; }
+.title-option-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.title-option-name { font-size: 14px; font-weight: 600; color: var(--gold2); }
+.title-option-desc { font-size: 11.5px; line-height: 1.35; color: var(--dim); }
+.title-option-check { flex: 0 0 auto; color: var(--gold2); font-weight: 700; }
+
+/* Ряд товара у Артура */
+.trader-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  flex-wrap: wrap;
+}
+.trader-row-label { flex: 1 1 160px; min-width: 0; font-size: 14px; }
+.trader-row-price { color: var(--gold2); white-space: nowrap; }
+.trader-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Подсветка вкладки «Приёмы», когда готов активный навык */
+.deck-tab.ready {
+  border-color: var(--gold) !important;
+  color: var(--gold2) !important;
+  box-shadow: 0 0 8px rgba(217, 169, 75, 0.45);
+}

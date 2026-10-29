@@ -23,6 +23,7 @@ const view = {
   exploreResult: null,
   weaponSwap: false,
   battleModal: null,
+  titleModal: false,
   settingsOpen: false, settingsTab: "audio",
   shopFilterSlot: "all", shopFilterType: "all", shopFilterStyle: null,
 };
@@ -1709,7 +1710,7 @@ function dollSlotHtml(slotId) {
 }
 function paperDollHtml() {
   const left = DOLL_LEFT.map(dollSlotHtml).join(""); const right = DOLL_RIGHT.map(dollSlotHtml).join(""); const count = Object.values(state.equipped).filter(Boolean).length;
-  return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b><span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span></div></div><div class="doll-col">${right}</div></div>`;
+  return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b>${state.currentTitle ? `<span class="hero-title">${esc(state.currentTitle)}</span>` : ""}<span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span></div></div><div class="doll-col">${right}</div></div>`;
 }
 
 function dollMenuHtml() {
@@ -2036,9 +2037,12 @@ function heroHtml(st) {
       </section>
 
       <section class="panel doll-panel">
-        <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
           <button class="btn${view.inventoryTab === "talents" ? " primary" : " ghost"}" data-act="inventory-tab" data-tab="talents" type="button" style="min-width: 200px;">
             🌟 Таланты
+          </button>
+          <button class="btn ghost" data-act="title-open" type="button" style="min-width: 200px;">
+            🏅 Сменить титул
           </button>
         </div>
 
@@ -2314,6 +2318,16 @@ function weaponSwapHtml() {
   `;
 }
 
+function hasReadySkill(battle) {
+  const b = battle || view.battle;
+  if (!b) return false;
+  const cd = b.skillCd || {};
+  return TALENTS.some((t) => t.active && ((state.talents || {})[t.id] || 0) > 0
+    && state.mana >= t.skill.manaCost
+    && (!t.skill.rageCost || b.rage >= t.skill.rageCost)
+    && (cd[t.id] || 0) <= 0);
+}
+
 function battleHtml(st) {
   const battle = view.battle; 
   const enemy = battle.enemy; 
@@ -2413,7 +2427,7 @@ function battleHtml(st) {
         <div class="deck-title">Блок (${zones.limit})</div>
         <div class="zones">${zones.block}</div>
         <div class="deck-tabs deck-actions">
-          <button class="deck-tab" data-act="battle-left-tab" data-tab="abilities" type="button" style="${BATTLE_BTN_STYLE}">Приёмы</button>
+          <button class="deck-tab${hasReadySkill(battle) ? " ready" : ""}" data-act="battle-left-tab" data-tab="abilities" type="button" style="${BATTLE_BTN_STYLE}">Приёмы</button>
           <button class="deck-tab" data-act="battle-left-tab" data-tab="items" type="button" style="${BATTLE_BTN_STYLE}">Расходники</button>
         </div>
       </div>
@@ -2446,7 +2460,7 @@ function battleHtml(st) {
             <img src="${portraitSrc(state.portrait)}" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
           <div class="fighter-body" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <div class="fighter-name" style="font-size: 16px; margin-bottom: 6px;">${esc(state.name)} <span class="muted">УР ${state.level}</span></div>
+            <div class="fighter-name" style="font-size: 16px; margin-bottom: 6px;">${esc(state.name)}${state.currentTitle ? `, ${esc(state.currentTitle)}` : ""} <span class="muted">УР ${state.level}</span></div>
             ${bar("hp", state.hp, st.maxHp, "hero-hp")}
             ${bar("mana", state.mana, st.maxMana, "hero-mana")}
             <div class="bar rage-bar" data-role="rage-bar" style="margin-top: 4px;"><span style="width:${Math.min(100, (battle.rage / 5) * 100)}%"></span></div>
@@ -2780,6 +2794,7 @@ function render() {
   if (view.questsOpen) html += questsModalHtml();
   if (view.timmyTip) html += timmyModalHtml();
   if (view.settingsOpen) html += settingsModalHtml();
+  if (view.titleModal) html += titleModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
@@ -3060,11 +3075,13 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
         ? `${ITEMS[entry.inst.id].name}` 
         : `${entry.icon} ${entry.name}`;
       const afford = state.gold >= entry.price;
-      return `<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.2);">
-        <span style="flex:1; font-size:14px;">${label}</span>
-        <b style="color:var(--gold2);">${entry.price} 💰</b>
-        <button class="btn small ghost" data-act="npc-action" data-npc-action="steal" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" type="button" title="Шанс зависит от Ловкости. Провал: страж заберёт 20% золота и выставит за дверь.">🫳 Украсть</button>
-        <button class="btn small primary" data-act="npc-action" data-npc-action="buy" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" ${afford ? "" : "disabled"} type="button">Купить</button>
+      return `<div class="trader-row">
+        <span class="trader-row-label">${label}</span>
+        <b class="trader-row-price">${entry.price} 💰</b>
+        <div class="trader-row-actions">
+          <button class="btn small ghost" data-act="npc-action" data-npc-action="steal" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" type="button" title="Шанс зависит от Ловкости. Провал: страж заберёт 20% золота и выставит за дверь.">🫳 Украсть</button>
+          <button class="btn small primary" data-act="npc-action" data-npc-action="buy" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" ${afford ? "" : "disabled"} type="button">Купить</button>
+        </div>
       </div>`;
     }).join("");
     shopHtml = `
@@ -3075,8 +3092,8 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
   const options = Array.isArray(npc.options) ? npc.options : [];
   const buttonsHtml = options.map((opt) => {
     const primary = opt.id === "show-goods";
-    return `<button class="btn${primary ? " primary" : " ghost"}" data-act="npc-action" data-npc-action="${opt.id}" type="button" style="${primary ? "" : "flex:1;"}">${esc(opt.label)}</button>`;
-  }).join("") || `<button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button" style="flex:1;">🚶 Уйти</button>`;
+    return `<button class="btn${primary ? " primary" : " ghost"}" data-act="npc-action" data-npc-action="${opt.id}" type="button">${esc(opt.label)}</button>`;
+  }).join("") || `<button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button">🚶 Уйти</button>`;
 
   return `
     <div class="result-overlay" data-act="npc-backdrop" style="z-index: 185;">
@@ -3092,6 +3109,35 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 15px;">
           ${buttonsHtml}
         </div>
+      </div>
+    </div>
+  `;
+}
+function titleModalHtml() {
+  const titles = unlockedTitles(state);
+  const current = state.currentTitle || null;
+  const rows = titles.map((ach) => {
+    const active = ach.title === current;
+    return `<button class="title-option${active ? " active" : ""}" data-act="title-pick" data-title="${esc(ach.title)}" type="button">
+      <span class="title-option-icon">${ach.icon}</span>
+      <span class="title-option-body">
+        <span class="title-option-name">${esc(ach.title)}</span>
+        <span class="title-option-desc">${esc(ach.desc)}</span>
+      </span>
+      ${active ? `<span class="title-option-check">✓</span>` : ""}
+    </button>`;
+  }).join("");
+
+  return `
+    <div class="result-overlay" data-act="title-close" style="z-index: 186;">
+      <div class="result-card title-modal">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 14px;">
+          <h2 style="color: var(--gold2); font-size: 20px; margin: 0;">Сменить титул</h2>
+          <button class="btn tiny ghost" data-act="title-close" type="button">✕</button>
+        </div>
+        <p class="hint" style="margin: 0 0 12px;">Титулы открываются за убийства. Можно носить только один — он даёт бонусы против своей расы.</p>
+        <div class="title-list">${rows || `<p class="empty">Пока нет открытых титулов. Убивайте гоблинов, кобольдов и нежить, чтобы открыть их.</p>`}</div>
+        ${current ? `<button class="btn ghost" data-act="title-clear" type="button" style="width:100%; margin-top:12px;">Снять титул</button>` : ""}
       </div>
     </div>
   `;
@@ -3480,6 +3526,16 @@ function onClick(event) {
     case "inv-equip": res = equipItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.invItemUid = null; render(); break;
     case "inv-filter": view.invFilter = el.dataset.filter || "all"; render(); break;
     case "add-attr": res = addAttr(el.dataset.attr); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "title-open": view.titleModal = true; render(); break;
+    case "title-close": view.titleModal = false; render(); break;
+    case "title-pick": {
+      const res = selectTitle(el.dataset.title);
+      toast(res.text, res.ok ? "ok" : "warn");
+      view.titleModal = false;
+      render();
+      break;
+    }
+    case "title-clear": state.currentTitle = null; saveState(); view.titleModal = false; toast("Титул снят.", "ok"); render(); break;
     case "rest":
       res = freeRest();
       if (isNight()) {
