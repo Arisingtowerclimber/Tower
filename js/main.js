@@ -90,7 +90,12 @@ setTimeout(applyMusicSettings, 100);
 
 
 // ── ИНИЦИАЛИЗАЦИЯ ИГРЫ ──────────────────────────────────────
+const SFX_IDS = ["hit", "miss", "crit", "block", "potion", "chest", "victory", "defeat", "levelup", "open"];
+
 function init() {
+  Sfx.init();
+  Sfx.preload(SFX_IDS);
+
   const loaded = loadState();
   // Защита от потери прогресса: повреждённый/невалидный raw сохраняем
   // в отдельный ключ ДО первого saveState(), который перезапишет основной слот.

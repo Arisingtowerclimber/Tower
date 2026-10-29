@@ -338,11 +338,13 @@ function exchange(state, battle, action, weaponInst = null) {
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
+      Sfx.play("block");
       if (zone.risk && Math.random() < zone.risk) {
         battle.riskyMiss = true;
       }
     } else if (!tech && (e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus) {
       battleLog(battle, `${e.name} уклоняется от удара в «${zoneName}».`, "miss");
+      Sfx.play("miss");
     } else {
       const power = tech ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
@@ -392,6 +394,7 @@ function exchange(state, battle, action, weaponInst = null) {
         `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult}).`,
         crit ? "crit" : "hit"
       );
+      Sfx.play(crit ? "crit" : "hit");
 
       if (!tech && zone.staggerChance && Math.random() < zone.staggerChance) {
         battle.staggered = true;
@@ -433,6 +436,7 @@ function exchange(state, battle, action, weaponInst = null) {
       if (playerBlocked) {
         battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
         battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы блокируете.`, "block");
+        Sfx.play("block");
 
         if (state.archetype === "guardian") {
           const retaliation = Math.max(2, Math.round(e.atk * (st.mods?.blockCounter || 0.1)));
@@ -441,6 +445,7 @@ function exchange(state, battle, action, weaponInst = null) {
         }
       } else if (Math.random() * 100 < st.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
+        Sfx.play("miss");
         
         if ((st.counterOnDodge || 0) > 0) {
           const shadowDmg = Math.max(1, Math.round(st.atk * st.counterOnDodge - e.def * 0.3));

@@ -481,6 +481,11 @@ function hubHtml(st) {
             <small>${companion.buffText} · ещё ${companionDaysLeft()} дн.</small>
           </div>
         ` : ""}
+        <div class="status-item" style="margin: 0; padding: 8px 12px; display: flex; gap: 8px; align-items: center;" data-tip="Громкость звуковых эффектов">
+          <span>🔊 Звуки</span>
+          <input type="range" min="0" max="1" step="0.05" value="${Sfx.getVolume()}" data-role="sfx-volume" class="sfx-volume" title="Громкость звуковых эффектов">
+          <small data-role="sfx-volume-label">${Math.round(Sfx.getVolume() * 100)}%</small>
+        </div>
       </div>
 
             <div class="locations">
@@ -2125,6 +2130,14 @@ function onInput(event) {
     const input = document.querySelector('[data-role="inv-search"]');
     if (input) { input.focus(); try { input.setSelectionRange(pos, pos); } catch { } }
   }
+  // Ползунок громкости звуковых эффектов (Этап 4). Без рендера: обновляем
+  // только подписанное значение, чтобы ползунок не терял фокус.
+  if (el?.dataset?.role === "sfx-volume") {
+    Sfx.setVolume(el.value);
+    const label = document.querySelector('[data-role="sfx-volume-label"]');
+    if (label) label.textContent = Math.round(Sfx.getVolume() * 100) + "%";
+    Sfx.play("hit", { volume: Sfx.getVolume() });
+  }
 }
 
 function sceneModalHtml() {
@@ -2586,7 +2599,7 @@ function onClick(event) {
       res = sellMultipleItems(view.sellSelection);
       view.sellSelection = [];
       toast(res.text, res.ok ? "ok" : "warn");
-      if (res.ok && res.text.includes("Новый уровень")) view.levelUp = state.level;
+      if (res.ok && res.text.includes("Новый уровень")) { view.levelUp = state.level; Sfx.play("levelup"); }
       render();
       break;
     }
@@ -2620,6 +2633,7 @@ function onClick(event) {
       }
       if (res.ok && res.text.includes("Новый уровень")) {
         view.levelUp = state.level;
+        Sfx.play("levelup");
       }
       render();
       break;
@@ -2656,7 +2670,7 @@ function onClick(event) {
     case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell": res = sellItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell-potion": res = sellPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) Sfx.play("potion"); render(); break;
     
     // БОЕВЫЕ ДЕЙСТВИЯ С ТРЯСКОЙ
     case "drink-battle": 

@@ -34,7 +34,15 @@ function doExchange(type, potionId) {
   } 
   
   if (result.summary) { 
-    view.summary = result.summary; 
+    view.summary = result.summary;
+    // Звуковые эффекты исхода боя (Этап 4): победа/поражение + лут/уровень.
+    if (result.summary.victory) {
+      Sfx.play("victory");
+      if (Array.isArray(result.summary.loot) && result.summary.loot.length) Sfx.play("chest");
+      if (Array.isArray(result.summary.levels) && result.summary.levels.length) Sfx.play("levelup");
+    } else {
+      Sfx.play("defeat");
+    }
     render(); 
     return;
   } 
@@ -82,6 +90,9 @@ function go(screen) {
 
   const leavingTower = view.tripActive && (view.screen === "tower" || view.screen === "battle") && screen !== "tower" && screen !== "battle" && screen !== "hero";
   if (leavingTower) endTrip();
+
+  // Смена локации — короткий «открытие» (Этап 4).
+  Sfx.play("open");
 
   view.ambush = null;
   view.screen = screen;
