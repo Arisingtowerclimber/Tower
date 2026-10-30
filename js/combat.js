@@ -70,6 +70,13 @@ function variationLabel(enemy) {
 function createBattle(enemyDef, floorId) {
   const enemy = applyMobVariation(enemyDef);
   const floor = FLOORS.find(f => f.id === floorId);
+
+  // Ресурсы моба: мана копится каждый ход, кураж — от полученных ударов.
+  // На глубоких этажах запас маны больше, чтобы «Тяжёлый удар» был реальнее.
+  enemy.mana = 0;
+  enemy.maxMana = 20 + Math.max(0, (Number(floorId) || 1) - 1) * 5;
+  enemy.rage = 0;
+  enemy.maxRage = 5;
   
   if (Array.isArray(enemyDef.weapons) && enemyDef.weapons.length) {
     const weaponId = pick(enemyDef.weapons);
@@ -113,8 +120,6 @@ function createBattle(enemyDef, floorId) {
   
   const label = variationLabel(enemy);
   if (label) battleLog(battle, `${enemy.name} — ${label}`, "info");
-  const roleDef = MOB_ROLES[enemy.role] || MOB_ROLES.dps;
-  battleLog(battle, `${enemy.name} — ${roleDef.icon} ${roleDef.name}.`, "info");
   if (enemy.weaponId) battleLog(battle, `${enemy.name} достаёт ${ITEMS[enemy.weaponId].name}!`, "warn");
   return battle;
 }
@@ -133,24 +138,6 @@ function defeatSummary(state, battle, e) {
   if (bagItems.length > 0) {
     state.owned = state.owned.filter(inst => equippedUids.includes(inst.uid));
     lostItemsText += ` Вы потеряли сумку со снаряжением (${bagItems.length} шт.).`;
-  }
-  
-  const safeSlots = ["mainhand", "chest"];
-  const vulnerableSlots = Object.keys(state.equipped).filter(slot => 
-    state.equipped[slot] && !safeSlots.includes(slot)
-  );
-  
-  if (vulnerableSlots.length > 0) {
-    const randomSlot = vulnerableSlots[Math.floor(Math.random() * vulnerableSlots.length)];
-    const lostUid = state.equipped[randomSlot];
-    const lostInst = state.owned.find(i => i.uid === lostUid);
-    
-    if (lostInst) {
-      const itemName = getItemDisplayName(lostInst);
-      state.owned = state.owned.filter(i => i.uid !== lostUid);
-      state.equipped[randomSlot] = null;
-      lostItemsText += ` Вы потеряли надетый предмет: ${itemName}.`;
-    }
   }
 
   const fresh = stats();
@@ -175,23 +162,19 @@ function achievementVsMobBonus(state, enemyId) {
 }
 
 function chooseEnemyAction(battle, lastPlayerAttack) {
-  const role = battle.enemy.role || "dps";
-  const roleDef = MOB_ROLES[role] || MOB_ROLES.dps;
   const prefers = battle.enemy.prefers || [];
 
-  // Целитель: если игрок промахнулся в прошлом ходу и враг потрёпан — лечится
-  // вместо атаки. null в lastPlayerHit (первый ход) лечением не считается.
-  if (roleDef.healPercent
-    && battle.maxHp > 0
-    && battle.hp / battle.maxHp < (roleDef.healThreshold || 0.5)
-    && battle.lastPlayerHit === false) {
-    const healed = Math.round(battle.maxHp * roleDef.healPercent);
-    battle.hp = Math.min(battle.maxHp, battle.hp + healed);
-    battleLog(battle, `${battle.enemy.name} шепчет слова силы и восстанавливает ${healed} HP.`, "heal");
-    return { attack: null, blocks: [], healed: true };
+  // Сильные мобы с canUseHeavyStrike копят кураж от ударов и ману каждый ход.
+  // При 3+ куража и 6+ маны с шансом 50% бьют «Тяжёлым ударом» вместо
+  // обычной атаки; иначе действуют по прежней логике.
+  const e = battle.enemy;
+  if (e.canUseHeavyStrike
+    && (e.rage || 0) >= 3
+    && (e.mana || 0) >= 6
+    && Math.random() < 0.5) {
+    const heavyZone = prefers.length ? pick(prefers) : pick(ZONES).id;
+    return { action: "heavy_strike", attack: heavyZone, blocks: [] };
   }
-
-  if (roleDef.dodgeBonus) battle.enemy.dodgeBonus = roleDef.dodgeBonus;
 
   let attack = "";
   
@@ -209,7 +192,7 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
   }
 
   const blocks = [];
-  const blockCount = Math.max(0, Math.min(ZONES.length, (Number.isFinite(battle.enemy.blocks) ? battle.enemy.blocks : (battle.boss ? 2 : 1)) + (roleDef.blocksBonus || 0)));
+  const blockCount = Math.max(0, Math.min(ZONES.length, Number.isFinite(battle.enemy.blocks) ? battle.enemy.blocks : (battle.boss ? 2 : 1)));
   const adaptChance = (battle.boss ? 0.5 : 0.35) * (battle.enemy.ability === "adaptive" ? ADAPTIVE_MULT : 1);
   
   if (lastPlayerAttack && Math.random() < adaptChance) {
@@ -228,6 +211,13 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
 
 function battleLog(battle, text, cls) {
   battle.log.push({ text, cls: cls || "info" });
+}
+
+// Моб злится, когда получает урон: +1 кураж за попадание игрока.
+function gainEnemyRage(battle, amount = 1) {
+  const enemy = battle && battle.enemy;
+  if (!enemy) return;
+  enemy.rage = Math.min(enemy.maxRage || 5, (enemy.rage || 0) + amount);
 }
 
 // ── Активные навыки (таланты с умениями) ─────────────────────────────────────
@@ -293,8 +283,6 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   const effectiveDef = e.def * (1 - pierce);
 
   let avg = Math.max(1, Math.round(base - effectiveDef * 0.6));
-  // Прогноз тоже учитывает уязвимость моба.
-  if (Array.isArray(e.weakTo) && e.weakTo.includes(actualStyle)) avg = Math.max(1, Math.round(avg * WEAKNESS_DAMAGE_MULT));
   // Прогноз учитывает бонусы титулов против этой расы.
   const achVs = achievementVsMobBonus(state, e.id);
   if (achVs.dmgPct) avg = Math.max(1, Math.round(avg * (1 + achVs.dmgPct / 100)));
@@ -318,10 +306,12 @@ function exchange(state, battle, action, weaponInst = null) {
 
   const st = stats();
   const e = battle.enemy;
-  const roleDef = MOB_ROLES[e.role] || MOB_ROLES.dps;
+  // Регенерация маны моба в начале каждого хода.
+  e.mana = Math.min(e.maxMana || 20, (e.mana || 0) + 1);
   const achVs = achievementVsMobBonus(state, e.id);
   const uniques = equippedUniques();
-  const blocks = Array.isArray(action.blocks) ? action.blocks : [];
+  // Побег не даёт ни атаковать, ни блокировать: удар врага идёт «в спину».
+  const blocks = action.type === "flee" ? [] : (Array.isArray(action.blocks) ? action.blocks : []);
   const enemyAction = chooseEnemyAction(battle, battle.lastPlayerAttack);
   battle.lastPlayerHit = false;
 
@@ -415,6 +405,11 @@ function exchange(state, battle, action, weaponInst = null) {
       battle.hp = Math.max(0, battle.hp - dmg);
       battleLog(battle, `Греческий огонь опалил врага на ${dmg} урона!`, "crit");
     }
+  } else if (action.type === "flee") {
+    // Побег: игрок не бьёт и не блокирует, но теряет энергию и получает
+    // обычный удар врага в спину.
+    state.energy = Math.max(0, state.energy - 5);
+    battleLog(battle, "Вы пытаетесь сбежать, но получаете удар в спину! (-5 энергии)", "warn");
   } else if (action.type === "pass") {
     battleLog(battle, "Вы меняете оружие.", "info");
   } else {
@@ -492,13 +487,6 @@ function exchange(state, battle, action, weaponInst = null) {
       const effectiveDef = e.def * (1 - pierce);
       let damage = Math.max(1, Math.round(base - effectiveDef * 0.6));
 
-      // Уязвимость моба: стили из e.weakTo мнóжат итоговый урон на 1.25.
-      let weaknessMark = "";
-      if (Array.isArray(e.weakTo) && e.weakTo.includes(style)) {
-        damage = Math.max(1, Math.round(damage * WEAKNESS_DAMAGE_MULT));
-        weaknessMark = " — уязвим!";
-      }
-
       // Бонусы титулов против этой расы: % урона и плоский урон.
       if (achVs.dmgPct) damage = Math.max(1, Math.round(damage * (1 + achVs.dmgPct / 100)));
       damage += achVs.flat;
@@ -515,6 +503,7 @@ function exchange(state, battle, action, weaponInst = null) {
         checkAchievements(state);
       } else {
         battle.hp = Math.max(0, battle.hp - damage);
+        gainEnemyRage(battle);
         battle.lastPlayerHit = true;
         battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
 
@@ -530,7 +519,7 @@ function exchange(state, battle, action, weaponInst = null) {
         const suffix = crit ? ` — КРИТ В ${ZONE_ACCUSATIVE[action.zone] || zone.name.toUpperCase()}!` : "";
         battleLog(
           battle,
-          `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)})${weaknessMark}.`,
+          `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)}).`,
           crit ? "crit" : "hit"
         );
         playHitSound(style, { isCrit: crit });
@@ -600,7 +589,7 @@ function exchange(state, battle, action, weaponInst = null) {
       battleLog(battle, `${e.name} всё ещё поднимается — вы получаете передышку.`, "info");
       battle.tripped = false;
     } else if (battle.riskyMiss) {
-      let base = e.atk * rnd(1.0, 1.2) * (roleDef.atkMult || 1);
+      let base = e.atk * rnd(1.0, 1.2);
       base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
       base *= 1 - Math.min(0.5, (st.damageReduction || 0) / 100);
       if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
@@ -615,7 +604,19 @@ function exchange(state, battle, action, weaponInst = null) {
       }
       battle.riskyMiss = false;
     } else if (enemyAction.attack) {
-      const playerBlocked = blocks.includes(enemyAction.attack);
+      const heavyStrike = enemyAction.action === "heavy_strike";
+      // Предупреждение о ярости: моб копит 3+ куража, и его следующий удар
+      // будет сокрушительным. Бейдж в UI дублирует это состояние.
+      if ((e.rage || 0) >= 3) {
+        battleLog(battle, `⚠️ ${e.name} в ярости! Следующий удар будет сокрушительным!`, "warn");
+      }
+      if (heavyStrike) {
+        e.rage = Math.max(0, (e.rage || 0) - 3);
+        e.mana = Math.max(0, (e.mana || 0) - 6);
+        battleLog(battle, `${e.name} использует Тяжёлый удар!`, "warn");
+      }
+      // Тяжёлый удар пробивает блок: закрытая зона его не останавливает.
+      const playerBlocked = !heavyStrike && blocks.includes(enemyAction.attack);
       const enemyZone = ZONE_NAME[enemyAction.attack];
       // «Парирование» бросается до проверки уворота, иначе уворот всегда
       // перехватывал бы окно (его шанс выше, чем dodge * 0.5).
@@ -662,7 +663,8 @@ function exchange(state, battle, action, weaponInst = null) {
           : weaponBestStyle(enemyWpn);
         const armorMult = ARMOR_STYLE_MULT[enemyStyle][zoneArmorType] || 1;
 
-        let base = e.atk * rnd(0.85, 1.15) * armorMult * (roleDef.atkMult || 1);
+        let base = e.atk * rnd(0.85, 1.15) * armorMult;
+        if (heavyStrike) base *= 1.5;
         base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
         base *= 1 - Math.min(0.5, (st.damageReduction || 0) / 100);
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
@@ -740,10 +742,14 @@ function exchange(state, battle, action, weaponInst = null) {
 
   let summary = null;
 
-  if (battle.hp <= 0) {
+  if (battle.hp <= 0 && action.type !== "flee") {
     summary = finishVictory(state, battle);
   } else if (state.hp <= 0) {
     summary = defeatSummary(state, battle, e);
+  } else if (action.type === "flee") {
+    battle.over = true;
+    battleLog(battle, "Вы вырываетесь из боя.", "info");
+    summary = { fled: true, enemyName: e.name };
   }
 
   return { ok: true, summary };

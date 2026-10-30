@@ -61,6 +61,10 @@ function defaultState() {
     knownRecipes: [],
     talentPoints: 0, talents: {},
     npcDialogueIndex: {},
+    // Личные отношения с NPC: растут за похвалу, задания и добрые поступки.
+    // Репутация фракций оставлена в сейвах для совместимости, но не используется.
+    npcAffinity: { ron: 0, elain: 0, elize: 0, stella: 0, ivan: 0, timmy: 0, arthur: 0 },
+    dialogCooldowns: {},
     reputation: Object.fromEntries(FACTIONS.map((f) => [f.id, 0])),
     factionNotified: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
     factionPerksUnlocked: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
@@ -138,6 +142,48 @@ function normalizeFactionFields() {
   }
 }
 
+// ── Личные отношения с NPC (affection) ──────────────────────────────────────
+// Уровень отношения и скидка у NPC. Пороги: 0 / 100 / 200 / 300.
+const NPC_AFFINITY_TIERS = [
+  { min: 0,   name: "Незнакомец", discount: 0 },
+  { min: 100, name: "Знакомый",   discount: 0.05 },
+  { min: 200, name: "Уважаемый",  discount: 0.10 },
+  { min: 300, name: "Легенда",    discount: 0.15 },
+];
+const NPC_AFFINITY_NAMES = { ron: "Рон", elain: "Элейн", elize: "Элиза", stella: "Стелла", ivan: "Иван", timmy: "Тимми", arthur: "Артур" };
+const SHOP_AFFINITY_NPC = { forge: "ron", alchemy: "elain", jewelry: "elize" };
+
+function getNpcAffinityLevel(affinity) {
+  const value = Math.max(0, Math.floor(Number(affinity) || 0));
+  let tier = NPC_AFFINITY_TIERS[0];
+  for (const t of NPC_AFFINITY_TIERS) {
+    if (value >= t.min) tier = t;
+  }
+  const next = NPC_AFFINITY_TIERS.find((t) => t.min > value) || null;
+  return { affinity: value, name: tier.name, discount: tier.discount, min: tier.min, next };
+}
+
+// NPC, которому идёт отношение за задание: свой npc, иначе фракция, иначе
+// Гильдия Охотников (её представляет Иван).
+function npcAffinityKeyFor(npcId, factionId) {
+  if (npcId && state.npcAffinity && Object.prototype.hasOwnProperty.call(state.npcAffinity, npcId)) return npcId;
+  if (factionId === "hunters") return "ivan";
+  const faction = factionId && FACTION_MAP[factionId];
+  if (faction && faction.npc && state.npcAffinity && Object.prototype.hasOwnProperty.call(state.npcAffinity, faction.npc)) return faction.npc;
+  return null;
+}
+
+function addNpcAffinity(npcId, amount) {
+  if (!npcId || !Number.isFinite(amount) || amount === 0) return null;
+  state.npcAffinity = state.npcAffinity || {};
+  const before = Number(state.npcAffinity[npcId]) || 0;
+  const levelBefore = getNpcAffinityLevel(before);
+  const after = Math.max(0, before + amount);
+  state.npcAffinity[npcId] = after;
+  const levelAfter = getNpcAffinityLevel(after);
+  return { before, after, gained: after - before, levelBefore, levelAfter, levelUp: levelAfter.name !== levelBefore.name };
+}
+
 // Валидация записи улучшения предмета (Этап 2): { level, stat }.
 // Всё лишнее — мусор, ключи стата вне ветки отбрасываются.
 function normalizeUpgrade(raw, item) {
@@ -152,12 +198,9 @@ function normalizeUpgrade(raw, item) {
 }
 
 // ── Темы разговоров NPC (Этап 3) ───────────────────────────────────────────
-// Репутация фракции NPC для порогов тем; у NPC без фракции (стелла, иван)
-// порог по репутации считается пройденным.
+// Порог тем считается по личному отношению с NPC (affinity).
 function topicNpcRep(npcId) {
-  const factionId = FACTION_BY_NPC[npcId];
-  if (!factionId) return Infinity;
-  return state.reputation ? (state.reputation[factionId] || 0) : 0;
+  return state.npcAffinity ? (state.npcAffinity[npcId] || 0) : 0;
 }
 
 function topicAvailable(topic, npcId) {
@@ -182,10 +225,13 @@ function applyDialogEffects(effects, npcId) {
 
   const rep = Number(effects.rep);
   if (Number.isFinite(rep) && rep !== 0) {
-    const factionId = FACTION_BY_NPC[npcId] || (npcId === "ivan" || npcId === "timmy" ? "hunters" : null);
-    if (factionId && FACTION_MAP[factionId]) {
-      state.reputation[factionId] = Math.max(0, (state.reputation[factionId] || 0) + rep);
-      notes.push(`${rep > 0 ? "+" : ""}${rep} реп. ${FACTION_MAP[factionId].name}`);
+    const npcKey = npcAffinityKeyFor(npcId, FACTION_BY_NPC[npcId] || (npcId === "ivan" || npcId === "timmy" ? "hunters" : null));
+    if (npcKey && state.npcAffinity) {
+      const result = addNpcAffinity(npcKey, rep);
+      if (result) {
+        const name = NPC_AFFINITY_NAMES[npcKey] || npcKey;
+        notes.push(`${rep > 0 ? "+" : ""}${result.gained} отношения (${name} · ${result.levelAfter.name})`);
+      }
     }
   }
 
@@ -346,6 +392,13 @@ function loadState() {
       const value = Number(savedAffinity[id]);
       state.affinity[id] = Number.isFinite(value) ? Math.max(0, Math.min(1000, Math.floor(value))) : 0;
     }
+    state.npcAffinity = { ...defaults.npcAffinity };
+    const savedNpcAffinity = saved.npcAffinity && typeof saved.npcAffinity === "object" && !Array.isArray(saved.npcAffinity) ? saved.npcAffinity : {};
+    for (const id of Object.keys(state.npcAffinity)) {
+      const value = Number(savedNpcAffinity[id]);
+      state.npcAffinity[id] = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    }
+    state.dialogCooldowns = saved.dialogCooldowns && typeof saved.dialogCooldowns === "object" && !Array.isArray(saved.dialogCooldowns) ? { ...saved.dialogCooldowns } : {};
     state.hireDiscounts = {};
     const savedDiscounts = saved.hireDiscounts && typeof saved.hireDiscounts === "object" ? saved.hireDiscounts : {};
     for (const [id, value] of Object.entries(savedDiscounts)) {
@@ -1265,30 +1318,26 @@ function claimNpcQuest(id) {
   if (q.potions > 0) state.potions["hp_small"] = (state.potions["hp_small"] || 0) + q.potions;
   if (q.source === "board") state.contractsDone = (state.contractsDone || 0) + 1;
 
-  // Репутация: контракты доски — Гильдии Охотников, заказы NPC — своей
-  // фракции. Размер награды берётся из q.rep (1 по умолчанию).
+  // Отношение: контракты доски — Ивану (Гильдия Охотников), заказы NPC —
+  // самому NPC. Размер награды берётся из q.rep (1 по умолчанию).
   const faction = (q.faction && FACTION_MAP[q.faction]) || factionForNpc(q.npc);
+  const npcKey = npcAffinityKeyFor(q.npc, faction ? faction.id : null);
   const repGain = Number.isFinite(q.rep) ? q.rep : 1;
   let repNote = "";
   let factionLevelUp = null;
-  if (faction) {
-    const repBefore = state.reputation[faction.id] || 0;
-    const tierBefore = factionTier(repBefore).tier;
-    const repAfter = repBefore + repGain;
-    state.reputation[faction.id] = repAfter;
-    if (state.reputation[faction.id] >= FACTION_TIERS[2].min) state.factionPerksUnlocked[faction.id] = true;
-    const tierAfter = factionTier(repAfter).tier;
-    repNote = ` Репутация ${faction.name}: ${repAfter}.`;
-    if (tierAfter !== tierBefore) {
-      // Флаг «новость ещё не показана» — UI тост гасит его.
-      state.factionNotified[faction.id] = true;
-      factionLevelUp = {
-        faction: faction.id,
-        name: faction.name,
-        icon: faction.icon,
-        tier: tierAfter.name,
-        text: `${faction.icon} ${faction.name}: новый тир «${tierAfter.name}» — скидка ${Math.round(tierAfter.discount * 100)}%!`,
-      };
+  if (npcKey) {
+    const result = addNpcAffinity(npcKey, repGain);
+    if (result) {
+      const name = NPC_AFFINITY_NAMES[npcKey] || npcKey;
+      repNote = ` Отношение (${name}): ${result.after}.`;
+      if (result.levelUp) {
+        factionLevelUp = {
+          faction: npcKey,
+          name,
+          tier: result.levelAfter.name,
+          text: `🤝 ${name}: новый уровень отношений «${result.levelAfter.name}» — скидка ${Math.round(result.levelAfter.discount * 100)}%!`,
+        };
+      }
     }
   }
 
@@ -1472,28 +1521,25 @@ function claimStoryQuest(qId) {
     texts.push(`📜 Рецепт: ${RECIPE_MAP[reward.recipe].desc}`);
   }
 
-  // Репутация фракции NPC (стелла/иван не состоят во фракциях).
+  // Отношение с NPC, выдавшим сюжетное задание.
   const faction = factionForNpc(def.npc);
+  const npcKey = npcAffinityKeyFor(def.npc, faction ? faction.id : null);
   let repNote = "";
   let factionLevelUp = null;
   const repGain = reward.rep || 1;
-  if (faction) {
-    const repBefore = state.reputation[faction.id] || 0;
-    const tierBefore = factionTier(repBefore).tier;
-    const repAfter = repBefore + repGain;
-    state.reputation[faction.id] = repAfter;
-    if (state.reputation[faction.id] >= FACTION_TIERS[2].min) state.factionPerksUnlocked[faction.id] = true;
-    const tierAfter = factionTier(repAfter).tier;
-    repNote = ` Репутация ${faction.name}: ${repAfter}.`;
-    if (tierAfter !== tierBefore) {
-      state.factionNotified[faction.id] = true;
-      factionLevelUp = {
-        faction: faction.id,
-        name: faction.name,
-        icon: faction.icon,
-        tier: tierAfter.name,
-        text: `${faction.icon} ${faction.name}: новый тир «${tierAfter.name}» — скидка ${Math.round(tierAfter.discount * 100)}%!`,
-      };
+  if (npcKey) {
+    const result = addNpcAffinity(npcKey, repGain);
+    if (result) {
+      const name = NPC_AFFINITY_NAMES[npcKey] || npcKey;
+      repNote = ` Отношение (${name}): ${result.after}.`;
+      if (result.levelUp) {
+        factionLevelUp = {
+          faction: npcKey,
+          name,
+          tier: result.levelAfter.name,
+          text: `🤝 ${name}: новый уровень отношений «${result.levelAfter.name}» — скидка ${Math.round(result.levelAfter.discount * 100)}%!`,
+        };
+      }
     }
   }
 
@@ -2018,20 +2064,19 @@ function targetSlotFor(item, instance = null) {
 
 // ── Цены лавок (Этап 1) ────────────────────────────────────────────────────
 // Канонический priceFor.id — priceFor(item, shop) — считается только здесь.
-// Дневная скидка рынка и репутационная скидка фракции учитываются по
-// максимальной из двух (не складываются).
-function factionDiscount(factionId) {
-  if (!factionId) return 0;
-  const rep = state && state.reputation ? (state.reputation[factionId] || 0) : 0;
-  return factionTier(rep).tier.discount;
+// Дневная скидка рынка и скидка за личное отношение к NPC-продавцу
+// учитываются по максимальной из двух (не складываются).
+function npcAffinityDiscount(npcId) {
+  if (!npcId) return 0;
+  return getNpcAffinityLevel(state && state.npcAffinity ? (state.npcAffinity[npcId] || 0) : 0).discount;
 }
 
 function priceFor(item, shop = "forge") {
   let discount = 0;
   if (shop === "alchemy") discount = alchemyDiscountToday();
   else if (shop === "forge") discount = forgeDiscountToday();
-  const factionId = SHOP_FACTION[shop];
-  if (factionId) discount = Math.max(discount, factionDiscount(factionId));
+  const shopNpc = SHOP_AFFINITY_NPC[shop];
+  if (shopNpc) discount = Math.max(discount, npcAffinityDiscount(shopNpc));
   const price = Math.max(1, Math.round(item.price * (1 - discount)));
   return { price, old: item.price, hasDiscount: discount > 0, discount };
 }

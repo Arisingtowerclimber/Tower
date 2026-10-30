@@ -486,37 +486,16 @@ function tryStartGame() {
   toast(`Добро пожаловать, ${state.name}.`, "ok");
 }
 
-// ── Репутация фракций (Этап 1) ─────────────────────────────────────────────
-// Пилюля фракции в топбаре — только на экранах лавок (кузница/алхимик/ювелир).
+// ── Отношения с NPC (affection) ─────────────────────────────────────────────
+// Пилюля продавца в топбаре — на экранах лавок показывает личное отношение.
 function shopFactionPill() {
-  const factionId = SHOP_FACTION[view.screen];
-  if (!factionId) return "";
-  const faction = FACTION_MAP[factionId];
-  if (!faction) return "";
-  const rep = state.reputation ? (state.reputation[factionId] || 0) : 0;
-  const fi = factionTier(rep);
-  const tip = `${faction.name}: репутация ${rep}, тир «${fi.tier.name}»${fi.tier.discount > 0 ? `, скидка ${Math.round(fi.tier.discount * 100)}%` : ""}`;
-  return `<div class="pill faction" data-tip="${esc(tip)}">${faction.icon} <b>${faction.name} · ${rep}</b></div>`;
-}
-
-// Блок «Репутация» в меню Героя: тиры, скидки и прогресс до следующего тира.
-function factionReputationHtml() {
-  const rep = state.reputation || {};
-  return FACTIONS.map((f) => {
-    const value = rep[f.id] || 0;
-    const fi = factionTier(value);
-    const progress = fi.next
-      ? Math.round(((value - fi.tier.min) / (fi.next.min - fi.tier.min)) * 100)
-      : 100;
-    const hint = fi.next
-      ? `до «${fi.next.name}» ещё ${fi.next.min - value} реп.`
-      : "максимальный тир";
-    return `
-      <div class="faction-row">
-        <div class="faction-top"><b>${f.icon} ${f.name}</b><span class="hint">${fi.tier.name} · скидка ${Math.round(fi.tier.discount * 100)}% · ${hint}</span></div>
-        ${bar("rep", value - fi.tier.min, fi.next ? fi.next.min - fi.tier.min : Math.max(1, value))}
-      </div>`;
-  }).join("");
+  const npcId = SHOP_NPCS[view.screen];
+  if (!npcId) return "";
+  const name = NPC_NAMES[npcId] || npcId;
+  const value = state.npcAffinity ? (state.npcAffinity[npcId] || 0) : 0;
+  const level = getNpcAffinityLevel(value);
+  const tip = `${name}: отношение ${value}, уровень «${level.name}»${level.discount > 0 ? `, скидка ${Math.round(level.discount * 100)}%` : ""}`;
+  return `<div class="pill faction" data-tip="${esc(tip)}">🤝 <b>${name} · ${level.name}</b></div>`;
 }
 
 function topbarHtml(st) {
@@ -714,26 +693,31 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "", portraitCl
     `<button class="shop-tab npc-action-btn${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button">${label}</button>`;
   const craftStation = CRAFT_NPC_STATIONS[npcId];
   const craftBtn = craftStation && getRecipes(craftStation).length ? btn("craft", "Крафт") : "";
-  // Разговор — единственный вход в сюжетные задания NPC.
-  const talkBtn = `<button class="shop-tab npc-action-btn" data-act="npc-talk" data-npc="${npcId}" type="button">Поговорить</button>`;
+  // Разговор — единственный вход в сюжетные задания NPC. У Ивана кнопка
+  // оформлена так же, как у Тимми в Зале Охотников.
+  const talkBtn = npcId === "ivan"
+    ? `<button class="btn small primary" data-act="npc-talk" data-npc="${npcId}" type="button">💬 Поговорить</button>`
+    : `<button class="shop-tab npc-action-btn" data-act="npc-talk" data-npc="${npcId}" type="button">Поговорить</button>`;
 
-  // Группы действий: пустые группы не выводятся, чтобы не оставлять дыр в сетке.
+  // У Стеллы группа «Торговля» на самом деле — кнопка «Спутницы», поэтому
+  // заголовок торговли ей не нужен; сама кнопка остаётся.
   const actionGroups = [
-    { title: "Торговля", items: [buyLabel ? btn("buy", buyLabel) : "", sellLabel ? btn("sell", sellLabel) : ""] },
+    { title: npcId === "stella" ? "" : "Торговля", items: [buyLabel ? btn("buy", buyLabel) : "", sellLabel ? btn("sell", sellLabel) : ""] },
     { title: "Мастерская", items: [
       craftBtn,
       FACTION_BY_NPC[npcId] ? btn("upgrade", "Улучшить") : "",
       npcId === "ron" ? btn("exchange", "Обмен") : "",
     ] },
     { title: "Информация", items: [
-      npcId === "ivan" ? "" : btn("quests", "Есть задания?"),
+      npcId === "ivan" || npcId === "stella" ? "" : btn("quests", "Есть задания?"),
       talkBtn,
     ] },
   ];
   const actionsHtml = actionGroups.map((group) => {
     const items = group.items.filter(Boolean);
     if (!items.length) return "";
-    return `<span class="npc-action-group-title">${group.title}</span>${items.join("")}`;
+    const titleHtml = group.title ? `<span class="npc-action-group-title">${group.title}</span>` : "";
+    return `${titleHtml}${items.join("")}`;
   }).join("");
 
   return `
@@ -1103,7 +1087,7 @@ function timmyCardHtml() {
       </div>
       <div class="timmy-info-block">
         <span class="npc-action-group-title">Информация</span>
-        <button class="btn small ghost" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
+        <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
       </div>
     </aside>
   `;
@@ -1318,9 +1302,6 @@ function bestiaryModalHtml() {
       }
       const kills = killsOf(def.id);
       const revealLore = kills >= REVEAL_KILLS;
-      const weakText = Array.isArray(def.weakTo) && def.weakTo.length
-        ? def.weakTo.map((s) => STYLE_NAMES[s] || s).join(", ")
-        : "—";
       const drops = Array.isArray(def.drops) ? def.drops : [];
       const dropsText = drops.map(dropName).join(", ") || "—";
       return `
@@ -1338,7 +1319,6 @@ function bestiaryModalHtml() {
           </div>
           ${revealLore ? `
             <div class="bestiary-lore hint" style="margin-top: 4px; line-height: 1.5;">
-              <span style="color: var(--gold2);">Слабость:</span> ${weakText}<br>
               <span style="color: var(--gold2);">Дроп:</span> ${dropsText}
             </div>` : ""}
           <span class="hint">Этаж ${floor.id}</span>
@@ -2383,8 +2363,6 @@ function heroHtml(st) {
         ${heroDebuffsHtml}
         ${archetype ? `<div class="archetype-note">${iconHtml(archetype.icon, 20)} <span><b>${archetype.name}</b>: ${archetype.desc}</span></div>` : ""}
         ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>${affinityBarHtml(companion.id)}` : ""}
-        <div class="attr-head"><h2 class="group-title">Репутация</h2></div>
-        <div class="faction-list">${factionReputationHtml()}</div>
         <div class="attr-head"><h2 class="group-title">Атрибуты</h2></div>
         <div class="attr-list hero">${ATTR_INFO.map((attr) => { const gearBonus = st.gearAttrs?.[attr.id] || 0; return `<div class="attr-row"><div class="attr-info"><b>${attr.name}</b><span class="hint">${attr.effect}</span></div><div class="attr-controls"><span class="attr-value">${st.attrs[attr.id]}${gearBonus ? `<i class="attr-gear" title="От снаряжения">+${gearBonus}</i>` : ""}</span><button class="attr-btn" data-act="add-attr" data-attr="${attr.id}" ${state.points <= 0 ? "disabled" : ""} type="button">+</button></div></div>`; }).join("")}</div>
       </section>
@@ -2776,22 +2754,19 @@ function battleHtml(st) {
     return `${SLOT_NAME[slot]}: ${ARMOR_TYPE_NAMES[type] || type}`;
   }).join(" | ");
 
-  const enemyManaInactive = !(battle.enemy.maxMana > 0);
-  const enemyRageInactive = enemy.rarity === "common" || !(battle.enemy.maxRage > 0);
-
-  // Уязвимость врага: читаемые названия стилей из STYLE_NAMES.
-  const enemyWeakText = Array.isArray(enemy.weakTo) && enemy.weakTo.length
-    ? enemy.weakTo.map((s) => STYLE_NAMES[s] || s).join(", ")
-    : "";
+  // Полоски маны и куража врага видны всегда — по ним читается готовность
+  // моба к «Тяжёлому удару».
+  // Бейдж ярости: виден при 3+ куража, после «Тяжёлого удара» скрывается.
+  const enemyEnraged = (battle.enemy.rage || 0) >= 3;
+  const enemyRageBadge = `<span class="chip" data-role="enemy-rage-badge" title="Моб в ярости: следующий удар будет сокрушительным" style="border-color:#c2483c; color:#ff7b6b; background:rgba(194,72,60,0.15);${enemyEnraged ? "" : " display:none;"}">⚠️ В ЯРОСТИ</span>`;
 
   // Бейджи врага выносим отдельным рядом под именем, чтобы не раздувать строку с названием.
-  const role = MOB_ROLES[enemy.role]; const roleBadge = role ? `<span class="chip">${role.icon} ${role.name}</span>` : "";
   const enemyBadges = [
-    roleBadge,
     enemy.rarity === "rare" ? `<span class="chip" style="border-color: #d9a94b; color: #d9a94b;" title="Редкий враг">Редкий</span>` : "",
     enemy.rarity === "elite" ? `<span class="chip" style="border-color: #c2483c; color: #c2483c;" title="Элитный враг">Элитный</span>` : "",
     enemy.modifier ? `<span class="chip" style="cursor: help;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : "",
     enemy.ability ? `<span class="chip" style="cursor: help;" title="${MOB_ABILITY_INFO[enemy.ability].desc}">${MOB_ABILITY_INFO[enemy.ability].name}</span>` : "",
+    enemyRageBadge,
   ].filter(Boolean).join("");
 
   const enemyWeapon = enemy.weaponId ? ITEMS[enemy.weaponId] : null;
@@ -2906,15 +2881,14 @@ function battleHtml(st) {
             <div class="fighter-name" style="font-size: 16px; margin-bottom: 4px;">${enemy.name}</div>
             ${enemyBadges ? `<div class="enemy-badges">${enemyBadges}</div>` : ""}
             ${bar("hp enemy", battle.hp, battle.maxHp, "enemy-hp")}
-            ${bar("mana" + (enemyManaInactive ? " inactive" : ""), battle.enemy.mana || 0, battle.enemy.maxMana || 1)}
-            ${bar("rage" + (enemyRageInactive ? " inactive" : ""), battle.enemy.rage || 0, battle.enemy.maxRage || 5)}
+            ${bar("mana", battle.enemy.mana || 0, battle.enemy.maxMana || 1, "enemy-mana")}
+            ${bar("rage", battle.enemy.rage || 0, battle.enemy.maxRage || 5, "enemy-rage")}
             <div class="fighter-numbers" style="font-size: 11px; margin-top: 6px; display: flex; gap: 4px 12px; flex-wrap: wrap; align-items: center;">
               <span data-role="enemy-hp-text">${battle.hp}/${battle.maxHp} HP</span>
               <span title="Базовый урон врага">Урон: ${enemy.atk}</span>
               <span title="Базовые доспехи, снижающие урон">Защита: ${enemy.def}</span>
               <span title="${enemyArmorTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Броня: ${ARMOR_TYPE_NAMES[enemy.armorType] || "Нет"}</span>
               <span title="${enemyWeaponTitle}" style="border-bottom: 1px dotted var(--dim); cursor: help;">Оружие: ${enemyWeapon ? enemyWeapon.name : "Кулаки"}</span>
-              ${enemyWeakText ? `<span class="chip weak-chip" title="Стиль удара, к которому враг уязвим (урон ×1.25)">Уязвим к: ${enemyWeakText}</span>` : ""}
             </div>
           </div>
         </article>
@@ -3238,6 +3212,7 @@ function resolveCritStop() {
   const mult = pos >= 0.42 && pos <= 0.58 ? 1.9 : (pos >= 0.25 && pos <= 0.75 ? 1.6 : 1.3);
   const damage = Math.max(1, Math.round((Number(w.damageBase) || 0) * mult));
   battle.hp = Math.max(0, battle.hp - damage);
+  gainEnemyRage(battle);
   battle.critWindow = null;
   battleLog(battle, `Точный удар! (x${mult.toFixed(1)}) — ${damage} урона.`, "crit");
   settleQte();
@@ -3249,6 +3224,7 @@ function resolveCritTimeout() {
   if (!w) return;
   const damage = Math.max(1, Math.round(Number(w.damageBase) || 0));
   battle.hp = Math.max(0, battle.hp - damage);
+  gainEnemyRage(battle);
   battle.critWindow = null;
   battleLog(battle, `Указатель остановился сам — удар вышел неточным: ${damage} урона.`, "hit");
   settleQte();
@@ -3280,6 +3256,16 @@ function resolveParryTimeout() {
 function resultHtml() {
   const summary = view.summary;
   if (!summary) return "";
+
+  if (summary.fled) {
+    return `<div class="result-overlay">
+      <div class="result-card" style="border-color: #6b5122; max-width: 520px;">
+        <h2>Вы сбежали</h2>
+        <p class="result-note">Вы вырвались из боя, но получили удар в спину и потеряли 5 энергии.</p>
+        <button class="btn primary" data-act="result-continue" type="button">Продолжить</button>
+      </div>
+    </div>`;
+  }
 
   if (summary.victory) {
     const loot = Array.isArray(summary.loot) ? summary.loot : [];
@@ -3382,6 +3368,10 @@ function renderBattle() {
   setBar("hero-mana", state.mana, st.maxMana);
   setBar("rage-bar", battle.rage, 5);
   setBar("enemy-hp", battle.hp, battle.maxHp);
+  setBar("enemy-mana", battle.enemy.mana || 0, battle.enemy.maxMana || 1);
+  setBar("enemy-rage", battle.enemy.rage || 0, battle.enemy.maxRage || 5);
+  const enemyRageBadgeEl = document.querySelector('[data-role="enemy-rage-badge"]');
+  if (enemyRageBadgeEl) enemyRageBadgeEl.style.display = (battle.enemy.rage || 0) >= 3 ? "" : "none";
 
   const setText = (role, text) => {
     const el = document.querySelector(`[data-role="${role}"]`);
@@ -4163,6 +4153,26 @@ function renderPurchaseConfirmModal() {
 // Приоритеты кнопок диалога: главные действия всегда сверху, «Уйти» — снизу.
 // 1 — торговля, 2 — крафт, 3 — задания, 5 — обычные темы (лор, похвала,
 // оскорбления), 8 — «Поболтать», 10 — выход из диалога.
+// Похвала и оскорбление имеют 3-дневный кулдаун на каждого NPC.
+function dialogOptionCooldownTag(opt) {
+  const label = String(opt?.label || "").toLowerCase();
+  const flag = String(opt?.effects?.flag || "");
+  const rep = Number(opt?.effects?.rep);
+  const positive = Number.isFinite(rep) && rep > 0;
+  const negative = Number.isFinite(rep) && rep < 0;
+  if ((opt?.next === "insult" && negative) || flag.endsWith("_insulted") || label.includes("ты хлам") || label.includes("оскорб")) return "insult";
+  if ((opt?.next === "praise" && positive) || flag.endsWith("_praised") || label.includes("ты лучший")) return "praise";
+  return null;
+}
+
+function dialogOptionOnCooldown(npcId, opt) {
+  const tag = dialogOptionCooldownTag(opt);
+  if (!tag) return false;
+  const last = Number(state.dialogCooldowns?.[`${npcId}_${tag}`]);
+  if (!Number.isFinite(last)) return false;
+  return (state.day - last) < 3;
+}
+
 function getOptionPriority(opt) {
   const label = String(opt?.label || "").toLowerCase();
   if (opt?.action === "open_shop" || opt?.action === "open_trade" || label.includes("показать товары")) return 1;
@@ -4178,7 +4188,7 @@ function dialogOptionsHtml(npcId, node, extras = []) {
   // обработчик dialog-option ищет опцию по data-option в полном массиве.
   const entries = (node.options || [])
     .map((opt, index) => ({ opt, index }))
-    .filter(({ opt }) => dialogRequiresMet(opt.requires));
+    .filter(({ opt }) => dialogRequiresMet(opt.requires) && !dialogOptionOnCooldown(npcId, opt));
 
   const isLeave = ({ opt }) => String(opt.label || "").includes("Уйти");
   const optionHtml = ({ opt, index }) => {
@@ -4249,7 +4259,7 @@ function dialogTopicsHtml(npcId) {
     const lockHint = open
       ? (fresh ? " · новое" : "")
       : (Number.isFinite(topic.minRep) && topicNpcRep(npcId) < topic.minRep
-        ? ` · 🔒 нужен тир «${factionTier(topic.minRep).tier.name}»`
+        ? ` · 🔒 нужно отношение ${topic.minRep}`
         : ` · 🔒 нужен этаж ${topic.minFloor}`);
     return `<button class="btn mnb-option-btn${open ? "" : " mood-neutral"}" data-act="topic-open" data-npc="${npcId}" data-topic="${topic.id}" ${open ? "" : "disabled"} type="button" style="text-align:left;">
       ${esc(topic.title)}${lockHint ? `<span class="hint">${lockHint}</span>` : ""}
@@ -4640,6 +4650,14 @@ function onClick(event) {
       }
       if (opt.mood) {
         state.npcMood[npcId] = opt.mood;
+        saveState();
+      }
+
+      // Похвала/оскорбление недоступны этому NPC ближайшие 3 дня.
+      const cooldownTag = dialogOptionCooldownTag(opt);
+      if (cooldownTag) {
+        state.dialogCooldowns = state.dialogCooldowns || {};
+        state.dialogCooldowns[`${npcId}_${cooldownTag}`] = state.day;
         saveState();
       }
 
@@ -5336,11 +5354,21 @@ function onClick(event) {
       break;
     }
     
-    case "flee": view.battle = null; view.summary = null; view.ambush = null; view.battleModal = null; view.sceneGroup = null; view.sceneGroupFloorId = null; view.screen = "tower"; if (view.autoExplore) stopAutoExplore("Отступление: авто-исследование остановлено."); saveState(); render(); break;
+    case "flee": doExchange("flee"); break;
     case "result-continue": {
       const victory = view.summary?.victory;
+      const fled = view.summary?.fled === true;
       const ambush = victory ? view.ambush : null;
       view.battle = null; view.summary = null; view.battleModal = null;
+      if (fled) {
+        view.ambush = null;
+        view.sceneGroup = null; view.sceneGroupFloorId = null;
+        if (view.autoExplore) stopAutoExplore("Вы сбежали. Авто-исследование остановлено.");
+        view.screen = view.currentFloor ? "floor" : "tower";
+        saveState();
+        render();
+        break;
+      }
       if (ambush) {
         const floor = FLOORS.find((f) => f.id === ambush.floorId);
         const def = floor ? floor.mobs[ambush.nextMobIndex] : null;
