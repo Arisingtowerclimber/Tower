@@ -381,6 +381,7 @@ const DIALOG_TREES = {
         { label: "А что с металлом оттуда?", next: "lore_metal" },
         { label: "А другие города?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_metal: {
@@ -396,6 +397,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Дубовый Брод — это твой дом?", next: "family" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -404,6 +406,7 @@ const DIALOG_TREES = {
         { label: "Расскажи о них.", next: "family" },
         { label: "Почему ты остался в Йорстеде?", next: "forge_oath" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     family: {
@@ -411,6 +414,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты сделал всё, что мог.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_comforted" } },
         { label: "Соболезную.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     forge_oath: {
@@ -418,6 +422,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Это больше, чем меч.", next: "praise" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     praise: {
@@ -448,6 +453,7 @@ const DIALOG_TREES = {
         { label: "Взять монету.", next: "progress_1_paid", effects: { gold: 25, flag: "ron_goblin_paid" }, requires: { notFlag: "ron_goblin_paid" } },
         { label: "Оставь себе. Мне хватает.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -470,6 +476,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А про Ивана и Тимми?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -491,6 +498,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ron_mithril_ore" } },
         { label: "Не сейчас.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     story_taken: {
@@ -536,6 +544,7 @@ const DIALOG_TREES = {
         { label: "А что не так с лесом на первом этаже?", next: "lore_world" },
         { label: "А если Башня дойдёт до Йорстеда?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_world: {
@@ -543,6 +552,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Почему честнее?", next: "recipe" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -550,6 +560,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты не боишься?", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -558,6 +569,7 @@ const DIALOG_TREES = {
         { label: "А сестра?", next: "sister" },
         { label: "Ты поэтому пошла в алхимию?", next: "recipe" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     sister: {
@@ -565,6 +577,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Может, она ещё вернётся.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_comforted" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     recipe: {
@@ -572,6 +585,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Обычно?", next: "lore_world" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     praise: {
@@ -602,6 +616,7 @@ const DIALOG_TREES = {
         { label: "Взять бинты и монету.", next: "progress_1_paid", effects: { gold: 20, flag: "elain_goblin_paid" }, requires: { notFlag: "elain_goblin_paid" } },
         { label: "Оставь бинты тем, кому хуже.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -624,6 +639,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А про Стеллу?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -645,6 +661,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elain_cave_mushroom" } },
         { label: "Не сейчас.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     story_taken: {
@@ -690,6 +707,7 @@ const DIALOG_TREES = {
         { label: "Что они означают?", next: "lore_stones" },
         { label: "А что с Йорстедом?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_stones: {
@@ -697,6 +715,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Почему без перчаток?", next: "warning" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -704,6 +723,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Но город ещё стоит.", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -712,6 +732,7 @@ const DIALOG_TREES = {
         { label: "Расскажи о наставнике.", next: "mentor" },
         { label: "Почему ты осталась?", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     mentor: {
@@ -719,6 +740,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты поэтому не ходишь в Башню?", next: "warning" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     warning: {
@@ -726,6 +748,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А если уже ношу?", next: "lore_stones" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     praise: {
@@ -756,6 +779,7 @@ const DIALOG_TREES = {
         { label: "Принять осколок и монету.", next: "progress_1_paid", effects: { gold: 25, flag: "elize_goblin_paid" }, requires: { notFlag: "elize_goblin_paid" } },
         { label: "Оставь камень себе.", next: "hope", mood: "good", effects: { rep: 1, flag: "elize_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -778,6 +802,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А Артур?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -799,6 +824,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elize_rune_dust" } },
         { label: "Не сейчас.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     story_taken: {
@@ -844,6 +870,7 @@ const DIALOG_TREES = {
         { label: "А куда делись остальные?", next: "lore_guests" },
         { label: "А что с городом?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_guests: {
@@ -851,6 +878,7 @@ const DIALOG_TREES = {
       options: [
         { label: "И многие возвращаются?", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -858,6 +886,7 @@ const DIALOG_TREES = {
       options: [
         { label: "И ты держишь дверь открытой.", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -866,6 +895,7 @@ const DIALOG_TREES = {
         { label: "Расскажи о муже.", next: "husband" },
         { label: "А сын?", next: "room" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     husband: {
@@ -873,6 +903,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты хранишь не комнату. Ты хранишь его.", next: "praise", mood: "good", effects: { rep: 1, flag: "stella_comforted" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     room: {
@@ -880,6 +911,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Он вернётся.", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     gossip: {
@@ -917,6 +949,7 @@ const DIALOG_TREES = {
         { label: "Взять ужин за счёт заведения.", next: "progress_1_paid", effects: { gold: 10, flag: "stella_goblin_paid" }, requires: { notFlag: "stella_goblin_paid" } },
         { label: "Мне хватит кружки.", next: "hope", mood: "good", effects: { rep: 1, flag: "stella_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -939,6 +972,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А про Артура?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -960,6 +994,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_stella_crypt_ghoul" } },
         { label: "Не сейчас.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     story_taken: {
@@ -1005,6 +1040,7 @@ const DIALOG_TREES = {
         { label: "А правила этажей?", next: "lore_world" },
         { label: "Почему Йорстед ещё стоит?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_world: {
@@ -1012,6 +1048,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Значит, держаться своих правил.", next: "oath" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -1019,6 +1056,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты веришь, что город выстоит?", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -1027,6 +1065,7 @@ const DIALOG_TREES = {
         { label: "Расскажи о доме Волка.", next: "house" },
         { label: "А семья?", next: "grief" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     house: {
@@ -1034,6 +1073,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А Тимми — Ворон.", next: "timmy" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     timmy: {
@@ -1042,6 +1082,7 @@ const DIALOG_TREES = {
         { label: "Ты жалеешь об этом?", next: "oath" },
         { label: "Он уважает тебя. По-своему.", next: "hope", mood: "good", effects: { rep: 1, flag: "ivan_timmy_peace" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     oath: {
@@ -1056,6 +1097,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Поэтому ты не хочешь новой войны.", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     praise: {
@@ -1086,6 +1128,7 @@ const DIALOG_TREES = {
         { label: "Взять премию за босса.", next: "progress_1_paid", effects: { gold: 40, flag: "ivan_goblin_paid" }, requires: { notFlag: "ivan_goblin_paid" } },
         { label: "Оставь в фонд Гильдии.", next: "hope", mood: "good", effects: { rep: 2, flag: "ivan_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -1108,6 +1151,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А Стелла?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -1129,6 +1173,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ivan_goblin_chief" } },
         { label: "Не сейчас.", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     story_taken: {
@@ -1198,7 +1243,7 @@ const DIALOG_TREES = {
       text: "",
       options: [
         { label: "Спасибо.", next: "start" },
-        { label: "Уйти.", next: null },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
@@ -1215,6 +1260,7 @@ const DIALOG_TREES = {
         { label: "А четвертый и пятый?", next: "lore_world" },
         { label: "А что с Йорстедом?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_world: {
@@ -1222,6 +1268,7 @@ const DIALOG_TREES = {
       options: [
         { label: "И оно уже видит меня?", next: "scars" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -1229,6 +1276,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Мрачно.", next: "hope" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -1237,6 +1285,7 @@ const DIALOG_TREES = {
         { label: "И что теперь?", next: "ivan" },
         { label: "А твой отец?", next: "father" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     ivan: {
@@ -1245,6 +1294,7 @@ const DIALOG_TREES = {
         { label: "Ты его уважаешь?", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_ivan_peace" } },
         { label: "А он тебя?", next: "father" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     father: {
@@ -1252,6 +1302,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты не жалеешь?", next: "scars" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     scars: {
@@ -1259,6 +1310,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А остальные шрамы?", next: "joke" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     joke: {
@@ -1296,6 +1348,7 @@ const DIALOG_TREES = {
         { label: "Взять монету. На стрелы.", next: "progress_1_paid", effects: { gold: 15, flag: "timmy_goblin_paid" }, requires: { notFlag: "timmy_goblin_paid" } },
         { label: "Оставь себе. Купи нормальный шлем.", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -1318,6 +1371,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А про Элизу?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -1369,6 +1423,7 @@ const DIALOG_TREES = {
         { label: "А что с павшими городами?", next: "lore_world" },
         { label: "А Йорстед?", next: "lore_city" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_world: {
@@ -1376,6 +1431,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Это называется мародёрство.", next: "relic" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     lore_city: {
@@ -1383,6 +1439,7 @@ const DIALOG_TREES = {
       options: [
         { label: "И ты на этом прогресс зарабатываешь.", next: "deal" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     personal: {
@@ -1391,6 +1448,7 @@ const DIALOG_TREES = {
         { label: "Расскажи о доме.", next: "house" },
         { label: "И ты не жалеешь?", next: "business" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     house: {
@@ -1398,6 +1456,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Разница есть.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_comforted" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     business: {
@@ -1405,6 +1464,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Иногда?", next: "relic" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     relic: {
@@ -1412,6 +1472,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Сколько?", next: "deal" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     deal: {
@@ -1449,6 +1510,7 @@ const DIALOG_TREES = {
         { label: "Принять скидку за босса.", next: "progress_1_paid", effects: { gold: 35, flag: "arthur_goblin_paid" }, requires: { notFlag: "arthur_goblin_paid" } },
         { label: "Обойдусь без твоих реликвий.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_refused_pay" } },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     progress_1_paid: {
@@ -1471,6 +1533,7 @@ const DIALOG_TREES = {
       options: [
         { label: "А про Элизу?", next: "rumors2" },
         { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
       ],
     },
     rumors2: {
@@ -1510,6 +1573,7 @@ const DIALOG_TREES = {
         { label: "Почему ты этим занимаешься?", next: "hire_wounded" },
         { label: "Мне нужна такая помощь.", next: "hire_price" },
         { label: "Назад", next: "hire_mira" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_wounded: {
@@ -1518,6 +1582,7 @@ const DIALOG_TREES = {
         { label: "Это не твоя вина.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Ты просто не справилась.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Назад", next: "hire_mira" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_song: {
@@ -1526,6 +1591,7 @@ const DIALOG_TREES = {
         { label: "Я бы хотел услышать её снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Спой ещё. Может, я усну.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Назад", next: "hire_mira" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_discount: {
@@ -1533,6 +1599,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
         { label: "Назад", next: "hire_mira" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_price: {
@@ -1541,6 +1608,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_mira", effects: { action: "hire", companionId: "mira" }, requires: { minGold: 500 } },
         { label: "500? Это грабёж!", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_mira" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_angry: {
@@ -1558,6 +1626,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "А если умру?", next: "hire_after" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_after: {
@@ -1586,6 +1655,7 @@ const DIALOG_TREES = {
         { label: "Ты потеряла свой дом?", next: "hire_past" },
         { label: "Мне нужна твоя помощь.", next: "hire_price" },
         { label: "Назад", next: "hire_alva" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_past: {
@@ -1594,6 +1664,7 @@ const DIALOG_TREES = {
         { label: "Твоя песня всё ещё жива.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Значит, ты никто без своего дома.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Назад", next: "hire_alva" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_song: {
@@ -1602,6 +1673,7 @@ const DIALOG_TREES = {
         { label: "Я не буду просить снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Спой ещё. Я заплачу.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Назад", next: "hire_alva" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_discount: {
@@ -1609,6 +1681,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
         { label: "Назад", next: "hire_alva" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_price: {
@@ -1617,6 +1690,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_alva", effects: { action: "hire", companionId: "alva" }, requires: { minGold: 500 } },
         { label: "Петь за такие деньги? Смешно.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_alva" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_angry: {
@@ -1634,6 +1708,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "Что я услышу?", next: "hire_after" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_after: {
@@ -1662,6 +1737,7 @@ const DIALOG_TREES = {
         { label: "Тогда нанимаю.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Давай без найма, просто по морде.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Назад", next: "hire_solveig" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_story: {
@@ -1670,6 +1746,7 @@ const DIALOG_TREES = {
         { label: "Ты скучаешь по дому?", next: "hire_scar" },
         { label: "Мне нужен боец.", next: "hire_price" },
         { label: "Назад", next: "hire_solveig" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_scar: {
@@ -1678,6 +1755,7 @@ const DIALOG_TREES = {
         { label: "Я понимаю.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Жалко тебя.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Назад", next: "hire_solveig" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_discount: {
@@ -1685,6 +1763,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
         { label: "Назад", next: "hire_solveig" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_price: {
@@ -1693,6 +1772,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_solveig", effects: { action: "hire", companionId: "solveig" }, requires: { minGold: 500 } },
         { label: "500? За бабу с топором?", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_solveig" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_angry: {
@@ -1710,6 +1790,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "А щит?", next: "hire_after" },
+        { label: "Уйти", next: null },
       ],
     },
     hire_after: {

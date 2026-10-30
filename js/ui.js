@@ -576,7 +576,7 @@ function hubHtml(st) {
   else if (state.phase === 3) bgImage = "assets/backgrounds/hub_night.webp";
 
   return `
-    <div class="screen-bg" style="background-image: url('${bgImage}');"></div>
+    <div class="screen-bg" style="background-image: url('${bgImage}');"><div class="bg-overlay"></div></div>
     <section class="hub">
       <div class="hub-head">
         <img src="assets/backgrounds/hub.webp" class="hub-image" onerror="this.style.display='none'" alt="">
@@ -705,9 +705,9 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "", portraitCl
   const tab = view.shopTab;
   const npcName = NPC_NAMES[npcId] || npcId;
 
-  // Активный разговор: диалог встраивается в полосу, кнопки покупки скрываются.
-  const talkId = view.talkNpc && DIALOG_TREES[view.talkNpc] ? view.talkNpc : null;
-  if (talkId) return npcInlineDialogueBar(talkId);
+  // Активный разговор: диалог встраивается только в полосу своего NPC, иначе
+  // разговор с Тимми подменял бы карточку Ивана. Кнопки покупки скрываются.
+  if (view.talkNpc === npcId && DIALOG_TREES[npcId]) return npcInlineDialogueBar(npcId);
 
   const currentSlide = npcStorySlide(npcId);
 
@@ -852,7 +852,7 @@ function sellPanelHtml(shopName) {
 }
 
 function marketHtml() {
-  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/market.webp');"></div>
+  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/market.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Торговая площадь", "Здесь торгуют, куют и варят", "hub", "← В Йорстед")}
     <div class="locations market-list">
       <button class="loc-card" data-act="goto" data-screen="forge" type="button"><img class="loc-image" src="assets/backgrounds/forge.webp" onerror="this.style.display='none'"><div class="loc-content">
@@ -936,7 +936,7 @@ function hotelHtml() {
       : `<h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
   return `
-    <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Гостиница", "Тёплый свет и чужие истории", "hub", "← В Йорстед")}
     ${npcDialogueBar("stella", "Спутницы", "", `<button class="btn primary" data-act="hotel-rest" type="button" ${canHotel ? "" : "disabled"}>Снять номер · ${HOTEL_PRICE} 💰</button>`)}
     ${content}
@@ -995,7 +995,7 @@ function trainingHtml() {
     : "";
 
   return `
-    <div class="screen-bg hall-bg" style="background-image: url('assets/backgrounds/hunters_hall.webp');"></div>
+    <div class="screen-bg hall-bg" style="background-image: url('assets/backgrounds/hunters_hall.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}
     <div class="hall-npcs">
       ${npcDialogueBar("ivan", "", "")}
@@ -1116,13 +1116,21 @@ function randomTimmyTip() {
 }
 
 function timmyCardHtml() {
+  // Разговор живёт в самой карточке Тимми — тем же способом, что и у Ивана.
+  if (view.talkNpc === "timmy" && DIALOG_TREES.timmy) return npcInlineDialogueBar("timmy");
   return `
-    <aside class="timmy-card">
-      <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="Тимми" onerror="this.style.display='none'">
-      <div class="timmy-info">
-        <p class="timmy-name">Тимми, молодой охотник</p>
-        <p class="hint">Знает слабости всех тварей Башни. Или думает, что знает.</p>
-        <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
+    <aside class="npc-dialogue-bar timmy-card">
+      <div class="npc-dialogue-main">
+        <img class="npc-portrait" src="${npcPortraitSrc("timmy")}" alt="Тимми" onerror="this.style.display='none'">
+        <div class="npc-dialogue-text">
+          <p class="npc-name">Тимми</p>
+          <p class="npc-role">Молодой охотник</p>
+          <p class="npc-dialogue timmy-desc">Знает слабости всех тварей Башни. Или думает, что знает.</p>
+        </div>
+      </div>
+      <div class="timmy-info-block">
+        <span class="npc-action-group-title">Информация</span>
+        <button class="btn small ghost" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
       </div>
     </aside>
   `;
@@ -1807,7 +1815,7 @@ function forgeHtml() {
         "held", "forge")
     : "";
 
-  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
+  return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
     ${npcDialogueBar("ron", "🛒 Купить", "💰 Хочу продать")}
     ${npcStorySlide("ron") ? "" : content}
@@ -1825,7 +1833,7 @@ function jewelryHtml() {
     : "";
 
   return `
-    <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
     ${npcDialogueBar("elize", "🛒 Купить", "💰 Хочу продать")}
     ${npcStorySlide("elize") ? "" : content}
@@ -1880,7 +1888,7 @@ function alchemyHtml() {
   }
 
   return `
-    <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
     ${npcDialogueBar("elain", "🛒 Купить", "💰 Хочу продать")}
     ${npcStorySlide("elain") ? "" : content}
@@ -2358,7 +2366,7 @@ function heroHtml(st) {
   const heroDebuffsHtml = heroDebuffs ? `<div class="debuff-strip hero-debuffs">${heroDebuffs}</div>` : "";
 
   return `
-    <div class="hero-bg"></div>
+    <div class="hero-bg"><div class="bg-overlay"></div></div>
     ${subHeader(
       "Герой",
       `${esc(state.name)} — искатель Башни`,
@@ -2425,6 +2433,7 @@ function towerHtml() {
                style="position: relative; overflow: hidden; min-height: 250px; border: 1px solid var(--line); border-radius: 16px; padding: 0;">
         
          <div style="position: absolute; inset: 0; background-image: url('${floor.cardImg || floor.bg || "assets/backgrounds/tower.webp"}'); background-size: cover; background-position: center; z-index: 0; ${locked ? 'filter: grayscale(1) brightness(0.6);' : 'filter: brightness(0.6);'}"></div>
+        <div class="bg-overlay"></div>
         
         <div style="position: relative; z-index: 1; background: linear-gradient(90deg, rgba(10, 8, 7, 0.05) 0%, rgba(10, 8, 7, 0.00) 100%); height: 100%; padding: 32px 36px; display: flex; flex-direction: column; justify-content: center;">
           
@@ -2450,7 +2459,7 @@ function towerHtml() {
   }).join("");
 
   return `
-    <div class="screen-bg" style="background-image: url('assets/backgrounds/tower.webp');"></div>
+    <div class="screen-bg" style="background-image: url('assets/backgrounds/tower.webp');"><div class="bg-overlay"></div></div>
     ${subHeader("Башня", "Поход в неизвестность", "hub", "← В Йорстед")}
     ${reason ? `<div class="banner warn-banner">${reason}</div>` : ""}
     
@@ -2530,7 +2539,7 @@ function floorHtml() {
   `;
 
   return `
-    <div class="screen-bg" style="background-image: url('${floor.bg || "assets/backgrounds/tower.webp"}');"></div>
+    <div class="screen-bg" style="background-image: url('${floor.bg || "assets/backgrounds/tower.webp"}');"><div class="bg-overlay"></div></div>
     ${subHeader(`Этаж ${floor.id}: ${floor.name}`, floor.subtitle, "tower", "← Назад к этажам")}
     <p class="lead" style="margin-bottom: 20px;">${floor.desc || ""}</p>
     ${towerControls}
@@ -3793,14 +3802,12 @@ function npcInlineDialogueBar(npcId) {
 
   const { questButton, topicsButton, storyActionBtn } = dialogActionParts(npcId);
   const optionsHtml = dialogOptionsHtml(npcId, node);
-  // Если в узле уже есть опция «Уйти», отдельная кнопка закрытия не нужна.
-  const hasLeaveOption = (node.options || [])
-    .some((opt) => dialogRequiresMet(opt.requires) && /^уйти$/i.test(String(opt.label || "").trim()));
-  const footerHtml = questButton || topicsButton || !hasLeaveOption
+  // Системной кнопки «Уйти» нет: закрытие задаётся только опциями узла
+  // в DIALOG_TREES (например, { label: "Уйти", next: null }).
+  const footerHtml = questButton || topicsButton
     ? `<div class="npc-inline-footer">
         ${questButton}
         ${topicsButton}
-        ${hasLeaveOption ? "" : `<button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>`}
       </div>`
     : "";
 
@@ -3836,6 +3843,14 @@ function renderDialogTree(npcId, nodeId) {
   const mood = state.npcMood?.[npcId];
   const moodLabel = mood === "good" ? "расположен" : mood === "bad" ? "недоволен" : "";
   const optionsHtml = dialogOptionsHtml(npcId, node);
+  // Системной кнопки выхода нет: единственный источник кнопок — options узла
+  // из DIALOG_TREES. Здесь остаются только сервисные кнопки заданий/тем.
+  const footerHtml = questButton || topicsButton
+    ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
+        ${questButton}
+        ${topicsButton}
+      </div>`
+    : "";
 
   return `
     <div class="result-overlay" data-act="npc-talk-backdrop" style="z-index: 184;">
@@ -3849,10 +3864,7 @@ function renderDialogTree(npcId, nodeId) {
         </div>
         <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(genderText(nodeText || ""))}»</p>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">${optionsHtml}${storyActionBtn}</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
-          ${questButton}
-          ${topicsButton}
-        </div>
+        ${footerHtml}
       </div>
     </div>
   `;

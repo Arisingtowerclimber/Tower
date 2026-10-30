@@ -1684,12 +1684,38 @@ kbd {
   pointer-events: none;
 }
 
-/* Слой затемнения поверх картинки */
-.screen-bg::before {
-  content: "";
+/* Универсальный затемняющий градиент поверх фонового изображения.
+   Живёт внутри .screen-bg / .hero-bg / .floor-card, поэтому клики
+   проходят сквозь него (pointer-events: none). */
+.bg-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(10, 8, 7, 0.5);
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 8, 7, 0.7) 0%,
+    rgba(10, 8, 7, 0.4) 50%,
+    rgba(10, 8, 7, 0.9) 100%
+  );
+}
+
+/* Контент экранов — отдельный слой над фоном и градиентом. */
+.screen > .subhead,
+.screen > .hub,
+.screen > .locations,
+.screen > .hall-npcs,
+.screen > .hall-shell,
+.screen > .floors,
+.screen > .tower-controls,
+.screen > .banner,
+.screen > .lead,
+.screen > .npc-dialogue-bar,
+.screen > .shop-group,
+.screen > .hero-grid,
+.screen > .panel {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-bg {
@@ -2990,8 +3016,7 @@ kbd {
 
 /* Ряд NPC: Иван (диалог) + Тимми (советы) — две равные карточки */
 .hall-npcs { display: flex; flex-wrap: wrap; align-items: stretch; gap: 18px; }
-.hall-npcs > .npc-dialogue-bar,
-.hall-npcs > .timmy-card {
+.hall-npcs > .npc-dialogue-bar {
   flex: 1 1 0;
   min-width: 0;
   max-width: none;
@@ -3005,8 +3030,7 @@ kbd {
 .hall-npcs .npc-dialogue-bar { margin-bottom: 0; }
 
 /* Портреты как в лавках: 84×84, скругление 12, золотая рамка. */
-.hall-npcs .npc-dialogue-bar .npc-portrait,
-.hall-npcs .timmy-portrait {
+.hall-npcs .npc-dialogue-bar .npc-portrait {
   width: 84px !important;
   height: 84px !important;
   object-fit: cover;
@@ -3014,25 +3038,26 @@ kbd {
   border: 1px solid var(--gold);
   background-color: #171210;
 }
-.timmy-card {
-  display: flex; gap: 14px;
-  background: rgba(18, 13, 11, 0.85);
-  border: 1px solid var(--line); border-radius: 12px;
+/* Карточка Тимми: портрет и текст сверху, блок «Информация» — снизу во всю ширину.
+   Сама кнопка остаётся компактной и не растягивается. */
+.timmy-card { flex-direction: column; gap: 14px; }
+.timmy-card .timmy-info-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
 }
-.timmy-portrait {
-  width: 84px; height: 84px; flex-shrink: 0;
-  object-fit: cover; border-radius: 12px;
-  border: 2px solid #5a7d9c; background-color: #171210;
+.timmy-card .timmy-info-block .btn { width: auto; }
+.npc-role {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
 }
-.timmy-card .timmy-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.timmy-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.timmy-name {
-  margin: 0; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-  font-size: 0.95rem; color: #9ec2e0;
-}
-.timmy-modal .timmy-portrait { width: 96px; height: 96px; }
-.timmy-modal-body { display: flex; gap: 14px; align-items: flex-start; }
-.timmy-modal .npc-dialogue { margin: 0; }
+.timmy-desc { font-style: normal; color: #cbbfae; font-size: 0.95rem; }
 
 /* Доска объявлений */
 .hunt-board {
@@ -3139,9 +3164,7 @@ kbd {
 @media (max-width: 680px) {
   /* На узком экране карточки NPC встают друг под другом на всю ширину. */
   .hall-npcs { flex-direction: column; }
-  .hall-npcs > .npc-dialogue-bar,
-  .hall-npcs > .timmy-card { flex: 0 0 auto; width: 100%; }
-  .hall-npcs > .timmy-card { align-items: center; text-align: center; }
+  .hall-npcs > .npc-dialogue-bar { flex: 0 0 auto; width: 100%; }
   .hall-npcs .npc-dialogue-bar { margin-bottom: 0; }
   .contract-foot { justify-content: center; }
   .companion-row { flex-wrap: wrap; }
