@@ -4712,7 +4712,8 @@ function onClick(event) {
       }
 
       // next: null — «Уйти»: закрываем взаимодействие и возвращаемся к
-      // обычному экрану (в лавке — к стандартному магазину).
+      // обычному экрану. В лавке (forge/alchemy/jewelry) «Уйти» означает
+      // выход на Торговую площадь, а не рендер старого shop-UI.
       if (opt.next === null || opt.next === undefined) {
         const farewell = getRandomPhrase(npcId, "farewell");
         // Завершение вступительной сцены: снимаем оба флага и сохраняемся,
@@ -4724,7 +4725,11 @@ function onClick(event) {
           state.introPending = false;
           saveState();
         }
-        render();
+        if (["forge", "alchemy", "jewelry"].includes(view.screen)) {
+          go("market");
+        } else {
+          render();
+        }
         if (farewell) toast(farewell, "ok");
         break;
       }
@@ -4796,7 +4801,13 @@ function onClick(event) {
       if (view.npcInteraction.mode !== "dialog") { interactionBackToDialog(); render(); break; }
       // Вступительную сцену нельзя закрыть кликом мимо — только кнопкой «До встречи».
       if (view.introPending || state.introPending) break;
-      closeNpcInteraction(); render(); break;
+      closeNpcInteraction();
+      if (["forge", "alchemy", "jewelry"].includes(view.screen)) {
+        go("market");
+      } else {
+        render();
+      }
+      break;
     }
     case "interaction-noop": break;
     case "npc-talk-topics": {
@@ -4828,7 +4839,12 @@ function onClick(event) {
     }
     case "npc-talk-close": {
       const npc = view.npcInteraction ? view.npcInteraction.npcId : null;
-      closeNpcInteraction(); render();
+      closeNpcInteraction();
+      if (["forge", "alchemy", "jewelry"].includes(view.screen)) {
+        go("market");
+      } else {
+        render();
+      }
       if (npc) toast(getRandomPhrase(npc, "farewell"), "ok");
       break;
     }
