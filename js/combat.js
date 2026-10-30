@@ -408,10 +408,17 @@ function exchange(state, battle, action, weaponInst = null) {
       battleLog(battle, `Греческий огонь опалил врага на ${dmg} урона!`, "crit");
     }
   } else if (action.type === "flee") {
-    // Побег: игрок не бьёт и не блокирует, но теряет энергию и получает
-    // обычный удар врага в спину.
+    // Побег: игрок не бьёт и не блокирует, теряет 5 энергии.
+    // Удар в спину можно УВЕРНУТЬСЯ (по статам dodge). Если увернулся —
+    // враг бьёт в пустоту (enemyAction.attack = null), игрок сбегает целым.
     state.energy = Math.max(0, state.energy - 5);
-    battleLog(battle, "Вы пытаетесь сбежать, но получаете удар в спину! (-5 энергии)", "warn");
+    const dodgedBackstab = Math.random() * 100 < st.dodge;
+    if (dodgedBackstab) {
+      battleLog(battle, "Вы уворачиваетесь от удара в спину и сбегаете! (-5 энергии)", "info");
+      enemyAction.attack = null; // отменяем атаку врага в этом ходу
+    } else {
+      battleLog(battle, "Вы пытаетесь сбежать, но получаете удар в спину! (-5 энергии)", "warn");
+    }
   } else if (action.type === "pass") {
     battleLog(battle, "Вы меняете оружие.", "info");
   } else {

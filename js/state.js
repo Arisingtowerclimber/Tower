@@ -1570,6 +1570,8 @@ function exploreFloor(floorId) {
   if (!floor) return { ok: false, text: "Этаж не найден." };
   if (state.activeSceneId) return { ok: false, text: "Сначала разберитесь с активной сценой." };
   if (state.activeNpcId) return { ok: false, text: "Сначала закончите разговор." };
+  if (state.activeEvent) return { ok: false, text: "Сначала разберитесь с событием." };
+  if (state.activeFloorEvent) return { ok: false, text: "Сначала разберитесь со встречей." };
 
   state.floorProgress = state.floorProgress || {};
   const progressBefore = state.floorProgress[floor.id] || 0;

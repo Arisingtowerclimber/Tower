@@ -170,6 +170,8 @@ function autoExploreLoop() {
   const ae = view.autoExplore; if (!ae) return;
   if (battleActive()) return;
   if (view.exploreResult) return;
+  // Открыта модалка события — ждём игрока, не зажигаем новый цикл.
+  if (state.activeEvent || state.activeFloorEvent) return;
   if (isNight()) { stopAutoExplore("Наступила ночь. Авто-исследование остановлено."); return; }
   
   if (state.activeSceneId) resolveSceneAction("leave");
@@ -212,6 +214,14 @@ function autoExploreTick(floorId, avoidDanger) {
   // Процедурное событие — останавливаемся, чтобы игрок принял решение в модалке.
   if (state.activeEvent) {
     stopAutoExplore("Произошло событие. Авто-исследование остановлено.");
+    render();
+    return;
+  }
+
+  // Спонтанное событие этажа (труп, сундук, охотник, событие компаньона) —
+  // та же логика: останавливаемся и ждём решения игрока в модалке.
+  if (state.activeFloorEvent) {
+    stopAutoExplore("Произошла встреча. Авто-исследование остановлено.");
     render();
     return;
   }
