@@ -2,6 +2,112 @@ document.addEventListener("click", onClick);
 document.addEventListener("keydown", handleKey);
 document.addEventListener("input", onInput);
 
+// ── БОЕВОЕ УПРАВЛЕНИЕ: WASD / СТРЕЛКИ, 1–3, ESC ──────────
+// Пока активно окно комбо, ввод принимается и со стрелок, и с WASD.
+// event.code не зависит от CapsLock/Shift и раскладки клавиатуры.
+const COMBO_KEY_ALIASES = {
+  ArrowUp: "ArrowUp", ArrowDown: "ArrowDown", ArrowLeft: "ArrowLeft", ArrowRight: "ArrowRight",
+  KeyW: "ArrowUp", KeyA: "ArrowLeft", KeyS: "ArrowDown", KeyD: "ArrowRight",
+  w: "ArrowUp", a: "ArrowLeft", s: "ArrowDown", d: "ArrowRight",
+};
+
+const WEAPON_SLOT_KEYS = {
+  Digit1: 0, Digit2: 1, Digit3: 2,
+  Numpad1: 0, Numpad2: 1, Numpad3: 2,
+};
+
+document.addEventListener("keydown", (event) => {
+  if (event.target?.closest?.("input, textarea, select")) return;
+  if (typeof view === "undefined") return;
+
+  const inBattle = view.screen === "battle" && view.battle && !view.battle.over && !view.summary;
+
+  // Экран подготовки: Enter/Space начинает бой, Esc — побег (кроме босса).
+  if (inBattle && view.preBattle) {
+    if (event.code === "Enter" || event.code === "Space" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      view.preBattle = false;
+      startCombo("attack");
+      render();
+      return;
+    }
+    if (event.code === "Escape" || event.key === "Escape") {
+      if (view.battle.boss) return;
+      event.preventDefault();
+      view.preBattle = false;
+      doExchange({ type: "flee" });
+      render();
+      return;
+    }
+    return;
+  }
+
+  // Escape в любой момент боя: прервать QTE, удар в спину, −5 энергии, конец боя.
+  // Открытые модалки закрывает handleKey(), бой при этом не прерываем.
+  if (inBattle && (event.code === "Escape" || event.key === "Escape")) {
+    if (view.settingsOpen || view.questsOpen || view.titleModal || view.achievementsOpen || view.talentsModal) return;
+    event.preventDefault();
+    view.comboState = null;
+    view.comboPaused = null;
+    doExchange({ type: "flee" });
+    render();
+    return;
+  }
+
+  // 1/2/3: смена оружия только в фазе атаки.
+  if (inBattle && view.comboState && view.comboState.mode === "attack") {
+    const slot = WEAPON_SLOT_KEYS[event.code];
+    if (slot !== undefined) {
+      event.preventDefault();
+      switchBattleWeapon(slot);
+      return;
+    }
+  }
+
+  if (!view.comboState) return;
+
+  const codeKey = COMBO_KEY_ALIASES[event.code];
+  const charKey = COMBO_KEY_ALIASES[event.key] || COMBO_KEY_ALIASES[String(event.key).toLowerCase()];
+  const key = codeKey || charKey;
+  if (!key) return;
+  event.preventDefault();
+
+  const combo = view.comboState;
+  const expected = combo.target[combo.current.length];
+  const normalOk = key === expected;
+
+  // Проверяем ввод по комбинациям всех доступных навыков.
+  let completedSkill = null;
+  let anySkillProgress = false;
+  for (const entry of combo.skills || []) {
+    const progress = combo.skillProgresses[entry.id] || 0;
+    if (entry.combo[progress] !== key) continue;
+    combo.skillProgresses[entry.id] = progress + 1;
+    anySkillProgress = true;
+    if (progress + 1 >= entry.combo.length) completedSkill = entry;
+  }
+  if (combo.skill) combo.skillProgress = combo.skillProgresses[combo.skill.id] || 0;
+
+  // Символ не подошёл ни к обычной атаке, ни к комбинации навыка.
+  if (!normalOk && !anySkillProgress) {
+    const skillStarted = (combo.skills || []).some((entry) => (combo.skillProgresses[entry.id] || 0) > 0);
+    if (skillStarted) failSkillCombo();
+    else resolveCombo(false);
+    return;
+  }
+
+  if (normalOk) combo.current.push(key);
+
+  // Комбинация навыка собрана полностью.
+  if (completedSkill) {
+    resolveSkillCombo(completedSkill.id);
+    return;
+  }
+
+  if (combo.current.length >= combo.target.length) { resolveCombo(true); return; }
+  updateComboArrows();
+});
+
 // ── УПРАВЛЕНИЕ МУЗЫКОЙ И АМБИЕНТОМ ─────────────────────────
 const MUSIC_VOLUME_KEY = "tower_music_volume";
 const AMBIENT_VOLUME_KEY = "tower_ambient_volume";

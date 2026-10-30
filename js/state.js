@@ -48,8 +48,10 @@ function defaultState() {
       ring1: null, ring2: null, trinket1: null, trinket2: null, 
       mainhand: uidOf("rusty_knife"), offhand: null 
     },
+    // Быстрые боевые слоты: оружие, которое можно сменить клавишами 1/2/3.
+    weaponSlots: [null, null, null],
     owned, nextUid: uid + 1, maxFloor: 1, cleared: {}, floorProgress: {}, activeSceneId: null, activeSceneFloorId: null, activeNpcId: null, kills: 0, bestiary: {},
-    activeEvent: null, tempDebuffs: [], eventCooldown: 0,
+    activeEvent: null, tempDebuffs: [], eventCooldown: 0, sleptOutside: false,
     killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, format: WEEK_QUEST_FORMAT, list: [] },
     unlockedAchievements: [], currentTitle: null, critCount: 0, brinkSurvived: false,
     contractsDone: 0,
@@ -382,7 +384,16 @@ function loadState() {
     const sceneFloor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
     const sceneOk = sceneFloor && (FLOOR_SCENES[sceneFloor.id] || []).some((s) => s.id === state.activeSceneId);
     if (!sceneOk) { state.activeSceneId = null; state.activeSceneFloorId = null; }
-    if (state.activeNpcId === "trader") state.activeNpcId = "arthur";
+    // Старые сейвы: Артур больше не живёт в activeNpcId — открываем mnb-диалог,
+    // иначе исследование навсегда блокируется без модалки. Устаревший id
+    // "trader" из совсем старых сейвов трактуем так же.
+    if (state.activeNpcId === "arthur" || state.activeNpcId === "trader") {
+      state.activeNpcId = null;
+      if (typeof view !== "undefined") {
+        view.traderStock = null;
+        view.npcInteraction = { npcId: "arthur", mode: "dialog", node: "start" };
+      }
+    }
     if (state.activeNpcId && !NPCS[state.activeNpcId]) state.activeNpcId = null;
     delete state.debuff; // устаревшая система атмосферных дебаффов (заменена на tempDebuffs)
     if (!Array.isArray(state.tempDebuffs)) state.tempDebuffs = [];
@@ -489,6 +500,14 @@ function loadState() {
       const uid = state.equipped[slot];
       if (uid && !getInstance(uid)) state.equipped[slot] = null;
     }
+
+    // Боевые слоты 1/2/3: только существующее оружие в основной руке.
+    const savedWeaponSlots = Array.isArray(saved.weaponSlots) ? saved.weaponSlots : defaults.weaponSlots;
+    state.weaponSlots = [0, 1, 2].map((i) => {
+      const uid = savedWeaponSlots[i];
+      const inst = uid ? getInstance(uid) : null;
+      return inst && ITEMS[inst.id] && ITEMS[inst.id].slot === "mainhand" ? uid : null;
+    });
     
     delete state.durability;
     
@@ -1051,7 +1070,7 @@ function createHero(biography, archetypeId, portrait = "m1", name = "", gender =
   state.gender = gender === "female" ? "female" : "male";
   state.archetype = ARCHETYPE_MAP[archetypeId] ? archetypeId : null;
 
-  state.attrs = { str: 1, agi: 1, end: 1, int: 1 };
+  state.attrs = { str: 3, agi: 3, end: 3, int: 3 };
   let bonusGold = 0;
   let bonusHp = 0;
   let bonusMana = 0;
@@ -1651,7 +1670,9 @@ function exploreFloor(floorId) {
     text = `На вас напал патруль: ${floor.mobs[mobIndex].name}!`;
   } else if (roll < 0.80) {
     if (Math.random() < 0.2 && NPCS.arthur) {
-      state.activeNpcId = NPCS.arthur.id;
+      // Артур идёт через общую state machine диалогов, как остальные NPC.
+      view.traderStock = null;
+      view.npcInteraction = { npcId: "arthur", mode: "dialog", node: "start" };
       npc = true;
       text = `Из тени вышел ${NPCS.arthur.name} и поманил вас пальцем.`;
     } else {
@@ -1741,35 +1762,19 @@ function calendarLongLabel(day = state.day) { const c = calendarInfo(day); retur
 
 function advancePhase() {
   state.phase += 1;
-  let nightMessage = null;
 
-  // Наступление ночи: сон в гостинице восстанавливает полностью, сон
-  // на улице — только половину и вешает дебафф «Сон на камнях».
+  // Наступление ночи: сон в гостинице восстанавливает полностью, а сон
+  // на улице силы не возвращает — утром вешается дебафф «Сон на камнях».
   if (state.phase === 3) {
     const inHotel = typeof view !== "undefined" && view.screen === "hotel";
+    const st = stats();
     if (inHotel) {
-      const st = stats();
+      state.sleptOutside = false;
       state.hp = st.maxHp;
       state.mana = st.maxMana;
       state.energy = st.maxEnergy;
     } else {
-      state.tempDebuffs = (state.tempDebuffs || []).filter((d) => d && d.id !== "slept_rough");
-      state.tempDebuffs.push({
-        id: "slept_rough",
-        name: "Сон на камнях",
-        icon: "🪨",
-        // Ночь уже закончилась, а tickTempDebuffs() сработает при переходе
-        // в утро. days: 2 → после тика останется 1 день действия.
-        days: 2,
-        desc: "-20% ко всем статам (Сила, Ловкость, Выносливость, Интеллект) на день.",
-        statMult: 0.8,
-      });
-      invalidateStats();
-      const st = stats();
-      state.hp = Math.max(1, Math.round(st.maxHp * 0.5));
-      state.mana = Math.round(st.maxMana * 0.5);
-      state.energy = Math.max(1, Math.round(st.maxEnergy * 0.5));
-      nightMessage = "Вы поспали на холодных камнях. Спина ноет, мышцы забиты.";
+      state.sleptOutside = true;
     }
   }
 
@@ -1778,13 +1783,27 @@ function advancePhase() {
     state.day += 1;
     ensureWeekQuests();
     tickTempDebuffs();
+    // Утро после ночи на улице: вешаем «Сон на камнях» на один день.
+    if (state.sleptOutside) {
+      state.tempDebuffs = (state.tempDebuffs || []).filter((d) => d && d.id !== "slept_rough");
+      state.tempDebuffs.push({
+        id: "slept_rough",
+        name: "Сон на камнях",
+        icon: "🪨",
+        days: 1,
+        desc: "-20% ко всем статам (Сила, Ловкость, Выносливость, Интеллект) на день.",
+        statMult: 0.8,
+      });
+      state.sleptOutside = false;
+      invalidateStats();
+      if (typeof toast === "function") toast("Вы поспали на холодных камнях. Спина ноет, мышцы забиты.", "warn");
+    }
     tickCompanionBuffs();
     chargeCompanionWage();
   }
   expireCompanion();
   invalidateStats();
   clampVitals(); saveState();
-  if (nightMessage && typeof toast === "function") toast(nightMessage, "warn");
   return phaseInfo();
 }
 
@@ -1804,6 +1823,8 @@ function freeRest() {
 function hotelRest() {
   if (state.gold < HOTEL_PRICE) return { ok: false, text: `Не хватает золота: нужно ${HOTEL_PRICE} 💰.` };
   state.gold -= HOTEL_PRICE; state.day += 1; state.phase = 0;
+  // Прыжок через ночь в гостинице не должен унаследовать флаг сна на улице.
+  state.sleptOutside = false;
   expireCompanion();
   tickTempDebuffs();
   tickCompanionBuffs();
@@ -2043,10 +2064,12 @@ function canEquipInSlot(item, slotId) {
   if (!slot) return false;
   if (!slot.accepts.includes(item.slot)) return false;
   if (state?.archetype === "monk" && (slotId === "mainhand" || slotId === "offhand")) return false;
-  if (state?.archetype === "assassin" && slotId === "offhand") {
-    if (isShield(item)) return false;
-    return item.slot === "mainhand" || item.slot === "offhand";
+  // Левая рука: щит доступен всем, кроме убийцы; одноручное оружие — только убийце.
+  if (slotId === "offhand") {
+    if (isShield(item) && state?.archetype === "assassin") return false;
+    if (item.slot === "mainhand") return item.handed === "1h" && state?.archetype === "assassin";
   }
+  // Двуручное оружие в правой руке занимает левую; исключение — страж с копьём.
   const mainUid = state?.equipped?.mainhand;
   const mainItem = mainUid ? ITEMS[getInstance(mainUid)?.id] : null;
   if (slotId === "offhand" && mainItem?.handed === "2h") {
@@ -2315,34 +2338,6 @@ function exchangeResources(resId) {
   return { ok: true, text: `Обмен совершён: ${srcRes ? srcRes.name : resId} ×${EXCHANGE_AMOUNT} → ${tRes ? tRes.name : EXCHANGE_TARGET_RES} ×1.` };
 }
 
-// Кража у странствующего торговца (Этап 3): шанс зависит от Ловкости,
-// при провале страж забирает 20% золота и выставляет за дверь.
-function trySteal(entryId, stock) {
-  const entries = Array.isArray(stock) ? stock : [];
-  const entry = entries.find((e) => (e.kind === "gear" ? e.uid : e.id) === entryId);
-  if (!entry) return { ok: false, fail: false, text: "Этот товар уже исчез." };
-  const agi = state.attrs.agi + (stats().gearAttrs?.agi || 0);
-  const chance = Math.min(50, agi * 5);
-  if (Math.random() >= chance / 100) {
-    const penalty = Math.floor((state.gold || 0) * 0.2);
-    state.gold = Math.max(0, (state.gold || 0) - penalty);
-    saveState();
-    return { ok: false, fail: true, penalty, text: `Стража схватила вас за руку! Утрачено ${penalty} 💰, торговец выставил вас за дверь.` };
-  }
-  let name;
-  if (entry.kind === "potion") {
-    state.potions = state.potions || {};
-    state.potions[entry.id] = (state.potions[entry.id] || 0) + 1;
-    name = ITEMS[entry.id] ? ITEMS[entry.id].name : entry.name;
-  } else {
-    // Снаряжение уже числится в инвентаре (выставляется на продажу экземпляром).
-    name = entry.inst && ITEMS[entry.inst.id] ? ITEMS[entry.inst.id].name : "вещь";
-  }
-  state._invRev = (state._invRev || 0) + 1;
-  saveState();
-  return { ok: true, text: `Украдено: ${name}! Стража ничего не заметила.` };
-}
-
 function trainAttr(trainingId) {
   const training = TRAINING_MAP[trainingId];
   if (!training) return { ok: false, text: "Такой тренировки здесь нет." };
@@ -2360,9 +2355,18 @@ function trainAttr(trainingId) {
   // Статы, фаза и энергия меняются только после QTE в completeTraining().
   // Сохранение здесь фиксирует только «тренировка начата» — если игрок
   // перезагрузит страницу, он ничего не потеряет.
+  // Случайная комбинация 3–5 шагов; две одинаковые подряд не выдаём.
+  const moves = ["left", "right", "strike"];
+  const len = 3 + Math.floor(Math.random() * 3);
+  let seq;
+  do {
+    seq = Array.from({ length: len }, () => moves[Math.floor(Math.random() * moves.length)]);
+  } while (JSON.stringify(seq) === JSON.stringify(view._lastTrainingSequence || []));
+  view._lastTrainingSequence = seq;
+
   view.trainingQTE = {
     trainingId,
-    sequence: ["left", "right", "strike"],
+    sequence: seq,
     currentStep: 0,
     timeLeft: 6.0,
   };

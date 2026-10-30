@@ -312,8 +312,6 @@ function exchange(state, battle, action, weaponInst = null) {
   e.mana = Math.min(e.maxMana || 20, (e.mana || 0) + 1);
   const achVs = achievementVsMobBonus(state, e.id);
   const uniques = equippedUniques();
-  // Побег не даёт ни атаковать, ни блокировать: удар врага идёт «в спину».
-  const blocks = action.type === "flee" ? [] : (Array.isArray(action.blocks) ? action.blocks : []);
   const enemyAction = chooseEnemyAction(battle, battle.lastPlayerAttack);
   battle.lastPlayerHit = false;
 
@@ -324,12 +322,6 @@ function exchange(state, battle, action, weaponInst = null) {
   if (!Array.isArray(battle.enemyAttackHistory)) battle.enemyAttackHistory = [];
   battle.enemyAttackHistory.push(enemyAction.attack);
   if (battle.enemyAttackHistory.length > 8) battle.enemyAttackHistory.shift();
-
-  // --- ДОБАВЛЕНО: история блоков игрока ---
-  if (!Array.isArray(battle.playerBlocksHistory)) battle.playerBlocksHistory = [];
-  battle.playerBlocksHistory.push([...blocks]);
-  if (battle.playerBlocksHistory.length > 8) battle.playerBlocksHistory.shift();
-  // -----------------------------------------
 
   if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.length) {
     const poison = battle.playerDebuffs.find((d) => d.id === "poison");
@@ -421,8 +413,11 @@ function exchange(state, battle, action, weaponInst = null) {
     }
   } else if (action.type === "pass") {
     battleLog(battle, "Вы меняете оружие.", "info");
+  } else if (action.type === "defend") {
+    // Защитный размен без удара игрока: смена оружия или провал комбинации
+    // навыка. Моб бьёт, игрок только пытается защититься.
+    battleLog(battle, "Вы прикрываетесь и ждёте ответного удара.", "info");
   } else {
-    const tech = action.type === "tech";
     const isSkill = action.type === "skill";
     let skillInfo = null;
     if (isSkill) {
@@ -448,18 +443,11 @@ function exchange(state, battle, action, weaponInst = null) {
     } else {
     if (!action.zone || !ZONE_NAME[action.zone]) return { error: "Выберите зону удара." };
 
-    if (tech) {
-      if (battle.rage < 3) return { error: "Нужно 3 единицы куража." };
-      if (state.mana < TECH_COST) return { error: "Не хватает маны на приём." };
-      battle.rage -= 3;
-      state.mana -= TECH_COST;
-    }
-
     const zone = ZONE_MAP[action.zone];
     const zoneName = zone.name;
     const skillEffect = skillInfo ? skillInfo.talent.skill.effect : null;
     const skillUnblockable = skillEffect === "fury" || skillEffect === "aim"; // «в 2 зоны»: блок не помогает
-    const blocked = !tech && !skillUnblockable && !wasStaggered && enemyAction.blocks.includes(action.zone);
+    const blocked = !skillUnblockable && !wasStaggered && enemyAction.blocks.includes(action.zone);
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
@@ -467,11 +455,11 @@ function exchange(state, battle, action, weaponInst = null) {
       if (zone.risk && Math.random() < zone.risk) {
         battle.riskyMiss = true;
       }
-    } else if (!tech && (e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus) {
+    } else if ((e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus) {
       battleLog(battle, `${e.name} уклоняется от удара в «${zoneName}».`, "miss");
       Sfx.play("hit_miss");
     } else {
-      const power = tech || skillEffect === "fury" ? 1.8 : 1;
+      const power = skillEffect === "fury" ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
       const wanted = STYLE_ORDER.includes(action.style) ? action.style : "slashing";
       const mainInst = weaponInst !== undefined ? weaponInst : (state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null);
@@ -487,9 +475,11 @@ function exchange(state, battle, action, weaponInst = null) {
       const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
 
       let base = computeStrikeBase(st, { power, zoneMult, styleMult, armorMult, variance: rnd(0.9, 1.1) });
-      const critChance = st.crit + achVs.crit + (tech ? 0 : (zone.critBonus || 0));
-      // навык «Точный выстрел» гарантирует крит, приём криту не мешает
-      const crit = tech ? false : (skillEffect === "aim" ? true : Math.random() * 100 < critChance);
+      const critChance = st.crit + achVs.crit + (zone.critBonus || 0);
+      // навык «Точный выстрел» гарантирует крит; быстрое комбо тоже критует
+      const crit = (action.comboFast === true || skillEffect === "aim")
+        ? true
+        : Math.random() * 100 < critChance;
       if (crit) { base *= 1.7; state.critCount = (state.critCount || 0) + 1; }
 
       const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
@@ -499,6 +489,12 @@ function exchange(state, battle, action, weaponInst = null) {
       // Бонусы титулов против этой расы: % урона и плоский урон.
       if (achVs.dmgPct) damage = Math.max(1, Math.round(damage * (1 + achVs.dmgPct / 100)));
       damage += achVs.flat;
+
+      // Провал комбо: удар всё равно проходит, но ослабленным.
+      if (action.comboSuccess === false) {
+        damage = Math.max(1, Math.round(damage * 0.3));
+        battleLog(battle, "Вы сбились с ритма!", "warn");
+      }
 
       // «Точный удар»: критический удар превращается в QTE. Урон пока не
       // применяется — его нанесёт ui.js после остановки указателя.
@@ -537,11 +533,11 @@ function exchange(state, battle, action, weaponInst = null) {
         if (crit) checkAchievements(state);
       }
 
-      if (!tech && zone.staggerChance && Math.random() < zone.staggerChance) {
+      if (zone.staggerChance && Math.random() < zone.staggerChance) {
         battle.staggered = true;
         battleLog(battle, `${e.name} теряет стойку — следующий блок пропущен.`, "info");
       }
-      if (!tech && zone.tripChance && Math.random() < zone.tripChance) {
+      if (zone.tripChance && Math.random() < zone.tripChance) {
         battle.tripped = true;
         battleLog(battle, `${e.name} спотыкается — ответный удар пропущен.`, "info");
       }
@@ -622,27 +618,29 @@ function exchange(state, battle, action, weaponInst = null) {
         e.mana = Math.max(0, (e.mana || 0) - 6);
         battleLog(battle, `${e.name} использует Тяжёлый удар!`, "warn");
       }
-      // Тяжёлый удар пробивает блок: закрытая зона его не останавливает.
-      const playerBlocked = !heavyStrike && blocks.includes(enemyAction.attack);
+      // Комбо защиты: успех — парирование (0 урона, +1 кураж),
+      // провал — полный урон моба без уворота и парирования.
+      const hasDefenseQte = action.defenseSuccess === true || action.defenseSuccess === false;
+      const playerParried = action.defenseSuccess === true;
+      const defenseFailed = action.defenseSuccess === false;
       const enemyZone = ZONE_NAME[enemyAction.attack];
       // «Парирование» бросается до проверки уворота, иначе уворот всегда
       // перехватывал бы окно (его шанс выше, чем dodge * 0.5).
-      const parryTrigger = state.abilities && state.abilities.parry === true
+      const parryTrigger = !hasDefenseQte && state.abilities && state.abilities.parry === true
         && Math.random() * 100 < st.dodge * 0.5;
 
-      if (playerBlocked) {
-        // Кураж за блок: закрыли зону, куда бьёт враг — +1 кураж поверх урона.
-        // Мимо (блок в пустую зону) — куража нет.
+      if (playerParried) {
+        // Кураж за парирование: успешное комбо защиты даёт +1 кураж.
         battle.rage = Math.min(5, battle.rage + 1);
-        battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы блокируете. +1 кураж.`, "block");
+        battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы парируете. +1 кураж.`, "block");
         Sfx.play("hit_block");
 
         if (state.archetype === "guardian") {
           const retaliation = Math.max(2, Math.round(e.atk * (st.mods?.blockCounter || 0.1)));
           battle.hp = Math.max(0, battle.hp - retaliation);
-          battleLog(battle, `Страж отвечает на блок: ${e.name} теряет ${retaliation} HP.`, "hit");
+          battleLog(battle, `Страж отвечает на парирование: ${e.name} теряет ${retaliation} HP.`, "hit");
         }
-      } else if (!parryTrigger && Math.random() * 100 < st.dodge + achVs.dodge) {
+      } else if (!defenseFailed && !parryTrigger && Math.random() * 100 < st.dodge + achVs.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
         Sfx.play("hit_miss");
         Sfx.play("footstep_land");

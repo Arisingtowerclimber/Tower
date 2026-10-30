@@ -29,11 +29,20 @@ const SLOTS = [
   { id: "trinket1", name: "Аксессуар 1", icon: "🔮", accepts: ["trinket"] },
   { id: "trinket2", name: "Аксессуар 2", icon: "🔮", accepts: ["trinket"] },
   { id: "mainhand", name: "Правая рука", icon: "⚔️", accepts: ["mainhand"] },
-  { id: "offhand", name: "Левая рука", icon: "🛡️", accepts: ["offhand"] },
+  { id: "offhand", name: "Левая рука", icon: "🛡️", accepts: ["offhand", "mainhand"] },
 ];
 
 const SLOT_NAME = Object.fromEntries(SLOTS.map((s) => [s.id, s.name]));
 const SLOT_ICON = Object.fromEntries(SLOTS.map((s) => [s.id, s.icon]));
+
+// Текстовая (эмодзи) иконка предмета — для тостов, лога и товаров торговца.
+// Восстановлена после рефакторинга иконок: на неё ссылаются state.js и ui.js.
+function itemEmoji(item) {
+  if (!item) return "";
+  if (item.iconFallback) return item.iconFallback;
+  if (typeof item.icon === "string" && !item.icon.startsWith("assets/")) return item.icon;
+  return SLOT_ICON[item.slot] || "";
+}
 SLOT_NAME.ring = "Кольца";
 SLOT_NAME.trinket = "Аксессуары";
 SLOT_ICON.ring = "💍";
@@ -1253,13 +1262,7 @@ const DIALOG_TREES = {
       text: "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников. Совесть, например. Шучу. Совесть не продаётся.",
       options: [
         { label: "Показать товары", action: "open_shop" },
-        { label: "Откуда твой товар?", next: "lore_tower" },
-        { label: "Ты ведь из павшего дома?", next: "personal" },
-        { label: "Что говорят о других?", next: "rumors" },
-        { label: "Ты умеешь вести дело. Уважаю.", next: "praise", mood: "good", effects: { rep: 1, flag: "arthur_praised" } },
-        { label: "Ты торгуешь краденым.", next: "insult", mood: "bad", effects: { rep: -2, flag: "arthur_insulted" } },
-        { label: "Вождь Гоблинов мёртв. Спрос на гоблинское падает.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "Владыка Бездны мёртв. Демонические реликвии подешевеют?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Откуда твой товар?", next: "lore" },
         { label: "Уйти", next: null },
       ],
     },
@@ -1267,6 +1270,12 @@ const DIALOG_TREES = {
       text: "Смотри, выбирай, не стесняйся. Цены — как в лучших домах. Товар — из-за моря. Какого моря — не спрашивай.",
       options: [
         { label: "К товарам", action: "open_shop" },
+        { label: "← Назад", next: "start" },
+      ],
+    },
+    lore: {
+      text: "Города падают один за другим. Я ухожу первым и забираю то, что осталось. Не суди: кто-то же должен помнить вещи павших.",
+      options: [
         { label: "← Назад", next: "start" },
       ],
     },
@@ -2110,16 +2119,19 @@ const TALENTS = [
   {
     id: "sk_berserk", branch: "war", name: "Ярость берсерка", active: true, maxRank: 1, stat: null,
     desc: "Активный навык: 10 маны и 3 куража — неудержимый удар силой ×1.8, который враг не может заблокировать. Откат: 3 хода.",
+    combo: ["ArrowUp", "ArrowUp", "ArrowLeft", "ArrowRight"],
     skill: { name: "Ярость берсерка", icon: "🪓", manaCost: 10, rageCost: 3, cooldown: 3, effect: "fury" },
   },
   {
     id: "sk_shield", branch: "def", name: "Щит веры", active: true, maxRank: 1, stat: null,
     desc: "Активный навык: 15 маны — лечение на 30% максимума HP и иммунитет к яду до конца боя. Снимает яд. Откат: 4 хода.",
+    combo: ["ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight"],
     skill: { name: "Щит веры", icon: "🛡️", manaCost: 15, rageCost: 0, cooldown: 4, effect: "faith" },
   },
   {
     id: "sk_precise", branch: "util", name: "Точный выстрел", active: true, maxRank: 1, stat: null,
     desc: "Активный навык: 12 маны — выверенный удар точно в уязвимое место: гарантированный крит, враг не успевает закрыться. Откат: 3 хода.",
+    combo: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowUp"],
     skill: { name: "Точный выстрел", icon: "🎯", manaCost: 12, rageCost: 0, cooldown: 3, effect: "aim" },
   },
   // Ветка «Стойкость»
@@ -2313,7 +2325,6 @@ function ambushMobIndex(floor, excludeIndex = -1) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-const TECH_COST = 6;
 const MANA_REGEN = 1;
 
 const EXPLORATION_MAX = 10;

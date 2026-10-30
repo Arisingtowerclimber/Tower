@@ -22,16 +22,22 @@ function doExchange(type, potionId) {
 
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
 
-  const result = exchange(state, view.battle, { 
-    type, 
-    zone: view.attackZone, 
-    blocks: view.blocks, 
-    style: view.attackStyle, 
-    id: potionId 
-  }, mainInst);
+  // Комбо-атака передаёт готовый объект action; остальные действия
+  // (зелья, предметы, приёмы, смена оружия, побег) собираются как раньше.
+  const action = type && typeof type === "object"
+    ? { ...type }
+    : { type, zone: view.attackZone, style: view.attackStyle, id: potionId };
+  action.zone = action.zone || view.attackZone || "chest";
+  action.style = action.style || view.attackStyle || "slashing";
+
+  const result = exchange(state, view.battle, action, mainInst);
   
   if (result.error) { 
     toast(result.error, "warn"); 
+    // Действие не состоялось — возвращаем QTE, которое было на паузе.
+    resumeCombo();
+    if (!view.comboState && !view.battle.over) startCombo("attack");
+    render();
     return; 
   } 
   
@@ -41,6 +47,8 @@ function doExchange(type, potionId) {
   }
 
   if (result.summary) { 
+    view.comboState = null;
+    view.comboPaused = null;
     view.summary = result.summary;
     // Дроп дневника с убитого охотника (Блок 6): при победе с state._hunterBattle.
     // Не победа (поражение/бегство) — флаг продратившегося боя сбрасываем.
@@ -71,7 +79,18 @@ function doExchange(type, potionId) {
     render(); 
     return;
   } 
-  renderBattle();
+  // Крит/парирование открывают собственное QTE. Комбо запустится после него,
+  // чтобы таймер не тикал под модалкой.
+  if (view.battle.critWindow || view.battle.parryWindow) {
+    view.comboState = null;
+    view.comboPaused = null;
+    render();
+    return;
+  }
+
+  // Непрерывный цикл: после размена сразу начинается новый удар.
+  startCombo("attack");
+  render();
 }
 
 function go(screen) {
@@ -154,6 +173,16 @@ function go(screen) {
   render();
 }
 
+// ── Авто-исследование ───────────────────────────────────────────────────────
+// Единственная точка планирования цикла: сначала гасим старый таймер, чтобы
+// не запускать два параллельных setTimeout после боя или модалки.
+function scheduleAutoExplore(delay = 2100) {
+  const ae = view.autoExplore;
+  if (!ae) return;
+  clearTimeout(ae.timer);
+  ae.timer = setTimeout(autoExploreLoop, delay);
+}
+
 function startAutoExplore(floorId, avoidDanger) {
   if (view.autoExplore) return;
   const reason = towerClosedReason();
@@ -163,11 +192,12 @@ function startAutoExplore(floorId, avoidDanger) {
   view.autoExplore = { floorId, avoidDanger, timer: null, log: [] };
   toast(avoidDanger ? "⏩ Авто-исследование: безопасный режим." : "⏩ Авто-исследование: боевой режим.", "info");
   render();
-  view.autoExplore.timer = setTimeout(autoExploreLoop, 1200);
+  scheduleAutoExplore(1200);
 }
 
 function autoExploreLoop() {
   const ae = view.autoExplore; if (!ae) return;
+  clearTimeout(ae.timer);
   if (battleActive()) return;
   if (view.exploreResult) return;
   // Открыта модалка события — ждём игрока, не зажигаем новый цикл.
@@ -180,11 +210,13 @@ function autoExploreLoop() {
   if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
   
   autoExploreTick(ae.floorId, ae.avoidDanger);
-  if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
+  scheduleAutoExplore(2100);
 }
 
 function autoExploreTick(floorId, avoidDanger) {
   const ae = view.autoExplore; if (!ae) return;
+  // Тик забрал управление: висящий таймер не должен сработать повторно.
+  clearTimeout(ae.timer);
   const floor = FLOORS.find((f) => f.id === floorId);
   if (!floor) { stopAutoExplore("Этаж не найден."); return; }
   const stamp = `[${new Date().toLocaleTimeString()}]`;
@@ -394,14 +426,6 @@ function discardTraderStock() {
     }
   }
   view.traderStock = null;
-  view.npcShopOpen = false;
-}
-
-function closeNpcDialog() {
-  discardTraderStock();
-  state.activeNpcId = null;
-  saveState();
-  render();
 }
 
 // ── Спонтанные события этажей (Блок 6) ──────────────────────────────────────
@@ -653,19 +677,4 @@ function buyFromTrader(entryId, viewRef = view) {
   state._invRev = (state._invRev || 0) + 1;
   saveState();
   return { ok: true, text: `Куплено: ${name} (−${entry.price} 💰).`, entryId };
-}
-
-function applyNpcAction(action, npcId, viewRef = view) {
-  const npc = NPCS[npcId] || NPCS[state.activeNpcId];
-  if (!npc) return { ok: false, text: "Здесь никого нет." };
-  if (action === "show-goods") {
-    if (!viewRef.traderStock) viewRef.traderStock = getTraderInventory();
-    viewRef.npcShopOpen = true;
-    return { ok: true, text: `${npc.name} раскладывает товар.` };
-  }
-  if (action === "leave") {
-    closeNpcDialog();
-    return { ok: true, text: "Вы откланялись." };
-  }
-  return { ok: false, text: "Неизвестное действие." };
 }

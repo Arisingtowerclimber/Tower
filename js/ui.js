@@ -1,5 +1,7 @@
 const view = {
-  screen: "hub", battle: null, attackZone: "chest", attackStyle: "slashing", blocks: ["head", "chest"],
+  screen: "hub", battle: null, attackZone: "chest", attackStyle: "slashing",
+  preBattle: false, weaponSlotPicker: null,
+  comboState: null, comboPaused: null, currentAttackResult: null, currentDefenseResult: null, currentAttackFast: false,
   summary: null, create: null, forgeTab: "held", jewelryTab: "jewelry", talentsTab: "war",
   questsOpen: false, bestiaryOpen: false, bestiaryFilter: "all",
   timmyTip: null,
@@ -8,7 +10,7 @@ const view = {
   dollSlot: null, tripActive: false,
   sceneGroup: null, sceneGroupFloorId: null, autoExplore: null,
   autoExploreMode: "safe",
-  npcShopOpen: false, traderStock: null,
+  traderStock: null,
   npcInteraction: null,
   tradeFilter: "all",
   tradeSubFilter: "all",
@@ -2361,6 +2363,7 @@ function heroHtml(st) {
           <div class="stat-box"><span>Контр</span><b>${counterFormatted}%</b></div><div class="stat-box"><span>Зон блока</span><b>${st.blockZones}</b></div>
         </div>
         ${abilitiesHtml}
+        ${weaponSlotsHtml()}
         ${heroDebuffsHtml}
         ${archetype ? `<div class="archetype-note">${iconHtml(archetype.icon, 20)} <span><b>${archetype.name}</b>: ${archetype.desc}</span></div>` : ""}
         ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>${affinityBarHtml(companion.id)}` : ""}
@@ -2387,6 +2390,58 @@ function heroHtml(st) {
     </div>
     <div class="danger-zone"><button class="btn tiny danger" data-act="reset" type="button">Сбросить прогресс</button><button class="btn tiny danger" data-act="dev-cheat" type="button" style="opacity: 0.5; margin-left: 10px;">Dev: Макс. Уровень</button></div>
   `;
+}
+
+// Боевые слоты героя: три ячейки, которые в бою переключаются клавишами 1/2/3.
+function weaponSlotsHtml() {
+  const slots = Array.isArray(state.weaponSlots) ? state.weaponSlots : [null, null, null];
+  const cards = [0, 1, 2].map((i) => {
+    const inst = slots[i] ? getInstance(slots[i]) : null;
+    const item = inst ? ITEMS[inst.id] : null;
+    const inner = inst && item
+      ? `<span style="display:flex; align-items:center; gap:6px; min-width:0;">${iconHtml(item.icon, 24)}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(getItemDisplayName(inst))}</span></span>`
+      : `<span class="hint">Пусто · назначить</span>`;
+    return `<button data-act="weapon-slot-open" data-slot="${i}" type="button" title="Назначить оружие в слот ${i + 1}" style="display:flex; align-items:center; gap:8px; min-width:0; width:100%; text-align:left; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,0.22); color:var(--text); cursor:pointer;">
+      <b style="color:var(--gold2); font-size:16px; flex:0 0 auto;">${i + 1}</b>
+      ${inner}
+    </button>`;
+  }).join("");
+  return `<div style="margin-top: 16px;">
+    <h2 class="group-title" style="font-size: 16px;">Боевые слоты (1, 2, 3)</h2>
+    <p class="hint" style="margin: 4px 0 8px;">В фазе атаки клавиши 1/2/3 мгновенно меняют оружие. Смена оружия пропускает ваш удар — враг бьёт в ответ.</p>
+    <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">${cards}</div>
+  </div>`;
+}
+
+function weaponSlotPickerHtml() {
+  const idx = view.weaponSlotPicker;
+  if (idx === null || idx === undefined) return "";
+  const currentUid = Array.isArray(state.weaponSlots) ? state.weaponSlots[idx] : null;
+  const weapons = state.owned.filter((inst) => ITEMS[inst.id] && ITEMS[inst.id].slot === "mainhand");
+  const rows = weapons.map((inst) => {
+    const item = ITEMS[inst.id];
+    const inSlot = currentUid === inst.uid;
+    const inHand = state.equipped.mainhand === inst.uid;
+    return `<button class="doll-item${inSlot ? " equipped" : ""}" data-act="weapon-slot-assign" data-slot="${idx}" data-uid="${inst.uid}" type="button">
+      <span class="item-icon">${iconHtml(item.icon, 32)}</span>
+      <span class="doll-item-body">
+        <span class="doll-item-name">${getItemDisplayName(inst)}</span>
+        <span class="chips">${statsChips(item, inst)}</span>
+        ${inSlot ? `<span class="doll-item-status">✓ В слоте</span>` : inHand ? `<span class="doll-item-status">В руке</span>` : ""}
+      </span>
+    </button>`;
+  }).join("");
+  return `
+    <div class="doll-menu-backdrop" data-act="weapon-slot-close"></div>
+    <div class="doll-menu" role="dialog">
+      <div class="doll-menu-head">
+        <h3>Боевой слот ${idx + 1}</h3>
+        <button class="doll-menu-close" data-act="weapon-slot-close" type="button">✕</button>
+      </div>
+      <p class="hint" style="margin-bottom: 10px;">Выберите оружие из сумки. В бою оно будет доступно по клавише ${idx + 1}.</p>
+      <div class="doll-menu-list">${rows || `<p class="empty">В сумке нет оружия для основной руки.</p>`}</div>
+      ${currentUid ? `<div class="doll-menu-foot"><button class="btn small ghost" data-act="weapon-slot-clear" data-slot="${idx}" type="button">Очистить слот</button></div>` : ""}
+    </div>`;
 }
 
 function towerHtml() {
@@ -2661,20 +2716,6 @@ function renderHunterEncounterModal(fe) {
 // Единый размер кнопок боевого интерфейса: одинаковая высота, ширина и центрированный текст.
 const BATTLE_BTN_STYLE = "height: 44px; min-height: 44px; max-height: 44px; width: 100%; box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
 
-function zoneButtons() {
-  const st = stats();
-  return {
-    attack: ZONES.map((z) => {
-      const tip = z.tip ? ` title="${esc(z.tip)}"` : "";
-      return `<button class="zone attack${view.attackZone === z.id ? " selected" : ""}" data-act="attack-zone" data-zone="${z.id}" type="button"${tip}>${z.name}</button>`;
-    }).join(""),
-    block: ZONES.map((z) => {
-      return `<button class="zone block${view.blocks.includes(z.id) ? " selected" : ""}" data-act="block-zone" data-zone="${z.id}" type="button">${z.name}</button>`;
-    }).join(""),
-    limit: st.blockZones
-  };
-}
-
 function weaponSwapHtml() {
   if (!view.weaponSwap) return "";
   
@@ -2722,8 +2763,11 @@ function battleHtml(st) {
   const battle = view.battle; 
   const enemy = battle.enemy; 
   const bgImage = FLOORS.find(f => f.id === battle.floorId)?.bg || "assets/backgrounds/tower.webp";
-  const zones = zoneButtons(); 
   const ragePct = Math.min(100, (battle.rage / 5) * 100);
+  // Бой занимает остаток экрана под шапкой: лог должен быть виден без прокрутки.
+  const topbarEl = platform.dom.byId("topbar");
+  const topbarH = topbarEl && !topbarEl.hidden ? topbarEl.offsetHeight + 52 : 0;
+  const battleHeight = Math.max(420, window.innerHeight - topbarH);
 
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
   const playerWeapon = mainInst ? ITEMS[mainInst.id] : null;
@@ -2790,66 +2834,29 @@ function battleHtml(st) {
     enemyArmorTitle = `Получаемый урон: ${mods.join(", ")}`;
   }
 
-  const styleButtonsHtml = state.archetype === "monk"
-    ? MONK_STANCES.map((stance) => {
-        const sel = (battle.monkStance || MONK_DEFAULT_STANCE) === stance.id ? " selected" : "";
-        return `<button class="zone attack${sel}" data-act="monk-stance" data-stance="${stance.id}" type="button" title="${esc(stance.desc)}" style="flex: 1;">${stance.name}</button>`;
-      }).join("")
-    : STYLE_ORDER.map((s) => {
-        const value = weaponStyleValue(playerWeapon, s, mainInst);
-        const disabled = value <= 0;
-        const activeStyle = (weaponStyleValue(playerWeapon, view.attackStyle, mainInst) || 0) > 0 ? view.attackStyle : weaponBestStyle(playerWeapon, mainInst);
-        const sel = activeStyle === s ? " selected" : "";
-        return `<button class="zone attack${sel}" data-act="attack-style" data-style="${s}" ${disabled ? "disabled" : ""} type="button" style="flex: 1;">${STYLE_NAMES[s]}</button>`;
-      }).join("");
-
   const log = battle.log.slice(-18).map((entry) => `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`).join("");
   const companionBattleType = battle.over
     ? (view.summary ? (view.summary.victory ? "victory" : "defeat") : (battle.hp <= 0 ? "victory" : "defeat"))
     : (battle.turn === 0 ? "fight_start" : "");
   const battleReaction = companionBattleType ? companionReaction(companionBattleType, `${battle.enemy.id}:${battle.turn}`) : "";
-  const activeZoneTip = ZONE_MAP[view.attackZone]?.tip || "";
-  const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
-  const estimatedDmg = estimateDamage(state, battle, view.attackZone, currentStyle, mainInst);
-  const controls = battle.over ? "" : `
-    <div class="combat-deck">
-      
-      <!-- ЛЕВАЯ КОЛОНКА: Удар -->
-      <div class="deck-col">
-        <div class="deck-title">Удар</div>
-        <div class="zones">${zones.attack}</div>
-        <div class="deck-style-row">${styleButtonsHtml}</div>
-        <div class="deck-tip hint">${activeZoneTip ? esc(activeZoneTip) : "&nbsp;"}</div>
-      </div>
-
-      <!-- ЦЕНТР: Блок и приёмы/расходники -->
-      <div class="deck-col">
-        <div class="deck-title">Блок (${zones.limit})</div>
-        <div class="zones">${zones.block}</div>
-        <div class="deck-tabs deck-actions">
-          <button class="deck-tab${hasReadySkill(battle) ? " ready" : ""}" data-act="battle-left-tab" data-tab="abilities" type="button" style="${BATTLE_BTN_STYLE}">Приёмы</button>
-          <button class="deck-tab" data-act="battle-left-tab" data-tab="items" type="button" style="${BATTLE_BTN_STYLE}">Расходники</button>
+  const preBattleHtml = view.preBattle ? `
+    <div class="prebattle-overlay" style="position: fixed; inset: 0; z-index: 160; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8, 6, 5, 0.78); backdrop-filter: blur(3px);">
+      <div class="prebattle-card" style="width: min(460px, 100%); border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(160deg, rgba(31, 24, 19, 0.98), rgba(14, 10, 8, 0.98)); box-shadow: 0 24px 80px rgba(0,0,0,0.6); padding: 24px; text-align: center;">
+        <div style="width: 150px; height: 150px; margin: 0 auto 16px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #1c1511;">
+          <img src="${resolveIcon(enemy.icon)}" alt="${esc(enemy.name)}" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
+        <h2 style="color: var(--gold2); font-size: 26px; margin: 0 0 8px;">${esc(enemy.name)}</h2>
+        <p style="font-size: 16px; color: var(--text); margin: 0 0 6px;">Противник готовится к атаке!</p>
+        ${battle.boss ? `<p style="font-size: 12px; color: #d97a6c; margin: 0 0 18px;">Босс не позволит сбежать.</p>` : `<p style="font-size: 12px; color: var(--dim); margin: 0 0 18px;">Можно отступить, но удар в спину неизбежен.</p>`}
+        <button class="btn primary" data-act="prebattle-start" type="button" style="width: 100%; min-height: 48px; font-size: 16px; margin-bottom: 10px;">[Enter / Space] Начать бой</button>
+        ${battle.boss ? "" : `<button class="btn ghost" data-act="prebattle-flee" type="button" style="width: 100%; min-height: 42px;">[Esc] Сбежать</button>`}
       </div>
-
-      <!-- ПРАВАЯ КОЛОНКА: Прогноз и Размен -->
-      <div class="deck-col">
-        <div class="deck-title">Прогноз</div>
-        <div class="zones" style="display: flex !important; height: 44px !important;">
-          <div class="deck-forecast" data-role="battle-forecast" style="flex: 1 !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important;">⚔ ~${estimatedDmg} <span style="font-size: 11px; color: var(--dim); margin-left: 6px;">(${STYLE_NAMES[currentStyle]})</span></div>
-        </div>
-        <div class="deck-tabs">
-          <button class="btn primary deck-btn" data-act="exchange" type="button" style="flex: 1 !important; height: 100% !important;">РАЗМЕН</button>
-        </div>
-        <div class="deck-tip hint">&nbsp;</div>
-      </div>
-
     </div>
-  `;
+  ` : "";
 
   return `
     <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: linear-gradient(rgba(10, 8, 7, 0.5), rgba(10, 8, 7, 0.5)), url('${bgImage}'); background-size: cover; background-position: center; z-index: 0; pointer-events: none;"></div>
-    <section class="battle" style="position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; padding: 10px 20px; box-sizing: border-box;">
+    <section class="battle" style="position: relative; z-index: 1; display: flex; flex-direction: column; height: ${battleHeight}px; padding: 10px 20px; box-sizing: border-box;">
       
       ${battle.ambush ? `<div class="banner warn-banner">🔪 ${AMBUSH_TEXT}</div>` : ""}
       
@@ -2895,20 +2902,18 @@ function battleHtml(st) {
         </article>
       </div>
 
-      <!-- ЦЕНТР: Лог боя -->
-      <div class="battle-log" id="battle-log" data-role="battle-log" style="flex: 1; max-height: none; margin-bottom: 10px; overflow-y: auto;">
+      <!-- ЦЕНТР: панель QTE -->
+      <div class="combo-panel" style="width: 100%; flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; margin: 4px 0 8px;">${renderCombatPanel()}</div>
+
+      <!-- НИЗ: компактный лог боя (3–4 строки) -->
+      <div class="battle-log" id="battle-log" data-role="battle-log" style="height: 92px; min-height: 92px !important; max-height: 92px !important; flex: 0 0 auto !important; margin-bottom: 0 !important; overflow-y: auto;">
         ${battleReaction ? `<div class="companion-reaction" style="margin-bottom: 8px;">${esc(battleReaction)}</div>` : ""}
-        ${log || `<div class="log-line info">Выберите зону удара и зоны блока, затем нажмите «Размен».</div>`}
+        ${log || `<div class="log-line info">Бой начинается — соберите комбо для удара.</div>`}
       </div>
 
-      <!-- НИЗ: Панель управления -->
-      ${controls}
-
-      ${battle.over ? "" : `<div style="width: 100%; margin-top: 10px;"><button class="btn ghost" data-act="flee" type="button" style="width: 100%; height: 44px;">Сбежать</button></div>`}
-
       ${resultHtml()}
+      ${preBattleHtml}
     </section>
-    ${view.battleModal ? battleModalHtml() : ""}
   `;
 }
 
@@ -2936,8 +2941,6 @@ function battleModalHtml() {
   let tip = "";
 
   if (isAbilities) {
-    const techReady = battle.rage >= 3 && state.mana >= TECH_COST;
-
     // Изученные активные навыки: проверяем ману, кураж и откат.
     const learnedSkills = TALENTS.filter((t) => t.active && ((state.talents || {})[t.id] || 0) > 0);
     const skillCards = learnedSkills.map((t) => {
@@ -2959,13 +2962,6 @@ function battleModalHtml() {
     });
 
     body = [
-      card({
-        act: "tech",
-        icon: "💥",
-        name: "Тяжёлый удар",
-        meta: `Кураж ${battle.rage}/3 · Мана ${state.mana}/${TECH_COST}`,
-        disabled: !techReady,
-      }),
       ...skillCards,
       card({
         act: "switch-weapon",
@@ -2974,7 +2970,7 @@ function battleModalHtml() {
         meta: "Потратит ход: вы не атакуете, враг ударит.",
       }),
     ].join("");
-    tip = skillCards.length ? "" : "Активные навыки появляются здесь после изучения в ветке талантов.";
+    tip = skillCards.length ? "" : "Тяжёлые удары доступны только через умения. Изучите активные таланты в ветках.";
   } else {
     const potionItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "potion" && (state.potions[i.id] || 0) > 0);
     const battleItems = Object.values(ITEMS).filter((i) => i.slot === "potion" && i.type === "combat" && (state.potions[i.id] || 0) > 0);
@@ -3015,36 +3011,287 @@ function battleModalHtml() {
 }
 
 // ── QTE-модалки ────────────────────────────────────────────────────────────
-function renderCritModal() {
-  const w = view.battle && view.battle.critWindow;
-  if (!w) return "";
+// Комбо атаки/защиты: последовательность стрелок за 2 секунды.
+const COMBO_ARROW_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+const COMBO_ARROW_GLYPHS = { ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
+const COMBO_LENGTH = 3;
+const COMBO_TIME = 2.0;
+
+// Интеллект влияет на время подсказки комбинации навыка.
+function playerIntValue() {
+  const st = stats();
+  return Math.max(0, Math.floor((st.attrs?.int || 0) + (st.gearAttrs?.int || 0)));
+}
+
+// Доступные навыки: изучены, не на откате, хватает маны и куража.
+// Подсказка показывает первый из них, но ввести можно комбинацию любого.
+function availableSkillsForCombo() {
+  const battle = view.battle;
+  if (!battle) return [];
+  const cd = battle.skillCd || {};
+  return TALENTS.filter((t) => t.active
+    && ((state.talents || {})[t.id] || 0) > 0
+    && Array.isArray(t.combo) && t.combo.length >= 3
+    && state.mana >= t.skill.manaCost
+    && (!t.skill.rageCost || battle.rage >= t.skill.rageCost)
+    && (cd[t.id] || 0) <= 0)
+    .map((t) => ({ id: t.id, name: t.skill.name, icon: t.skill.icon || "✨", combo: [...t.combo] }));
+}
+
+function isArrowSubsequence(sub, seq) {
+  let j = 0;
+  for (const key of seq) {
+    if (key === sub[j]) j += 1;
+    if (j >= sub.length) return true;
+  }
+  return sub.length === 0;
+}
+
+function randomComboTarget(skills) {
+  const random = () => Array.from({ length: COMBO_LENGTH }, () => COMBO_ARROW_KEYS[Math.floor(Math.random() * COMBO_ARROW_KEYS.length)]);
+  for (let i = 0; i < 60; i += 1) {
+    const target = random();
+    // Обычная атака не должна собираться из стрелок комбинации навыка:
+    // иначе при вводе навыка сработает обычный удар и навык будет недоступен.
+    if (skills.some((skill) => isArrowSubsequence(target, skill.combo))) continue;
+    return target;
+  }
+  return random();
+}
+
+function startCombo(mode, opts = {}) {
+  if (view.comboState) return;
+  view.comboPaused = null;
+  view.battleModal = null;
+  const isAttack = mode !== "defense";
+  const skills = isAttack && !opts.defendOnly ? availableSkillsForCombo() : [];
+  const skill = skills[0] || null;
+  const skillProgresses = {};
+  for (const entry of skills) skillProgresses[entry.id] = 0;
+  const target = randomComboTarget(skills);
+  const hintTime = skill ? 0.2 + playerIntValue() * 0.05 : 0;
+  view.comboState = {
+    mode: isAttack ? "attack" : "defense",
+    target,
+    current: [],
+    timeLeft: COMBO_TIME,
+    defendOnly: opts.defendOnly === true,
+    skills,
+    skill,
+    skillProgress: 0,
+    skillProgresses,
+    skillHintTimeLeft: hintTime,
+    skillHintTotal: hintTime,
+  };
+}
+
+// Пауза QTE на время меню: состояние сохраняется и возвращается при закрытии.
+function pauseCombo() {
+  if (!view.comboState) return;
+  view.comboPaused = view.comboState;
+  view.comboState = null;
+  stopQteLoop();
+}
+
+function resumeCombo() {
+  if (!view.comboPaused) return;
+  view.comboState = view.comboPaused;
+  view.comboPaused = null;
+}
+
+// Клавиши 1/2/3: сменить оружие в фазе атаки. Игрок теряет свой удар,
+// моб бьёт, а после защиты начинается новый раунд атаки уже новым оружием.
+function switchBattleWeapon(index) {
+  const battle = view.battle;
+  if (!battle || battle.over || view.preBattle) return;
+  const combo = view.comboState;
+  if (!combo || combo.mode !== "attack") return;
+  const uid = Array.isArray(state.weaponSlots) ? state.weaponSlots[index] : null;
+  if (!uid) {
+    toast(`Боевой слот ${index + 1} пуст. Назначьте оружие в разделе «Герой».`, "warn");
+    return;
+  }
+  const inst = getInstance(uid);
+  const item = inst ? ITEMS[inst.id] : null;
+  if (!inst || !item) {
+    toast("Оружие из боевого слота не найдено.", "warn");
+    return;
+  }
+  const res = equipItemToSlot(uid, "mainhand");
+  if (!res.ok) {
+    toast(res.text, "warn");
+    return;
+  }
+  battleLog(battle, `Вы меняете оружие на «${getItemDisplayName(inst)}».`, "info");
+  view.comboState = null;
+  view.comboPaused = null;
+  view.currentAttackResult = false;
+  view.currentAttackFast = false;
+  startCombo("defense", { defendOnly: true });
+  render();
+}
+
+function resolveCombo(success) {
+  const combo = view.comboState;
+  if (!combo) return;
+  if (combo.mode === "attack") {
+    view.currentAttackResult = success;
+    view.currentAttackFast = success && combo.timeLeft > 1.0;
+    view.comboState = null;
+    startCombo("defense");
+    render();
+    return;
+  }
+  const defendOnly = combo.defendOnly === true;
+  view.currentDefenseResult = success;
+  view.comboState = null;
+  doExchange(defendOnly
+    ? { type: "defend", defenseSuccess: success === true }
+    : {
+      type: "attack",
+      comboSuccess: view.currentAttackResult === true,
+      comboFast: view.currentAttackFast === true,
+      defenseSuccess: success === true,
+    });
+}
+
+// Верная комбинация навыка: применяем навык через обычный размен.
+function resolveSkillCombo(skillId) {
+  if (!view.comboState) return;
+  view.comboState = null;
+  view.comboPaused = null;
+  doExchange({ type: "skill", id: skillId });
+}
+
+// Ошибка в комбинации навыка: штраф по куражу и ответный удар моба.
+function failSkillCombo() {
+  const battle = view.battle;
+  if (!battle || !view.comboState) return;
+  const int = playerIntValue();
+  if (int >= 10) {
+    battle.rage = Math.max(0, battle.rage - 1);
+    battleLog(battle, `Вы ошиблись в комбинации навыка! Кураж −1 (Интеллект ${int}).`, "warn");
+  } else {
+    battle.rage = 0;
+    battleLog(battle, `Вы ошиблись в комбинации навыка! Кураж сгорел (Интеллект ${int}).`, "warn");
+  }
+  view.comboState = null;
+  view.comboPaused = null;
+  view.currentAttackResult = false;
+  view.currentAttackFast = false;
+  startCombo("defense", { defendOnly: true });
+  render();
+}
+
+// Подсказка комбинации навыка: видна только ограниченное Интеллектом время.
+function skillHintHtml(combo) {
+  const skill = combo.skill;
+  if (!skill || combo.skillHintTimeLeft <= 0) return "";
+  const arrows = skill.combo.map((key, i) => {
+    const done = i < combo.skillProgress;
+    const next = i === combo.skillProgress;
+    const color = done ? "#8fd98f" : (next ? "#ffe6a3" : "#dfb86c");
+    return `<span class="skill-hint-arrow" data-role="skill-hint-arrow" style="color:${color}; font-weight:900; text-shadow:0 0 6px rgba(223,184,108,0.35);">${COMBO_ARROW_GLYPHS[key] || key}</span>`;
+  }).join(" ");
+  const pct = combo.skillHintTotal > 0
+    ? Math.max(0, Math.min(100, (combo.skillHintTimeLeft / combo.skillHintTotal) * 100))
+    : 0;
   return `
-    <div class="qte-modal" role="dialog" aria-label="Точный удар">
-      <div class="qte-card">
-        <h2 class="qte-title">ТОЧНЫЙ УДАР!</h2>
-        <p class="qte-subtitle">Остановите указатель в зелёной зоне</p>
-        <div class="crit-scale">
-          <div class="crit-cursor" data-role="crit-cursor" style="left:0%"></div>
-        </div>
-        <div class="crit-legend"><span>×1.3</span><span>×1.6</span><span>×1.9</span><span>×1.6</span><span>×1.3</span></div>
-        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
-        <button class="parry-btn qte-stop-btn" data-act="crit-stop" type="button">Стоп!</button>
+    <div data-role="skill-hint" style="display:block; margin:0 0 12px; padding:8px 12px; border-radius:8px; border:1px dashed rgba(223,184,108,0.6); background:linear-gradient(180deg, rgba(223,184,108,0.14), rgba(223,184,108,0.06));">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px;">
+        <span style="color:var(--gold2); font-weight:700; white-space:nowrap;">${skill.icon} ${esc(skill.name)}</span>
+        <span style="font-size:22px; line-height:1; letter-spacing:3px; white-space:nowrap;">${arrows}</span>
+      </div>
+      <div style="height:3px; background:rgba(0,0,0,0.35); border-radius:2px; margin-top:6px; overflow:hidden;">
+        <span data-role="skill-hint-fill" style="display:block; height:100%; width:${pct}%; background:var(--gold2); transition:width 0.1s linear;"></span>
       </div>
     </div>`;
 }
 
-function renderParryModal() {
+// QTE прямо в нижней панели боя, без всплывающей модалки.
+function renderComboPanel() {
+  const combo = view.comboState;
+  if (!combo) return "";
+  const isAttack = combo.mode === "attack";
+  const accent = isAttack ? "#6fdc7f" : "#ff6b5b";
+  const bg = isAttack ? "rgba(70, 180, 95, 0.12)" : "rgba(200, 70, 55, 0.14)";
+  const border = isAttack ? "rgba(111, 220, 127, 0.55)" : "rgba(255, 107, 91, 0.55)";
+  const pct = Math.max(0, Math.min(100, (combo.timeLeft / COMBO_TIME) * 100));
+  const arrows = combo.target.map((key, i) => {
+    const done = i < combo.current.length;
+    const current = i === combo.current.length;
+    const color = done ? "#5fdc7a" : (current ? "#ffd45e" : "rgba(220, 205, 175, 0.35)");
+    const scale = current ? " scale(1.18)" : " scale(1)";
+    return `<span class="combo-arrow" data-role="combo-arrow" style="display:inline-block; font-weight:900; transition: color 0.1s, transform 0.1s; color:${color}; transform:${scale};">${COMBO_ARROW_GLYPHS[key] || key}</span>`;
+  }).join("");
+  const hint = isAttack ? skillHintHtml(combo) : "";
+  return `
+    <div class="combo-panel-inner" style="border:1px solid ${border}; background:${bg}; border-radius:12px; padding:10px 14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+        <span style="font-weight:700; letter-spacing:0.06em; color:${accent}; font-size:14px;">${isAttack ? "ТВОЙ УДАР" : "ЗАЩИТА!"}</span>
+        <span style="font-size:11px; color:var(--dim);">WASD / ←↑↓→</span>
+      </div>
+      ${hint}
+      <div class="combo-arrows" data-role="combo-arrows" style="display:flex; justify-content:center; align-items:center; gap:10px; margin:0 0 8px; font-size:38px; line-height:1; min-height:48px;">${arrows}</div>
+      <div class="qte-timer-bar" style="margin:0;"><span class="qte-timer-fill" data-role="combo-timer-fill" style="width:${pct}%"></span></div>
+    </div>`;
+}
+
+function updateComboArrows() {
+  const combo = view.comboState;
+  if (!combo) return;
+  document.querySelectorAll('.combo-panel [data-role="combo-arrow"]').forEach((el, i) => {
+    const done = i < combo.current.length;
+    const current = i === combo.current.length;
+    el.style.color = done ? "#5fdc7a" : (current ? "#ffd45e" : "rgba(220, 205, 175, 0.35)");
+    el.style.transform = current ? "scale(1.18)" : "scale(1)";
+  });
+  document.querySelectorAll('.combo-panel [data-role="skill-hint-arrow"]').forEach((el, i) => {
+    const done = i < combo.skillProgress;
+    const next = i === combo.skillProgress;
+    el.style.color = done ? "#8fd98f" : (next ? "#ffe6a3" : "#dfb86c");
+  });
+}
+
+// Крит и парирование тоже живут в combo-panel, без всплывающих окон.
+function renderCritPanel() {
+  const w = view.battle && view.battle.critWindow;
+  if (!w) return "";
+  return `
+    <div class="combo-panel-inner" style="border:1px solid rgba(223,184,108,0.65); background:rgba(223,184,108,0.1); border-radius:12px; padding:10px 14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+        <span style="font-weight:700; letter-spacing:0.06em; color:var(--gold2); font-size:14px;">ТОЧНЫЙ УДАР!</span>
+        <span style="font-size:11px; color:var(--dim);">Остановите указатель в зелёной зоне</span>
+      </div>
+      <div class="crit-scale">
+        <div class="crit-cursor" data-role="crit-cursor" style="left:0%"></div>
+      </div>
+      <div class="crit-legend"><span>×1.3</span><span>×1.6</span><span>×1.9</span><span>×1.6</span><span>×1.3</span></div>
+      <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
+      <button class="parry-btn qte-stop-btn" data-act="crit-stop" type="button" style="margin-top:6px;">Стоп!</button>
+    </div>`;
+}
+
+function renderParryPanel() {
   const w = view.battle && view.battle.parryWindow;
   if (!w) return "";
   return `
-    <div class="qte-modal" role="dialog" aria-label="Парирование">
-      <div class="qte-card parry-card">
-        <h2 class="qte-title parry-title">ПАРИРУЙ!</h2>
-        <p class="qte-subtitle">Удар в «${esc(w.zone || "")}»!</p>
-        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
-        <button class="parry-btn" data-act="parry-block" type="button">Блок</button>
+    <div class="combo-panel-inner" style="border:1px solid rgba(255,107,91,0.6); background:rgba(200,70,55,0.14); border-radius:12px; padding:10px 14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+        <span style="font-weight:700; letter-spacing:0.06em; color:#ff6b5b; font-size:14px;">ПАРИРУЙ!</span>
+        <span style="font-size:11px; color:var(--dim);">Удар в «${esc(w.zone || "")}»!</span>
       </div>
+      <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
+      <button class="parry-btn" data-act="parry-block" type="button" style="margin-top:6px;">Блок</button>
     </div>`;
+}
+
+function renderCombatPanel() {
+  if (!view.battle || view.preBattle) return "";
+  if (view.comboState) return renderComboPanel();
+  if (view.battle.critWindow) return renderCritPanel();
+  if (view.battle.parryWindow) return renderParryPanel();
+  return "";
 }
 
 function renderTrainingQte() {
@@ -3055,6 +3302,9 @@ function renderTrainingQte() {
   if (training.qteType === "rhythm") return renderRhythmQte(training);
   const total = Array.isArray(qte.sequence) && qte.sequence.length ? qte.sequence.length : 3;
   const step = Math.max(0, Math.min(total, Number(qte.currentStep) || 0));
+  // Подсказка показывает именно текущую случайную комбинацию.
+  const moveLabels = { left: "влево", right: "вправо", strike: "удар" };
+  const hint = (Array.isArray(qte.sequence) ? qte.sequence : []).map((m) => moveLabels[m] || m).join(" → ");
   const dots = Array.from({ length: total }, (_, i) =>
     `<span class="qte-step${i < step ? " done" : ""}" data-step="${i}"></span>`
   ).join("");
@@ -3065,7 +3315,7 @@ function renderTrainingQte() {
     <div class="qte-modal" role="dialog" aria-label="Тренировка">
       <div class="qte-card">
         <h2 class="qte-title">Тренировка: ${esc(training.name)}</h2>
-        <p class="qte-subtitle">Повтори движение: влево → вправо → удар</p>
+        <p class="qte-subtitle">Повтори движение: ${esc(hint)}</p>
         <div class="qte-steps" data-role="qte-steps">${dots}</div>
         <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:${pct}%"></span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -3125,7 +3375,7 @@ function ensureQteLoop() {
   if (qteInterval !== null) return;
   const battle = view.battle;
   const battleQte = battle && !battle.over && !view.summary && view.screen === "battle"
-    && (battle.critWindow || battle.parryWindow);
+    && (battle.critWindow || battle.parryWindow || view.comboState);
   if (!view.trainingQTE && !battleQte) return;
 
   qteCursorPos = 0;
@@ -3154,6 +3404,30 @@ function ensureQteLoop() {
         stopQteLoop();
         completeTraining(false);
       }
+      return;
+    }
+
+    // Комбо атаки/защиты: таймер 2 секунды. Обновляем только полоску панели.
+    if (view.comboState) {
+      const combo = view.comboState;
+      combo.timeLeft -= dt;
+      const comboFill = document.querySelector('.combo-panel [data-role="combo-timer-fill"]');
+      if (comboFill) comboFill.style.width = `${Math.max(0, Math.min(100, (combo.timeLeft / COMBO_TIME) * 100))}%`;
+
+      // Подсказка комбинации навыка гаснет через 0.2 + INT*0.05 секунд.
+      if (combo.skill && combo.skillHintTimeLeft > 0) {
+        combo.skillHintTimeLeft = Math.max(0, combo.skillHintTimeLeft - dt);
+        const hintFill = document.querySelector('.combo-panel [data-role="skill-hint-fill"]');
+        if (hintFill && combo.skillHintTotal > 0) {
+          hintFill.style.width = `${Math.max(0, Math.min(100, (combo.skillHintTimeLeft / combo.skillHintTotal) * 100))}%`;
+        }
+        if (combo.skillHintTimeLeft <= 0) {
+          const hintEl = document.querySelector('.combo-panel [data-role="skill-hint"]');
+          if (hintEl) hintEl.style.display = "none";
+        }
+      }
+
+      if (combo.timeLeft <= 0) resolveCombo(false);
       return;
     }
 
@@ -3195,10 +3469,14 @@ function settleQte() {
     view.summary = defeatSummary(state, battle, battle.enemy);
   }
 
-  // Бой продолжается: убираем модалку и обновляем только боевые элементы.
-  // Полный render() здесь пересоздавал весь экран и давал заметное моргание.
+  // Бой продолжается: убираем модалку QTE и запускаем новый непрерывный раунд.
   if (!view.summary && view.screen === "battle" && battle) {
     document.querySelector(".qte-modal")?.remove();
+    if (!battle.over && !view.comboState) {
+      startCombo("attack");
+      render();
+      return;
+    }
     renderBattle();
     return;
   }
@@ -3383,13 +3661,6 @@ function renderBattle() {
   setText("rage-text", `Кураж: ${battle.rage}/5`);
   setText("enemy-hp-text", `${battle.hp}/${battle.maxHp} HP`);
 
-  const forecast = document.querySelector('[data-role="battle-forecast"]');
-  if (forecast) {
-    const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
-    const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
-    forecast.innerHTML = `⚔ ~${estimateDamage(state, battle, view.attackZone, currentStyle, mainInst)} <span style="font-size: 11px; color: var(--dim); margin-left: 6px;">(${STYLE_NAMES[currentStyle]})</span>`;
-  }
-
   const topbar = platform.dom.byId("topbar");
   if (topbar) topbar.innerHTML = topbarHtml(st);
 
@@ -3398,7 +3669,7 @@ function renderBattle() {
   const logEl = document.querySelector('[data-role="battle-log"]');
   if (logEl) {
     logEl.innerHTML = battle.log.slice(-18).map((entry) => `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`).join("")
-      || `<div class="log-line info">Выберите зону удара и зоны блока, затем нажмите «Размен».</div>`;
+      || `<div class="log-line info">Бой начинается — соберите комбо для удара.</div>`;
     logEl.scrollTop = logEl.scrollHeight;
   }
   view.prevLog = battle.log.length;
@@ -3473,9 +3744,9 @@ function render() {
   if (view.abilitiesOpen) html += renderAbilitiesModal();
   if (view.talentsModal) html += talentsModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
+  if (view.weaponSlotPicker !== null && view.weaponSlotPicker !== undefined) html += weaponSlotPickerHtml();
   if (view.levelUp) html += levelUpModalHtml();
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
-  if (state.activeNpcId && view.screen !== "battle" && !view.npcInteraction) html += traderDialogHtml();
   if (state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderEventModal(state.activeEvent);
   if (state.activeFloorEvent && !state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderFloorEventModal(state.activeFloorEvent);
   
@@ -3499,12 +3770,6 @@ function render() {
   if (view.battle) view.prevLog = view.battle.log.length;
   html += battlePopupsHtml(newLines);
   if (view.screen === "battle" && (!view.battle || view.battle.turn === 0)) view.prevLog = 0;
-
-  // QTE поверх боя: сначала критический удар, затем парирование.
-  if (view.screen === "battle" && view.battle && !view.battle.over && !view.summary) {
-    if (view.battle.critWindow) html += renderCritModal();
-    else if (view.battle.parryWindow) html += renderParryModal();
-  }
 
   // QTE тренировки: модалка живёт поверх экрана Зала Охотников.
   if (view.trainingQTE) html += renderTrainingQte();
@@ -3565,7 +3830,6 @@ function updateLocationAudio(screen, floorId, battle) {
 }
 
 function beginBattle(def, floorId, opts = {}) {
-  const st = stats();
   if (def && def.id && !state.bestiary[def.id]) { state.bestiary[def.id] = true; saveState(); }
   view.tripActive = true;
   view.battle = createBattle(def, floorId);
@@ -3579,7 +3843,14 @@ function beginBattle(def, floorId, opts = {}) {
   view.dollSlot = null;
   view.invItemUid = null;
   view.attackZone = "chest";
-  view.blocks = ZONES.slice(0, Math.min(st.blockZones, ZONES.length)).map((z) => z.id);
+  view.comboState = null;
+  view.comboPaused = null;
+  view.currentAttackResult = null;
+  view.currentDefenseResult = null;
+  view.currentAttackFast = false;
+  // Экран подготовки: QTE стартует только после Enter/Space.
+  view.preBattle = true;
+  view.weaponSlotPicker = null;
   render();
 }
 
@@ -3712,6 +3983,11 @@ function startNpcInteraction(npcId, node = "start") {
 }
 
 function closeNpcInteraction() {
+  // Единая точка выхода: не трогаем экран, этаж и tripActive — их меняет
+  // только навигация (go). Непроданный товар Артура возвращаем в никуда.
+  const hadTraderStock = !!(view.traderStock && view.traderStock.length);
+  if (typeof discardTraderStock === "function") discardTraderStock();
+  if (hadTraderStock) saveState();
   view.npcInteraction = null;
   view.hiringCompanion = null;
 }
@@ -4316,90 +4592,6 @@ function dialogSceneHtml(npcId, node, { modal = false } = {}) {
   return `<div class="result-overlay mnb-dialog-overlay" data-act="npc-talk-backdrop" style="z-index: 184;">${scene}</div>`;
 }
 
-function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
-  if (!npc) return "";
-
-  const storyIndex = state.npcDialogueIndex[npc.id] || 0;
-  const storyArr = DIALOGS[npc.id]?.story;
-  
-  // Если магазин уже открыт, мы игнорируем слайды и показываем товары
-  const currentSlide = (!view.npcShopOpen && !view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
-
-  const portrait = `<img src="${npcPortraitSrc(npc.portrait)}" alt="${npc.name}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">`;
-
-  if (currentSlide) {
-    const optionsHtml = currentSlide.options.map((opt, idx) => 
-      `<button class="btn primary" data-act="story-choice-trader" data-npc="${npc.id}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(genderText(opt.text))}</button>`
-    ).join("");
-
-    return `
-      <div class="result-overlay" style="z-index: 185;">
-        <div class="result-card" style="max-width: 550px; text-align: left;">
-          <div style="display:flex; gap:15px; align-items:center; margin-bottom: 15px;">
-            ${portrait}
-            <div>
-              <h2 style="color:var(--gold2); font-size:22px; margin:0;">${npc.name}</h2>
-            </div>
-          </div>
-          
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-            <p style="color: #e2e8f0; font-style: italic; line-height: 1.5;">«${esc(genderText(currentSlide.npc))}»</p>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${optionsHtml}
-            <button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button" style="align-self: flex-start; margin-top: 8px;">Уйти</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  let shopHtml = "";
-  if (view.npcShopOpen) {
-    const rows = (view.traderStock || []).map((entry) => {
-      const label = entry.kind === "gear"
-        ? `${ITEMS[entry.inst.id].name}` 
-        : `${entry.icon} ${entry.name}`;
-      const afford = state.gold >= entry.price;
-      return `<div class="trader-row">
-        <span class="trader-row-label">${label}</span>
-        <b class="trader-row-price">${entry.price} 💰</b>
-        <div class="trader-row-actions">
-          <button class="btn small ghost" data-act="npc-action" data-npc-action="steal" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" type="button" title="Шанс зависит от Ловкости. Провал: страж заберёт 20% золота и выставит за дверь.">🫳 Украсть</button>
-          <button class="btn small primary" data-act="npc-action" data-npc-action="buy" data-id="${entry.kind === "gear" ? entry.uid : entry.id}" ${afford ? "" : "disabled"} type="button">Купить</button>
-        </div>
-      </div>`;
-    }).join("");
-    shopHtml = `
-      <div style="display:flex; flex-direction:column; gap:8px; margin:15px 0 8px;">${rows}</div>
-      <p style="color:var(--dim); font-size:12px; margin:0 0 15px;">Цены странствующего: базовая ×3. У вас: <b style="color:var(--gold2);">${state.gold} 💰</b></p>`;
-  }
-
-  const options = Array.isArray(npc.options) ? npc.options : [];
-  const buttonsHtml = options.map((opt) => {
-    const primary = opt.id === "show-goods";
-    return `<button class="btn${primary ? " primary" : " ghost"}" data-act="npc-action" data-npc-action="${opt.id}" type="button">${esc(opt.label)}</button>`;
-  }).join("") || `<button class="btn ghost" data-act="npc-action" data-npc-action="leave" type="button">🚶 Уйти</button>`;
-
-  return `
-    <div class="result-overlay" data-act="npc-backdrop" style="z-index: 185;">
-      <div class="result-card">
-        <div style="display:flex; gap:15px; align-items:center; text-align:left;">
-          ${portrait}
-          <div>
-            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 8px;">${npc.name}</h2>
-            <p style="color:var(--dim); font-size:14px; margin:0; line-height:1.5;">${npc.text}</p>
-          </div>
-        </div>
-        ${shopHtml}
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 15px;">
-          ${buttonsHtml}
-        </div>
-      </div>
-    </div>
-  `;
-}
 function talentsModalHtml() {
   return `
     <div class="settings-backdrop" data-act="talents-close"></div>
@@ -4473,13 +4665,28 @@ function renderAbilitiesModal() {
       desc: "Критический удар превращается в QTE: остановите указатель в зелёной зоне, чтобы добить врага.",
     });
   }
+  // Изученные активные навыки: показываем их боевые комбинации отдельной плашкой.
+  const activeTalents = TALENTS.filter((t) => t.active && ((state.talents || {})[t.id] || 0) > 0);
+  for (const t of activeTalents) {
+    const arrowsHtml = Array.isArray(t.combo)
+      ? t.combo.map((key) => `<span style="color: var(--gold2);">${COMBO_ARROW_GLYPHS[key] || key}</span>`).join(" ")
+      : "";
+    learned.push({
+      icon: t.skill.icon || "✨",
+      name: t.skill.name,
+      desc: t.desc,
+      comboHtml: arrowsHtml,
+    });
+  }
+  const totalAbilities = 2 + TALENTS.filter((t) => t.active).length;
   const body = learned.length
     ? `<div class="abilities-grid">${learned.map((a) => `
         <article class="ability-card">
           <span class="ability-card-icon">${a.icon}</span>
           <div class="ability-card-body">
             <b class="ability-card-name">${a.name}</b>
-            <span class="ability-card-desc">${a.desc}</span>
+            <div class="ability-card-desc">${a.desc}</div>
+            ${a.comboHtml ? `<div class="ability-combo-box">Комбинация: ${a.comboHtml}</div>` : ""}
           </div>
         </article>`).join("")}</div>`
     : `<p class="empty ability-empty">Вы ещё не освоили ни одного умения. Тренируйтесь у Ивана.</p>`;
@@ -4492,33 +4699,13 @@ function renderAbilitiesModal() {
           <button class="btn tiny ghost" data-act="abilities-close" type="button">✕</button>
         </div>
         <div class="abilities-modal-body">
-          <div class="banner" style="margin-bottom: 10px;">Освоено умений: <b>${learned.length} / 2</b></div>
+          <div class="banner" style="margin-bottom: 10px;">Освоено умений: <b>${learned.length} / ${totalAbilities}</b></div>
           ${body}
         </div>
         <button class="btn ghost" data-act="abilities-close" type="button" style="width:100%; margin-top:12px;">Закрыть</button>
       </div>
     </div>
   `;
-}
-
-function setAttackZone(zone) { 
-  if (!ZONE_NAME[zone]) return; 
-  view.attackZone = zone; 
-  render(); 
-}
-
-function toggleBlock(zone) { 
-  if (!ZONE_NAME[zone]) return; 
-  const limit = stats().blockZones; 
-  if (view.blocks.includes(zone)) {
-    view.blocks = view.blocks.filter((z) => z !== zone); 
-  } else if (view.blocks.length >= limit) { 
-    toast(`Максимум ${limit} зон.`, "warn"); 
-    return; 
-  } else { 
-    view.blocks = [...view.blocks, zone]; 
-  } 
-  render(); 
 }
 
 function onClick(event) {
@@ -4592,8 +4779,12 @@ function onClick(event) {
     }
     case "rest":
       if (battleActive()) { toast("Сначала завершите бой.", "warn"); break; }
+      // Проверяем, где герой отдыхает: тост про Башню уместен только в Башне.
+      const wasInTower = Boolean(view.tripActive) && ["tower", "floor", "battle"].includes(view.screen);
+      // Ночь фиксируем до freeRest(): ночной отдых сразу переводит время в утро.
+      const restStartedAtNight = isNight();
       res = freeRest();
-      if (isNight()) {
+      if (wasInTower && (restStartedAtNight || isNight())) {
         view.screen = "hub";
         view.tripActive = false;
         toast("Ночь. Вы покидаете Башню.", "warn");
@@ -4877,17 +5068,6 @@ function onClick(event) {
       }
       break;
     }
-    case "story-choice-trader": {
-      const npcId = el.dataset.npc;
-      if (npcId) {
-        state.npcDialogueIndex[npcId] = (state.npcDialogueIndex[npcId] || 0) + 1;
-        saveState();
-        view.npcShopOpen = true; 
-        if (!view.traderStock) view.traderStock = getTraderInventory(); 
-        render();
-      }
-      break;
-    }
     case "story-leave": {
       view.storyJustPlayed = false;
       go("hub");
@@ -4922,7 +5102,7 @@ function onClick(event) {
       }
 
       if (view.autoExplore) {
-        view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
+        scheduleAutoExplore(2100);
       }
       render();
       break;
@@ -5146,17 +5326,6 @@ function onClick(event) {
       break;
     }
     case "title-clear": state.currentTitle = null; saveState(); view.titleModal = false; toast("Титул снят.", "ok"); render(); break;
-    case "rest":
-      res = freeRest();
-      if (isNight()) {
-        view.screen = "hub";
-        view.tripActive = false;
-        toast("Ночь. Вы покидаете Башню.", "warn");
-      } else {
-        toast(res.text, res.ok ? "ok" : "warn");
-      }
-      render();
-      break;
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion-talk": {
@@ -5217,8 +5386,8 @@ function onClick(event) {
       doExchange("item", id); 
       render();
       break;
-    case "battle-left-tab": view.battleModal = el.dataset.tab; render(); break;
-    case "battle-modal-close": view.battleModal = null; Sfx.play("chest_close"); render(); break;
+    case "battle-left-tab": pauseCombo(); view.battleModal = el.dataset.tab; render(); break;
+    case "battle-modal-close": view.battleModal = null; resumeCombo(); Sfx.play("chest_close"); render(); break;
     case "sell-resource": res = sellResource(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "explore": {
@@ -5258,55 +5427,6 @@ function onClick(event) {
     case "scene-backdrop": resolveSceneAction("leave"); break;
     case "floor-event-action": resolveFloorEventAction(el.dataset.event, el.dataset.action); break;
     case "hunter-enc-action": resolveHunterEncounterAction(el.dataset.enc, el.dataset.action); break;
-    case "npc-action": {
-      const act = el.dataset.npcAction;
-      if (act === "buy") {
-        const res = buyFromTrader(id, view);
-        toast(res.text, res.ok ? "ok" : "warn");
-        if (res.ok) {
-          if (view.traderStock) {
-            const bought = view.traderStock.find((e) => (e.kind === "gear" ? e.uid : e.id) === id);
-            if (bought) bought.sold = true;
-            view.traderStock = view.traderStock.filter((e) => (e.kind === "gear" ? e.uid : e.id) !== id);
-          }
-          closeNpcDialog();
-        }
-        break;
-      }
-      
-      if (act === "steal") {
-        const r = trySteal(id, view.traderStock);
-        toast(r.text, r.ok ? "ok" : "warn");
-        if (r.ok && view.traderStock) {
-          view.traderStock = view.traderStock.filter((e) => (e.kind === "gear" ? e.uid : e.id) !== id);
-        }
-        if (!r.ok && r.fail) {
-          // Стража: выброшен из лавки, ассортимент попутчиков пропадает.
-          view.traderStock = null;
-          view.npcShopOpen = false;
-          closeNpcDialog();
-          break;
-        }
-        render();
-        break;
-      }
-      
-      if (act === "leave") {
-        closeNpcDialog();
-        break;
-      }
-      
-      const res = applyNpcAction(act, state.activeNpcId, view);
-      if (act !== "show-goods") toast(res.text, res.ok ? "ok" : "warn");
-      render();
-      break;
-    }
-    case "npc-backdrop": closeNpcDialog(); break;
-    
-    case "attack-zone": setAttackZone(el.dataset.zone); break;
-    case "attack-style": if (STYLE_ORDER.includes(el.dataset.style)) { view.attackStyle = el.dataset.style; render(); } break;
-    case "monk-stance": if (view.battle && MONK_STANCES.some((s) => s.id === el.dataset.stance)) { view.battle.monkStance = el.dataset.stance; render(); } break;
-    case "block-zone": toggleBlock(el.dataset.zone); break;
     
     // QTE-реакции
     case "crit-stop": resolveCritStop(); break;
@@ -5340,24 +5460,60 @@ function onClick(event) {
     }
 
     // БОЕВЫЕ ДЕЙСТВИЯ С ТРЯСКОЙ
-    case "exchange": 
-      shake();
-      doExchange("attack"); 
-      break;
-    case "tech": 
-      view.battleModal = null;
-      shake();
-      doExchange("tech"); 
-      render();
-      break;
     case "skill":
       view.battleModal = null;
       shake();
       doExchange("skill", el.dataset.id);
       break;
     
-    case "switch-weapon": view.battleModal = null; view.weaponSwap = true; render(); break;
-    case "weapon-swap-close": view.weaponSwap = false; render(); break;
+    // Экран подготовки к бою.
+    case "prebattle-start":
+      if (view.preBattle && view.battle && !view.battle.over) {
+        view.preBattle = false;
+        startCombo("attack");
+        render();
+      }
+      break;
+    case "prebattle-flee":
+      if (view.preBattle && view.battle && !view.battle.boss) {
+        view.preBattle = false;
+        doExchange({ type: "flee" });
+        render();
+      }
+      break;
+
+    // Боевые слоты оружия (герой).
+    case "weapon-slot-open": view.weaponSlotPicker = Number(el.dataset.slot); render(); break;
+    case "weapon-slot-close": view.weaponSlotPicker = null; render(); break;
+    case "weapon-slot-assign": {
+      const slotIdx = Number(el.dataset.slot);
+      const inst = getInstance(el.dataset.uid);
+      const item = inst ? ITEMS[inst.id] : null;
+      if (!item || item.slot !== "mainhand" || slotIdx < 0 || slotIdx > 2) {
+        toast("Это оружие нельзя поставить в боевой слот.", "warn");
+        break;
+      }
+      if (!Array.isArray(state.weaponSlots)) state.weaponSlots = [null, null, null];
+      state.weaponSlots[slotIdx] = inst.uid;
+      saveState();
+      view.weaponSlotPicker = null;
+      toast(`Слот ${slotIdx + 1}: ${getItemDisplayName(inst)}.`, "ok");
+      render();
+      break;
+    }
+    case "weapon-slot-clear": {
+      const slotIdx = Number(el.dataset.slot);
+      if (Array.isArray(state.weaponSlots) && slotIdx >= 0 && slotIdx <= 2) {
+        state.weaponSlots[slotIdx] = null;
+        saveState();
+      }
+      view.weaponSlotPicker = null;
+      render();
+      break;
+    }
+
+    case "switch-weapon": pauseCombo(); view.battleModal = null; view.weaponSwap = true; render(); break;
+    case "weapon-swap-close": view.weaponSwap = false; resumeCombo(); render(); break;
     case "equip-in-battle": {
       const inst = getInstance(el.dataset.uid);
       if (inst) {
@@ -5379,6 +5535,9 @@ function onClick(event) {
       const fled = view.summary?.fled === true;
       const ambush = victory ? view.ambush : null;
       view.battle = null; view.summary = null; view.battleModal = null;
+      view.preBattle = false;
+      view.comboState = null;
+      view.comboPaused = null;
       if (fled) {
         view.ambush = null;
         view.sceneGroup = null; view.sceneGroupFloorId = null;
@@ -5403,7 +5562,7 @@ function onClick(event) {
           if (def) { beginBattle(def, gFloor.id); break; }
           view.sceneGroup = null; view.sceneGroupFloorId = null;
         }
-        if (view.autoExplore) view.autoExplore.timer = setTimeout(autoExploreLoop, 2100);
+        if (view.autoExplore) scheduleAutoExplore(2100);
         if (view.currentFloor) {
           view.screen = "floor";
         } else {
@@ -5462,17 +5621,10 @@ function handleKey(event) {
     if (view.questsOpen) { view.questsOpen = false; Sfx.play("chest_close"); render(); return; }
   }
   if (event.target?.closest?.("input, textarea, select")) return;
+  if (event.key === "Escape" && view.weaponSlotPicker !== null && view.weaponSlotPicker !== undefined) { view.weaponSlotPicker = null; Sfx.play("chest_close"); render(); return; }
   if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; Sfx.play("chest_close"); render(); return; }
   if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
   if (view.screen !== "battle" || !view.battle || view.battle.over) return;
-  const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); 
-  if (match) { 
-    const zone = ZONES[Number(match[1]) - 1].id; 
-    if (event.shiftKey) toggleBlock(zone); 
-    else setAttackZone(zone); 
-    return; 
-  }
-  if (event.key === "Enter") doExchange("attack");
 }
 
 
