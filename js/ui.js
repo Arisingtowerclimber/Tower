@@ -1121,7 +1121,10 @@ function timmyCardHtml() {
       <div class="timmy-info">
         <p class="timmy-name">Тимми, молодой охотник</p>
         <p class="hint">Знает слабости всех тварей Башни. Или думает, что знает.</p>
-        <button class="btn small primary" data-act="timmy-open" type="button">💬 Спросить совет</button>
+        <div class="timmy-actions">
+          <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
+          <button class="btn small ghost" data-act="timmy-open" type="button">🏹 Спросить совет</button>
+        </div>
       </div>
     </aside>
   `;
@@ -3805,6 +3808,8 @@ function npcInlineDialogueBar(npcId) {
   let node = tree[view.dialogNode] || tree.start;
   if (node && node.requires && !dialogRequiresMet(node.requires)) node = tree.start;
   if (!node) return "";
+  // Динамический текст узла: совет Тимми берётся из randomTimmyTip() при каждом входе.
+  const nodeText = node.tip === "timmy" ? (view.timmyTip || randomTimmyTip()) : node.text;
 
   const { questButton, topicsButton, storyActionBtn } = dialogActionParts(npcId);
   const optionsHtml = dialogOptionsHtml(npcId, node);
@@ -3825,7 +3830,7 @@ function npcInlineDialogueBar(npcId) {
         <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
         <div class="npc-dialogue-text">
           <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
-          <p class="npc-dialogue npc-inline-text">«${esc(genderText(node.text || ""))}»</p>
+          <p class="npc-dialogue npc-inline-text">«${esc(genderText(nodeText || ""))}»</p>
         </div>
       </div>
       <div class="npc-inline-actions">
@@ -3844,6 +3849,8 @@ function renderDialogTree(npcId, nodeId) {
   let node = tree[nodeId] || tree.start;
   if (!node || (node.requires && !dialogRequiresMet(node.requires))) node = tree.start;
   if (!node) return "";
+  // Динамический текст узла: «Спросить совет» Тимми подставляет свежий совет.
+  const nodeText = node.tip === "timmy" ? (view.timmyTip || randomTimmyTip()) : node.text;
 
   const { questButton, topicsButton, storyActionBtn } = dialogActionParts(npcId);
   const mood = state.npcMood?.[npcId];
@@ -3860,7 +3867,7 @@ function renderDialogTree(npcId, nodeId) {
             <span class="hint">${esc(NPC_NAMES[npcId] || npcId)}${moodLabel ? ` · ${moodLabel}` : ""}</span>
           </div>
         </div>
-        <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(genderText(node.text || ""))}»</p>
+        <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(genderText(nodeText || ""))}»</p>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">${optionsHtml}${storyActionBtn}</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
           ${questButton}
@@ -4249,6 +4256,13 @@ function onClick(event) {
       if (opt.mood) {
         state.npcMood[npcId] = opt.mood;
         saveState();
+      }
+      // «Спросить совет» у Тимми: свежий совет из randomTimmyTip() в узле advice.
+      if (opt.action === "timmy_tip") {
+        view.timmyTip = randomTimmyTip();
+        view.dialogNode = "advice";
+        render();
+        break;
       }
       if (opt.action === "open_shop") {
         openDialogShop(npcId);

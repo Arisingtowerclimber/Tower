@@ -3025,6 +3025,7 @@ kbd {
   border: 2px solid #5a7d9c; background-color: #171210;
 }
 .timmy-card .timmy-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.timmy-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .timmy-name {
   margin: 0; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
   font-size: 0.95rem; color: #9ec2e0;
