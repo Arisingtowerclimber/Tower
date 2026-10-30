@@ -946,7 +946,7 @@ function hotelHtml() {
 function trainingAvailability(training) {
   const cap = Number(training.cap) || 10;
   const count = state.trainingCount?.[training.id] || 0;
-  if (state.phase !== 0) return { ok: false, reason: "Только утром" };
+  if (state.phase === 3) return { ok: false, reason: "Иван спит" };
   if (count >= cap) return { ok: false, reason: `Потолок (${cap})` };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, reason: `Нужно ${TRAINING_ENERGY_COST} ⚡` };
   return { ok: true, reason: "" };
@@ -958,9 +958,10 @@ function trainingHtml() {
     `<button class="shop-tab npc-action-btn${hallTab === tabId ? " active" : ""}" data-act="hall-tab" data-tab="${tabId}" type="button">${label}</button>`;
   const hallTabs = `<div class="hall-tabs">${tabBtn("training", "💪 Тренировки")}${tabBtn("board", "📋 Задания")}</div>`;
 
-  const warning = state.phase === 0
-    ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает фазу: утро → день.</div>`)
-    : `<div class="banner warn-banner">🌙 Сейчас не утро. Иван отдыхает.</div>`;
+  // Баннер «Иван отдыхает» — только ночью (phase 3). Утром/днём/вечером тренировки идут.
+  const warning = state.phase === 3
+    ? `<div class="banner warn-banner">🌙 Сейчас ночь. Иван уже спит — приходите утром.</div>`
+    : (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает фазу: утро → день → вечер.</div>`);
 
   const trainingCards = TRAININGS.map((t) => {
     const avail = trainingAvailability(t);
@@ -1121,34 +1122,14 @@ function timmyCardHtml() {
       <div class="timmy-info">
         <p class="timmy-name">Тимми, молодой охотник</p>
         <p class="hint">Знает слабости всех тварей Башни. Или думает, что знает.</p>
-        <div class="timmy-actions">
-          <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
-          <button class="btn small ghost" data-act="timmy-open" type="button">🏹 Спросить совет</button>
-        </div>
+        <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
       </div>
     </aside>
   `;
 }
 
-function timmyModalHtml() {
-  return `
-    <div class="doll-menu-backdrop" data-act="timmy-close"></div>
-    <div class="doll-menu quest-modal timmy-modal" role="dialog">
-      <div class="doll-menu-head">
-        <h3>💬 Совет Тимми</h3>
-        <button class="doll-menu-close" data-act="timmy-close" type="button">✕</button>
-      </div>
-      <div class="timmy-modal-body">
-        <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="" onerror="this.style.display='none'">
-        <p class="npc-dialogue">«${esc(view.timmyTip || randomTimmyTip())}»</p>
-      </div>
-      <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-        <button class="btn small ghost" data-act="timmy-open" type="button">🔄 Спросить ещё</button>
-        <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
-      </div>
-    </div>
-  `;
-}
+// Модалка совета удалена: Тимми выдаёт советы только внутри диалогового дерева
+// (узел give_advice), чтобы не дублировать один и тот же текст в отдельном окне.
 
 function questsModalHtml() {
   ensureWeekQuests();
@@ -3476,7 +3457,6 @@ function render() {
   }
   
   if (view.questsOpen) html += questsModalHtml();
-  if (view.timmyTip) html += timmyModalHtml();
   if (view.settingsOpen) html += settingsModalHtml();
   if (view.companionInfo) html += renderCompanionInfoModal();
   if (view.titleModal) html += titleModalHtml();
@@ -4257,13 +4237,6 @@ function onClick(event) {
         state.npcMood[npcId] = opt.mood;
         saveState();
       }
-      // «Спросить совет» у Тимми: свежий совет из randomTimmyTip() в узле advice.
-      if (opt.action === "timmy_tip") {
-        view.timmyTip = randomTimmyTip();
-        view.dialogNode = "advice";
-        render();
-        break;
-      }
       if (opt.action === "open_shop") {
         openDialogShop(npcId);
         break;
@@ -4316,6 +4289,8 @@ function onClick(event) {
         if (farewell) toast(farewell, "ok");
         break;
       }
+      // Узел совета: каждый вход генерирует свежий совет Тимми.
+      if (opt.next === "give_advice") view.timmyTip = randomTimmyTip();
       view.dialogNode = opt.next;
       render();
       break;
@@ -4669,8 +4644,6 @@ function onClick(event) {
     case "train": res = trainAttr(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "hunt-accept": res = acceptWeekQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "hunt-claim": res = claimNpcQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "timmy-open": view.timmyTip = randomTimmyTip(); render(); break;
-    case "timmy-close": view.timmyTip = null; Sfx.play("chest_close"); render(); break;
     case "buy": res = buyItem(id, el.dataset.shop || "forge"); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) Sfx.play("forge_craft"); render(); break;
     case "sell": res = sellItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;

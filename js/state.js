@@ -2297,7 +2297,8 @@ function trainAttr(trainingId) {
   if ((state.trainingCount[trainingId] || 0) >= (Number(training.cap) || 10)) {
     return { ok: false, text: "Иван: Хватит. Ты уже выжат." };
   }
-  if (state.phase !== 0) return { ok: false, text: "Иван: Тренировки только утром." };
+  // Тренироваться можно утром, днём и вечером; ночью Иван спит.
+  if (state.phase === 3) return { ok: false, text: "Иван: Я уже сплю. Приходи утром." };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, text: `Нужно ${TRAINING_ENERGY_COST} ⚡. Отдохните или сходите в Башню.` };
 
   // Статы и фаза теперь меняются только после QTE в completeTraining().

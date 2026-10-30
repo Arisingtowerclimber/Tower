@@ -1181,7 +1181,7 @@ const DIALOG_TREES = {
     start: {
       text: "О, {gender_term:новенький|новенькая}! Я Тимми. Молодой охотник, гроза гоблинов, любимец барменши. Два из трёх — правда.",
       options: [
-        { label: "🏹 Спросить совет", action: "timmy_tip" },
+        { label: "💡 Дай совет", next: "give_advice" },
         { label: "Что ты знаешь об этажах?", next: "lore_tower" },
         { label: "Ты ведь из дома Ворона?", next: "personal" },
         { label: "Что у тебя с Иваном?", next: "ivan" },
@@ -1193,19 +1193,18 @@ const DIALOG_TREES = {
       ],
     },
     // Динамический узел: текст подставляет ui.js из randomTimmyTip().
-    advice: {
+    give_advice: {
       tip: "timmy",
       text: "",
       options: [
-        { label: "🔄 Спросить ещё", action: "timmy_tip" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "Спасибо.", next: "start" },
+        { label: "Уйти.", next: null },
       ],
     },
     shop: {
       text: "Советы бесплатные. За правильные иногда платят уважением. Слушай внимательно.",
       options: [
-        { label: "Спросить совет", action: "timmy_tip" },
+        { label: "Спросить совет", action: "open_shop" },
         { label: "Назад", next: "start" },
         { label: "Уйти", next: null },
       ],
