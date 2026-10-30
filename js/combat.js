@@ -92,20 +92,29 @@ function createBattle(enemyDef, floorId) {
     floorBg: floor ? floor.bg : "assets/backgrounds/floor1.webp",
     boss: Boolean(enemyDef.boss),
     lastPlayerAttack: null,
+    lastPlayerHit: null, // null — прошлого хода ещё не было
     staggered: false,
     tripped: false,
     riskyMiss: false,
     secondWindUsed: false,
+    critWindow: null,
+    parryWindow: null,
     enemyBlockHistory: [],
     enemyAttackHistory: [],
     playerBlocksHistory: [], // <--- ДОБАВЛЕНО
     playerDebuffs: [],
     monkStance: MONK_DEFAULT_STANCE,
     skillCd: {}, // откат активных навыков: { talentId: ходов до готовности }
+    companionTurn: 0,
+    alvaStunChance: 10,
+    companionStunned: false,
+    companionBlocked: false,
   };
   
   const label = variationLabel(enemy);
   if (label) battleLog(battle, `${enemy.name} — ${label}`, "info");
+  const roleDef = MOB_ROLES[enemy.role] || MOB_ROLES.dps;
+  battleLog(battle, `${enemy.name} — ${roleDef.icon} ${roleDef.name}.`, "info");
   if (enemy.weaponId) battleLog(battle, `${enemy.name} достаёт ${ITEMS[enemy.weaponId].name}!`, "warn");
   return battle;
 }
@@ -166,7 +175,24 @@ function achievementVsMobBonus(state, enemyId) {
 }
 
 function chooseEnemyAction(battle, lastPlayerAttack) {
+  const role = battle.enemy.role || "dps";
+  const roleDef = MOB_ROLES[role] || MOB_ROLES.dps;
   const prefers = battle.enemy.prefers || [];
+
+  // Целитель: если игрок промахнулся в прошлом ходу и враг потрёпан — лечится
+  // вместо атаки. null в lastPlayerHit (первый ход) лечением не считается.
+  if (roleDef.healPercent
+    && battle.maxHp > 0
+    && battle.hp / battle.maxHp < (roleDef.healThreshold || 0.5)
+    && battle.lastPlayerHit === false) {
+    const healed = Math.round(battle.maxHp * roleDef.healPercent);
+    battle.hp = Math.min(battle.maxHp, battle.hp + healed);
+    battleLog(battle, `${battle.enemy.name} шепчет слова силы и восстанавливает ${healed} HP.`, "heal");
+    return { attack: null, blocks: [], healed: true };
+  }
+
+  if (roleDef.dodgeBonus) battle.enemy.dodgeBonus = roleDef.dodgeBonus;
+
   let attack = "";
   
   const playerBlocksHistory = battle.playerBlocksHistory || [];
@@ -183,7 +209,7 @@ function chooseEnemyAction(battle, lastPlayerAttack) {
   }
 
   const blocks = [];
-  const blockCount = Math.max(1, Math.min(ZONES.length, Number.isFinite(battle.enemy.blocks) ? battle.enemy.blocks : (battle.boss ? 2 : 1)));
+  const blockCount = Math.max(0, Math.min(ZONES.length, (Number.isFinite(battle.enemy.blocks) ? battle.enemy.blocks : (battle.boss ? 2 : 1)) + (roleDef.blocksBonus || 0)));
   const adaptChance = (battle.boss ? 0.5 : 0.35) * (battle.enemy.ability === "adaptive" ? ADAPTIVE_MULT : 1);
   
   if (lastPlayerAttack && Math.random() < adaptChance) {
@@ -276,15 +302,28 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
   return avg;
 }
 
+// Звук попадания: стиль оружия → набор вариантов, крит — отдельный файл.
+function playHitSound(style, { isCrit = false } = {}) {
+  if (isCrit) {
+    if (style === "bludgeoning") Sfx.play("hit_crit_blunt");
+    else Sfx.play("hit_crit_slash");
+    return;
+  }
+  const id = (style === "bludgeoning") ? "hit_blunt" : "hit_slash";
+  Sfx.play(id);
+}
+
 function exchange(state, battle, action, weaponInst = null) {
   if (!battle || battle.over) return { error: "Бой уже закончился." };
 
   const st = stats();
   const e = battle.enemy;
+  const roleDef = MOB_ROLES[e.role] || MOB_ROLES.dps;
   const achVs = achievementVsMobBonus(state, e.id);
   const uniques = equippedUniques();
   const blocks = Array.isArray(action.blocks) ? action.blocks : [];
   const enemyAction = chooseEnemyAction(battle, battle.lastPlayerAttack);
+  battle.lastPlayerHit = false;
 
   if (!Array.isArray(battle.enemyBlockHistory)) battle.enemyBlockHistory = [];
   battle.enemyBlockHistory.push([...enemyAction.blocks]);
@@ -420,13 +459,13 @@ function exchange(state, battle, action, weaponInst = null) {
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
-      Sfx.play("block");
+      Sfx.play("hit_block");
       if (zone.risk && Math.random() < zone.risk) {
         battle.riskyMiss = true;
       }
     } else if (!tech && (e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus) {
       battleLog(battle, `${e.name} уклоняется от удара в «${zoneName}».`, "miss");
-      Sfx.play("miss");
+      Sfx.play("hit_miss");
     } else {
       const power = tech || skillEffect === "fury" ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
@@ -464,28 +503,41 @@ function exchange(state, battle, action, weaponInst = null) {
       if (achVs.dmgPct) damage = Math.max(1, Math.round(damage * (1 + achVs.dmgPct / 100)));
       damage += achVs.flat;
 
-      battle.hp = Math.max(0, battle.hp - damage);
-      battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
+      // «Точный удар»: критический удар превращается в QTE. Урон пока не
+      // применяется — его нанесёт ui.js после остановки указателя.
+      const preciseStrike = crit && state.abilities && state.abilities.preciseStrike === true;
+      if (preciseStrike) {
+        battle.critWindow = { zone: action.zone, damageBase: damage, timeLeft: 1.5 };
+        battle.lastPlayerHit = true;
+        battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
+        battleLog(battle, "КРИТ! Точный удар — остановите указатель в зелёной зоне!", "crit");
+        playHitSound(style, { isCrit: true });
+        checkAchievements(state);
+      } else {
+        battle.hp = Math.max(0, battle.hp - damage);
+        battle.lastPlayerHit = true;
+        battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
 
-      const lifestealPct = (uniques.includes("lifesteal") ? LIFESTEAL_PERCENT : 0) + (st.lifesteal || 0) / 100;
-      if (lifestealPct > 0) {
-        const healed = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(damage * lifestealPct)));
-        if (healed > 0) {
-          state.hp += healed;
-          battleLog(battle, `Вампиризм восстанавливает ${healed} HP.`, "heal");
+        const lifestealPct = (uniques.includes("lifesteal") ? LIFESTEAL_PERCENT : 0) + (st.lifesteal || 0) / 100;
+        if (lifestealPct > 0) {
+          const healed = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(damage * lifestealPct)));
+          if (healed > 0) {
+            state.hp += healed;
+            battleLog(battle, `Вампиризм восстанавливает ${healed} HP.`, "heal");
+          }
         }
+
+        const suffix = crit ? ` — КРИТ В ${ZONE_ACCUSATIVE[action.zone] || zone.name.toUpperCase()}!` : "";
+        battleLog(
+          battle,
+          `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)})${weaknessMark}.`,
+          crit ? "crit" : "hit"
+        );
+        playHitSound(style, { isCrit: crit });
+
+        // Криты считаются на «Мастера клинка» — проверка ачивок прямо здесь.
+        if (crit) checkAchievements(state);
       }
-
-      const suffix = crit ? ` — КРИТ В ${ZONE_ACCUSATIVE[action.zone] || zone.name.toUpperCase()}!` : "";
-      battleLog(
-        battle,
-        `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)})${weaknessMark}.`,
-        crit ? "crit" : "hit"
-      );
-      Sfx.play(crit ? "crit" : "hit");
-
-      // Криты считаются на «Мастера клинка» — проверка ачивок прямо здесь.
-      if (crit) checkAchievements(state);
 
       if (!tech && zone.staggerChance && Math.random() < zone.staggerChance) {
         battle.staggered = true;
@@ -503,13 +555,54 @@ function exchange(state, battle, action, weaponInst = null) {
 
   battle.staggered = false;
 
+  // ── Действия компаньона (раз в ход) ──────────────────────────────────────
+  const companion = activeCompanion();
+  battle.companionStunned = false;
+  battle.companionBlocked = false;
+  if (companion && battle.hp > 0 && state.hp > 0) {
+    battle.companionTurn = (battle.companionTurn || 0) + 1;
+    if (companion.id === "mira" && battle.companionTurn % 3 === 0) {
+      const heal = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(st.maxHp * 0.1)));
+      if (heal > 0) {
+        state.hp += heal;
+        battleLog(battle, `Мира перевязывает раны: +${heal} HP.`, "heal");
+      } else {
+        battleLog(battle, "Мира осматривает раны: они уже закрыты.", "info");
+      }
+    } else if (companion.id === "alva") {
+      const chance = Math.min(100, battle.alvaStunChance || 10);
+      if (Math.random() * 100 < chance) {
+        battle.companionStunned = true;
+        battle.alvaStunChance = 10;
+        battleLog(battle, `Альва сбивает ${e.name} с ритма — враг пропускает удар.`, "block");
+      } else {
+        battle.alvaStunChance = Math.min(100, chance + 5);
+      }
+    } else if (companion.id === "solveig") {
+      if (battle.companionTurn % 3 === 0) {
+        const hit = Math.max(1, Math.round(st.atk * 0.5 - e.def * 0.3));
+        battle.hp = Math.max(0, battle.hp - hit);
+        battleLog(battle, `Сольвейг бьёт сбоку: ${e.name} теряет ${hit} HP.`, "hit");
+      }
+      if (battle.hp > 0 && Math.random() * 100 < 10) {
+        battle.companionBlocked = true;
+        battleLog(battle, "Сольвейг принимает удар на себя.", "block");
+      }
+    }
+  }
+
   if (battle.hp > 0) {
-    if (battle.tripped) {
+    if (battle.companionStunned || battle.companionBlocked) {
+      battleLog(battle, battle.companionStunned
+        ? `${e.name} не успевает ответить.`
+        : "Сольвейг закрывает вас — урона нет.", "block");
+    } else if (battle.tripped) {
       battleLog(battle, `${e.name} всё ещё поднимается — вы получаете передышку.`, "info");
       battle.tripped = false;
     } else if (battle.riskyMiss) {
-      let base = e.atk * rnd(1.0, 1.2);
+      let base = e.atk * rnd(1.0, 1.2) * (roleDef.atkMult || 1);
       base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
+      base *= 1 - Math.min(0.5, (st.damageReduction || 0) / 100);
       if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
       const damage = Math.max(2, Math.round(base));
       state.hp = Math.max(0, state.hp - damage);
@@ -521,25 +614,30 @@ function exchange(state, battle, action, weaponInst = null) {
         battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
       }
       battle.riskyMiss = false;
-    } else {
+    } else if (enemyAction.attack) {
       const playerBlocked = blocks.includes(enemyAction.attack);
       const enemyZone = ZONE_NAME[enemyAction.attack];
+      // «Парирование» бросается до проверки уворота, иначе уворот всегда
+      // перехватывал бы окно (его шанс выше, чем dodge * 0.5).
+      const parryTrigger = state.abilities && state.abilities.parry === true
+        && Math.random() * 100 < st.dodge * 0.5;
 
       if (playerBlocked) {
         // Кураж за блок: закрыли зону, куда бьёт враг — +1 кураж поверх урона.
         // Мимо (блок в пустую зону) — куража нет.
         battle.rage = Math.min(5, battle.rage + 1);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы блокируете. +1 кураж.`, "block");
-        Sfx.play("block");
+        Sfx.play("hit_block");
 
         if (state.archetype === "guardian") {
           const retaliation = Math.max(2, Math.round(e.atk * (st.mods?.blockCounter || 0.1)));
           battle.hp = Math.max(0, battle.hp - retaliation);
           battleLog(battle, `Страж отвечает на блок: ${e.name} теряет ${retaliation} HP.`, "hit");
         }
-      } else if (Math.random() * 100 < st.dodge + achVs.dodge) {
+      } else if (!parryTrigger && Math.random() * 100 < st.dodge + achVs.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
-        Sfx.play("miss");
+        Sfx.play("hit_miss");
+        Sfx.play("footstep_land");
         
         if ((st.counterOnDodge || 0) > 0) {
           const shadowDmg = Math.max(1, Math.round(st.atk * st.counterOnDodge - e.def * 0.3));
@@ -564,49 +662,58 @@ function exchange(state, battle, action, weaponInst = null) {
           : weaponBestStyle(enemyWpn);
         const armorMult = ARMOR_STYLE_MULT[enemyStyle][zoneArmorType] || 1;
 
-        let base = e.atk * rnd(0.85, 1.15) * armorMult;
+        let base = e.atk * rnd(0.85, 1.15) * armorMult * (roleDef.atkMult || 1);
         base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
+        base *= 1 - Math.min(0.5, (st.damageReduction || 0) / 100);
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
         if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
         const damage = Math.max(2, Math.round(base));
-        state.hp = Math.max(0, state.hp - damage);
-        battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
+        // «Парирование»: вместо пассивного уворота — окно QTE. Урон
+        // применяется только после реакции игрока (или по таймеру).
+        if (parryTrigger) {
+          battle.parryWindow = { damageBase: damage, zone: enemyZone, timeLeft: 1.0 };
+          battleLog(battle, `⚠️ Удар в «${enemyZone}»! Парируй!`, "warn");
+        } else {
+          state.hp = Math.max(0, state.hp - damage);
+          battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
+          playHitSound(enemyStyle, { isCrit: false });
 
-        // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
-        if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
-          if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
-          state.brinkSurvived = true;
-          checkAchievements(state);
-        }
-
-        reflectThorns(battle, uniques, damage);
-
-        if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
-          battle.secondWindUsed = true;
-          const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
-          if (healed > 0) {
-            state.hp += healed;
-            battleLog(battle, `Талант «Невозгибимый»: вы приходите в себя и восстанавливаете ${healed} HP!`, "heal");
+          // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
+          if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
+            if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
+            state.brinkSurvived = true;
+            checkAchievements(state);
           }
-        }
 
-        if (e.ability === "vampire") {
-          const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));
-          battle.hp = Math.min(battle.maxHp, battle.hp + healed);
-          battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
-        }
-        if (e.ability === "poison") {
-          if (battle.poisonImmune) {
-            battleLog(battle, "Щит веры отражает яд!", "heal");
-          } else {
-            if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
-            const existing = battle.playerDebuffs.find((d) => d.id === "poison");
-            if (existing) {
-              existing.turns = POISON_TURNS;
-              battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
+          reflectThorns(battle, uniques, damage);
+
+          if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
+            battle.secondWindUsed = true;
+            const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
+            if (healed > 0) {
+              state.hp += healed;
+              battleLog(battle, `Талант «Невозгибимый»: вы приходите в себя и восстанавливаете ${healed} HP!`, "heal");
+            }
+          }
+
+          if (e.ability === "vampire") {
+            const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));
+            battle.hp = Math.min(battle.maxHp, battle.hp + healed);
+            battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
+          }
+          if (e.ability === "poison") {
+            if (battle.poisonImmune) {
+              battleLog(battle, "Щит веры отражает яд!", "heal");
             } else {
-              battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
-              battleLog(battle, `${e.name} отравляет вас!`, "warn");
+              if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
+              const existing = battle.playerDebuffs.find((d) => d.id === "poison");
+              if (existing) {
+                existing.turns = POISON_TURNS;
+                battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
+              } else {
+                battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
+                battleLog(battle, `${e.name} отравляет вас!`, "warn");
+              }
             }
           }
         }
@@ -634,57 +741,71 @@ function exchange(state, battle, action, weaponInst = null) {
   let summary = null;
 
   if (battle.hp <= 0) {
-    battle.over = true;
-    state.kills = (state.kills || 0) + 1;
-    // Бестиарий: сколько раз убит каждый конкретный моб (и боссы тоже).
-    state.bestiaryKills = state.bestiaryKills || {};
-    state.bestiaryKills[e.id] = (state.bestiaryKills[e.id] || 0) + 1;
-    // Достижения триггерятся на победу (счётчики убийств) — до saveState.
-    checkAchievements(state);
-    checkQuestProgress(e.id);
-
-    const goldMult = goldMultToday();
-    const xpMult = xpMultToday();
-    const rarityGold = e.rarity === "elite" ? ELITE_REWARDS.goldMult : e.rarity === "rare" ? RARE_REWARDS.goldMult : 1;
-    const rarityXp = e.rarity === "elite" ? ELITE_REWARDS.xpMult : e.rarity === "rare" ? RARE_REWARDS.xpMult : 1;
-    const gold = Math.max(1, Math.floor(e.gold * GOLD_DROP_MULT * goldMult * rarityGold));
-    const xp = Math.max(1, Math.floor(e.xp * xpMult * rarityXp));
-
-    state.gold += gold;
-    const up = gainXp(xp);
-
-    let unlock = null;
-    if (battle.boss && !state.cleared[battle.floorId]) {
-      state.cleared[battle.floorId] = true;
-      if (state.maxFloor < 5) {
-        state.maxFloor = Math.max(state.maxFloor, battle.floorId + 1);
-        unlock = state.maxFloor;
-      }
-    }
-
-    battleLog(battle, `${e.name} падает. Победа!`, "win");
-
-    const loot = rollDrops(e);
-    if (loot.length) {
-      battleLog(battle, `Выпало: ${lootText(loot)}.`, "loot");
-    }
-
-    summary = {
-      victory: true,
-      enemyName: e.name,
-      gold,
-      xp,
-      loot,
-      levels: up.levels,
-      points: up.points,
-      totalPoints: state.points,
-      unlock,
-      newLevel: state.level,
-    };
-    saveState();
+    summary = finishVictory(state, battle);
   } else if (state.hp <= 0) {
     summary = defeatSummary(state, battle, e);
   }
 
   return { ok: true, summary };
+}
+
+// Победа над мобом. Вынесено из exchange(), чтобы тот же расчёт наград
+// могли использовать QTE-атаки, которые наносят урон после размена.
+function finishVictory(state, battle) {
+  const e = battle.enemy;
+  const st = stats();
+  const companion = activeCompanion();
+  battle.over = true;
+  state.kills = (state.kills || 0) + 1;
+  if (companion) {
+    const affinity = addAffinity(companion.id, 1);
+    if (affinity) battleLog(battle, `${companion.name}: +1 привязанности.`, "info");
+  }
+  // Бестиарий: сколько раз убит каждый конкретный моб (и боссы тоже).
+  state.bestiaryKills = state.bestiaryKills || {};
+  state.bestiaryKills[e.id] = (state.bestiaryKills[e.id] || 0) + 1;
+  // Достижения триггерятся на победу (счётчики убийств) — до saveState.
+  checkAchievements(state);
+  checkQuestProgress(e.id);
+
+  const goldMult = goldMultToday();
+  const xpMult = xpMultToday();
+  const rarityGold = e.rarity === "elite" ? ELITE_REWARDS.goldMult : e.rarity === "rare" ? RARE_REWARDS.goldMult : 1;
+  const rarityXp = e.rarity === "elite" ? ELITE_REWARDS.xpMult : e.rarity === "rare" ? RARE_REWARDS.xpMult : 1;
+  const gold = Math.max(1, Math.floor(e.gold * GOLD_DROP_MULT * goldMult * rarityGold * (1 + (st.goldBonus || 0) / 100)));
+  const xp = Math.max(1, Math.floor(e.xp * xpMult * rarityXp));
+
+  state.gold += gold;
+  const up = gainXp(xp);
+
+  let unlock = null;
+  if (battle.boss && !state.cleared[battle.floorId]) {
+    state.cleared[battle.floorId] = true;
+    if (state.maxFloor < 5) {
+      state.maxFloor = Math.max(state.maxFloor, battle.floorId + 1);
+      unlock = state.maxFloor;
+    }
+  }
+
+  battleLog(battle, `${e.name} падает. Победа!`, "win");
+
+  const loot = rollDrops(e);
+  if (loot.length) {
+    battleLog(battle, `Выпало: ${lootText(loot)}.`, "loot");
+  }
+
+  const summary = {
+    victory: true,
+    enemyName: e.name,
+    gold,
+    xp,
+    loot,
+    levels: up.levels,
+    points: up.points,
+    totalPoints: state.points,
+    unlock,
+    newLevel: state.level,
+  };
+  saveState();
+  return summary;
 }

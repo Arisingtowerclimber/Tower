@@ -31,6 +31,9 @@ function defaultState() {
     level: 1, xp: 0, points: 0, attrs: { str: 1, agi: 1, end: 1, int: 1 },
     gold: 60, hp: BASE_STATS.hp + 2, mana: BASE_STATS.mana + 2, energy: EXPLORATION_MAX,
     phase: 0, day: 1, companion: null, companionDay: 0,
+    affinity: Object.fromEntries(COMPANIONS.map((c) => [c.id, 0])),
+    hireDiscounts: {},
+    companionBuffs: [],
     potions: { hp_small: 2, hp_big: 0, mana_small: 1 },
     equipped: { 
       head: uidOf("worn_hood"), neck: null, shoulder: null, back: null, 
@@ -44,6 +47,8 @@ function defaultState() {
     killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, format: WEEK_QUEST_FORMAT, list: [] },
     unlockedAchievements: [], currentTitle: null, critCount: 0, brinkSurvived: false,
     contractsDone: 0,
+    trainingCount: { drill: 0, sparring: 0, heavy_lifting: 0 },
+    abilities: { preciseStrike: false, parry: false },
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
     knownRecipes: [],
@@ -53,6 +58,8 @@ function defaultState() {
     factionNotified: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
     factionPerksUnlocked: Object.fromEntries(FACTIONS.map((f) => [f.id, false])),
     dialogTopicsSeen: {},
+    dialogFlags: {},
+    npcMood: {},
   };
 }
 
@@ -153,6 +160,83 @@ function topicAvailable(topic, npcId) {
   return topicNpcRep(npcId) >= minRep && (state.maxFloor || 1) >= minFloor;
 }
 
+// ── Эффекты диалоговых опций (Блок 2) ───────────────────────────────────────
+// effects: { gold, rep, flag, item }. rep идёт фракции NPC; у Ивана и Тимми
+// это Гильдия Охотников. Флаг — строка в state.dialogFlags, item — id предмета.
+function applyDialogEffects(effects, npcId) {
+  if (!effects || typeof effects !== "object") return { ok: true, text: "" };
+  const notes = [];
+
+  const gold = Number(effects.gold);
+  if (Number.isFinite(gold) && gold !== 0) {
+    state.gold = Math.max(0, state.gold + gold);
+    notes.push(`${gold > 0 ? "+" : ""}${gold} золота`);
+  }
+
+  const rep = Number(effects.rep);
+  if (Number.isFinite(rep) && rep !== 0) {
+    const factionId = FACTION_BY_NPC[npcId] || (npcId === "ivan" || npcId === "timmy" ? "hunters" : null);
+    if (factionId && FACTION_MAP[factionId]) {
+      state.reputation[factionId] = Math.max(0, (state.reputation[factionId] || 0) + rep);
+      notes.push(`${rep > 0 ? "+" : ""}${rep} реп. ${FACTION_MAP[factionId].name}`);
+    }
+  }
+
+  if (typeof effects.flag === "string" && effects.flag) {
+    state.dialogFlags[effects.flag] = true;
+    notes.push(`флаг «${effects.flag}»`);
+  }
+
+  const affinityTarget = effects.companionId || (COMPANION_MAP[npcId] ? npcId : null);
+  const affinity = Number(effects.affinity);
+  if (affinityTarget && Number.isFinite(affinity) && affinity !== 0) {
+    const result = addAffinity(affinityTarget, affinity, { silent: true });
+    if (result) notes.push(`${result.gained > 0 ? "+" : ""}${result.gained} привязанности`);
+  }
+
+  const hireDiscount = Number(effects.hireDiscount);
+  if (affinityTarget && Number.isFinite(hireDiscount) && hireDiscount > 0) {
+    state.hireDiscounts = state.hireDiscounts || {};
+    state.hireDiscounts[affinityTarget] = Math.max(state.hireDiscounts[affinityTarget] || 0, Math.min(0.5, hireDiscount));
+    notes.push(`скидка на найм ${Math.round(state.hireDiscounts[affinityTarget] * 100)}%`);
+  }
+
+  if (typeof effects.item === "string" && ITEMS[effects.item]) {
+    addItemInstance(effects.item, DURABILITY_MAX, "common");
+    notes.push(`получен предмет: ${ITEMS[effects.item].name}`);
+  }
+
+  if (notes.length) saveState();
+  return { ok: true, text: notes.join(", ") };
+}
+
+// ── Условия диалоговых опций ───────────────────────────────────────────────
+// requires: { bossKilled, bossNotKilled, bossKilledCount, maxFloor, minGold, flag, notFlag, anyBossKilled }.
+// bossKilled принимает id босса: проверяем state.cleared по этажу этого босса.
+function dialogBossKilled(bossId) {
+  if (!bossId) return false;
+  const floor = FLOORS.find((f) => f.boss && f.boss.id === bossId);
+  if (floor) return Boolean(state.cleared && state.cleared[floor.id]);
+  return Boolean(state.bestiaryKills && state.bestiaryKills[bossId]);
+}
+
+function dialogRequiresMet(requires) {
+  if (!requires || typeof requires !== "object") return true;
+  if (requires.bossKilled && !dialogBossKilled(requires.bossKilled)) return false;
+  if (requires.bossNotKilled && dialogBossKilled(requires.bossNotKilled)) return false;
+  if (Number.isFinite(requires.bossKilledCount)) {
+    const cleared = Object.keys(state.cleared || {}).length;
+    if (cleared < requires.bossKilledCount) return false;
+  }
+  if (Number.isFinite(requires.maxFloor) && (state.maxFloor || 1) < requires.maxFloor) return false;
+  if (Number.isFinite(requires.minGold) && (state.gold || 0) < requires.minGold) return false;
+  const flags = state.dialogFlags || {};
+  if (requires.flag && !flags[requires.flag]) return false;
+  if (requires.notFlag && flags[requires.notFlag]) return false;
+  if (requires.anyBossKilled && !Object.keys(state.cleared || {}).length) return false;
+  return true;
+}
+
 // Улучшение предмета (Этап 2): списывает материалы фракционной наковальни
 // и золото, повышает уровень улучшения. Требует тир «Уважаемый» фракции.
 function upgradeItem(uid, stat = null) {
@@ -249,6 +333,21 @@ function loadState() {
     state.day = Number.isFinite(saved.day) ? Math.max(1, saved.day) : defaults.day;
     state.companion = COMPANION_MAP[state.companion] ? state.companion : null;
     state.companionDay = Number.isFinite(state.companionDay) ? state.companionDay : 0;
+    state.affinity = { ...defaults.affinity };
+    const savedAffinity = saved.affinity && typeof saved.affinity === "object" && !Array.isArray(saved.affinity) ? saved.affinity : {};
+    for (const id of Object.keys(state.affinity)) {
+      const value = Number(savedAffinity[id]);
+      state.affinity[id] = Number.isFinite(value) ? Math.max(0, Math.min(1000, Math.floor(value))) : 0;
+    }
+    state.hireDiscounts = {};
+    const savedDiscounts = saved.hireDiscounts && typeof saved.hireDiscounts === "object" ? saved.hireDiscounts : {};
+    for (const [id, value] of Object.entries(savedDiscounts)) {
+      const n = Number(value);
+      if (COMPANION_MAP[id] && Number.isFinite(n) && n > 0) state.hireDiscounts[id] = Math.min(0.5, n);
+    }
+    state.companionBuffs = Array.isArray(saved.companionBuffs)
+      ? saved.companionBuffs.filter((b) => b && typeof b === "object" && b.stat && Number.isFinite(b.mult) && Number.isFinite(b.days) && b.days > 0)
+      : [];
     if (!PORTRAIT_MAP[state.portrait]) state.portrait = "m1";
     state.archetype = ARCHETYPE_MAP[state.archetype] ? state.archetype : null;
 
@@ -261,10 +360,21 @@ function loadState() {
       state.talents[id] = Math.max(0, Math.min(t.maxRank, Number(rank) || 0));
     }
 
+    // Тренировки и освоенные QTE-способности. Старые сейвы получают дефолты.
+    state.trainingCount = { ...defaults.trainingCount, ...(saved.trainingCount && typeof saved.trainingCount === "object" ? saved.trainingCount : {}) };
+    for (const id of Object.keys(defaults.trainingCount)) {
+      const n = Number(state.trainingCount[id]);
+      state.trainingCount[id] = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    }
+    state.abilities = { ...defaults.abilities, ...(saved.abilities && typeof saved.abilities === "object" ? saved.abilities : {}) };
+    for (const id of Object.keys(defaults.abilities)) state.abilities[id] = state.abilities[id] === true;
+
     state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
 
     normalizeFactionFields();
     state.dialogTopicsSeen = state.dialogTopicsSeen && typeof state.dialogTopicsSeen === "object" && !Array.isArray(state.dialogTopicsSeen) ? state.dialogTopicsSeen : {};
+    state.dialogFlags = state.dialogFlags && typeof state.dialogFlags === "object" && !Array.isArray(state.dialogFlags) ? state.dialogFlags : {};
+    state.npcMood = state.npcMood && typeof state.npcMood === "object" && !Array.isArray(state.npcMood) ? state.npcMood : {};
 
     if (!Array.isArray(state.owned)) state.owned = [];
     if (state.owned.some((x) => typeof x === "string")) {
@@ -369,7 +479,8 @@ function loadState() {
 
 function saveState() {
   try {
-    storage.set(SAVE_KEY, JSON.stringify(state, (key, value) => (key === "_statsCache" || key === "_statsRev" || key === "_invRev" ? undefined : value)));
+    // _craftPity и _hunterBattle — внутрисессионные (сбрасываются при перезагрузке).
+    storage.set(SAVE_KEY, JSON.stringify(state, (key, value) => (key === "_statsCache" || key === "_statsRev" || key === "_invRev" || key === "_craftPity" || key === "_hunterBattle" ? undefined : value)));
   } catch (err) {}
 }
 function resetState() { state = defaultState(); saveState(); }
@@ -501,31 +612,200 @@ function gearBonuses() {
   return total;
 }
 
+// ── Бонусы активных сетов и пар ────────────────────────────────────────────
+// Пороги брони: 2/4/6/8 слотов; пар: 2/2. Считаем надетые id (Set — чтобы
+// два одинаковых кольца не закрывали пару), битые вещи не в счёт, как в
+// gearBonuses(). Возвращает активные сеты и сумму бонусов.
+const SET_BONUS_KEYS = ["dodge", "blockZones", "maxHpMult", "maxHpFlat", "damageReduction", "crit", "atkMult", "lifesteal", "goldBonus", "lootChance", "manaBonus", "hpRegen", "def", "counterBonus"];
+
+function activeSetBonuses() {
+  const totals = {};
+  for (const key of SET_BONUS_KEYS) totals[key] = (key === "maxHpMult" || key === "atkMult") ? 1 : 0;
+  const activeSets = [];
+  if (typeof SETS === "undefined" || !state || !state.equipped) return { activeSets, ...totals };
+
+  const wornIds = new Set();
+  for (const uid of Object.values(state.equipped)) {
+    if (!uid) continue;
+    const inst = getInstance(uid);
+    if (!inst || isBroken(inst)) continue;
+    wornIds.add(inst.id);
+  }
+
+  for (const [setId, set] of Object.entries(SETS)) {
+    if (!set || !Array.isArray(set.items) || !set.items.length) continue;
+    let count = 0;
+    for (const itemId of set.items) if (wornIds.has(itemId)) count++;
+    if (count < 2) continue;
+    const reached = Object.keys(set.bonuses || {})
+      .map(Number)
+      .filter((threshold) => count >= threshold)
+      .sort((a, b) => a - b);
+    for (const threshold of reached) {
+      for (const [key, value] of Object.entries(set.bonuses[threshold] || {})) {
+        if (!(key in totals) || !Number.isFinite(value)) continue;
+        if (key === "maxHpMult" || key === "atkMult") totals[key] *= value;
+        else totals[key] += value;
+      }
+    }
+    activeSets.push({
+      id: setId,
+      name: set.name,
+      type: set.type || null,
+      pair: Boolean(set.pair),
+      tier: set.tier || 1,
+      count,
+      size: set.items.length,
+      threshold: reached.length ? reached[reached.length - 1] : 0,
+      nextThreshold: Object.keys(set.bonuses || {}).map(Number).sort((a, b) => a - b).find((t) => count < t) || null,
+    });
+  }
+  return { activeSets, ...totals };
+}
+if (typeof window !== "undefined") window.activeSetBonuses = activeSetBonuses;
+
 function activeCompanion() {
   if (!state || !state.companion) return null;
-  const lastDay = state.companionDay + COMPANION_BUFF_DAYS - 1;
-  if (state.day < state.companionDay || state.day > lastDay) return null;
   return COMPANION_MAP[state.companion] || null;
 }
 
-function companionExpiryDay() { if (!state || !state.companion) return 0; return state.companionDay + COMPANION_BUFF_DAYS - 1; }
-function companionDaysLeft() { if (!activeCompanion()) return 0; return companionExpiryDay() - state.day + 1; }
-function expireCompanion() {
-  if (state.companion && state.day > companionExpiryDay()) {
-    state.companion = null; state.companionDay = 0;
-    invalidateStats();
-    return true;
+// Компаньоны остаются с героем, пока он платит ежедневное жалование.
+function companionExpiryDay() { return 0; }
+function companionDaysLeft() { return 0; }
+function expireCompanion() { return false; }
+
+function companionAffinityInfo(companionId) {
+  const companion = COMPANION_MAP[companionId];
+  const levels = companion && Array.isArray(companion.affinityLevels) && companion.affinityLevels.length
+    ? companion.affinityLevels
+    : COMPANION_AFFINITY_LEVELS;
+  const value = Math.max(0, Math.min(1000, Number(state.affinity?.[companionId]) || 0));
+  let index = 0;
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value >= levels[i].min) index = i;
   }
-  return false;
+  const rank = levels[index] || levels[0];
+  const next = levels[index + 1] || null;
+  const span = next ? Math.max(1, next.min - rank.min) : 1;
+  const percent = next ? Math.max(0, Math.min(100, Math.round(((value - rank.min) / span) * 100))) : 100;
+  return { value, rank, index, next, nextMin: next ? next.min : null, percent };
 }
+
+function companionAffinityLevel(companionId) {
+  return companionAffinityInfo(companionId).rank;
+}
+
+const AFFINITY_ACCUSATIVE = {
+  "Незнакомка": "Незнакомкой",
+  "Подруга": "Подругой",
+  "Близкая": "Близкой",
+  "Родная душа": "Родной душой",
+};
+
+function addAffinity(companionId, amount, opts = {}) {
+  const companion = COMPANION_MAP[companionId];
+  if (!companion || !Number.isFinite(Number(amount))) return null;
+  if (!state.affinity || typeof state.affinity !== "object") state.affinity = {};
+  const before = companionAffinityInfo(companionId);
+  const value = Math.max(0, Math.min(1000, before.value + Math.round(Number(amount))));
+  state.affinity[companionId] = value;
+  invalidateStats();
+  const after = companionAffinityInfo(companionId);
+  if (!opts.silent && after.index > before.index && typeof toast === "function") {
+    const accusative = AFFINITY_ACCUSATIVE[after.rank.name] || after.rank.name;
+    toast(`${companion.name} теперь считает вас ${accusative}!`, "ok");
+  }
+  return { before, after, gained: value - before.value, levelUp: after.index > before.index };
+}
+
+function companionHireCost(companionId) {
+  const companion = COMPANION_MAP[companionId];
+  if (!companion) return { base: 0, price: 0, discount: 0, affinityDiscount: 0 };
+  const base = (Number(companion.baseHireCost) || 500) + (Math.max(1, state.level) - 1) * 50;
+  const weekly = typeof companionDiscountToday === "function" ? companionDiscountToday() : 0;
+  const affinityDiscount = Math.max(0, Number(state.hireDiscounts?.[companionId]) || 0);
+  const discount = Math.min(0.5, weekly + affinityDiscount);
+  return { base, price: Math.max(1, Math.round(base * (1 - discount))), discount, affinityDiscount, weekly };
+}
+
+function companionWage(companionId) {
+  const companion = COMPANION_MAP[companionId];
+  if (!companion) return 0;
+  const level = companionAffinityLevel(companionId);
+  return Math.max(1, Math.round((Number(companion.dailyWage) || 50) * (Number(level.wageMult) || 1)));
+}
+
 function companionMultipliers() {
   const companion = activeCompanion();
   if (!companion) return { hp: 1, mana: 1, damage: 1 };
-  if (companion.buff === "hp") return { hp: 1.1, mana: 1, damage: 1 };
-  if (companion.buff === "mana") return { hp: 1, mana: 1.1, damage: 1 };
-  if (companion.buff === "damage") return { hp: 1, mana: 1, damage: 1.1 };
-  if (companion.buff === "hybrid") return { hp: 1.05, mana: 1, damage: 1.05 };
+  const bonus = Number(companionAffinityLevel(companion.id).bonus) || 0;
+  if (companion.buff === "hp") return { hp: 1.1 + bonus, mana: 1, damage: 1 };
+  if (companion.buff === "mana") return { hp: 1, mana: 1.1 + bonus, damage: 1 };
+  if (companion.buff === "damage") return { hp: 1, mana: 1, damage: 1.1 + bonus };
+  if (companion.buff === "hybrid") return { hp: 1.05 + bonus, mana: 1 + bonus, damage: 1.05 + bonus };
   return { hp: 1, mana: 1, damage: 1 };
+}
+
+function companionBuffMultiplier(stat) {
+  let mult = 1;
+  for (const buff of state.companionBuffs || []) {
+    if (buff && buff.stat === stat && Number.isFinite(buff.mult) && buff.days > 0) mult *= buff.mult;
+  }
+  return mult;
+}
+
+// Уникальные баффы компаньонов: еда Миры, песня Альвы, снаряжение Сольвейг.
+function applyCompanionBuff(kind) {
+  const companion = activeCompanion();
+  if (!companion) return null;
+  const randomOf = (list) => list[Math.floor(Math.random() * list.length)];
+  let stat = null;
+  let mult = 1.2;
+  let label = "";
+  if (kind === "mira_food") {
+    stat = randomOf(["str", "end", "agi"]);
+    label = `+20% к ${stat === "str" ? "силе" : stat === "end" ? "выносливости" : "ловкости"}`;
+  } else if (kind === "alva_song") {
+    stat = randomOf(["maxHp", "maxMana"]);
+    label = stat === "maxHp" ? "+20% к максимуму HP" : "+20% к максимуму маны";
+  } else if (kind === "solveig_gear") {
+    stat = state.archetype === "monk" ? "def" : randomOf(["damage", "def"]);
+    mult = 1.05;
+    label = stat === "damage" ? "+5% к урону" : "+5% к защите";
+  } else {
+    return null;
+  }
+  const id = `${kind}:${stat}`;
+  state.companionBuffs = (state.companionBuffs || []).filter((buff) => buff.id !== id);
+  state.companionBuffs.push({ id, source: kind, stat, mult, label, days: 1 });
+  invalidateStats();
+  return { companion, stat, mult, label, text: `${companion.name}: ${label} на день.` };
+}
+
+function tickCompanionBuffs() {
+  if (!Array.isArray(state.companionBuffs)) { state.companionBuffs = []; return; }
+  state.companionBuffs = state.companionBuffs
+    .map((buff) => ({ ...buff, days: (Number(buff.days) || 1) - 1 }))
+    .filter((buff) => buff.days > 0);
+  invalidateStats();
+}
+
+// Ежедневное жалование. Если золота не хватает — компаньон уходит.
+function chargeCompanionWage() {
+  const companion = activeCompanion();
+  if (!companion) return { paid: false, left: false, wage: 0 };
+  const wage = companionWage(companion.id);
+  if ((state.gold || 0) >= wage) {
+    state.gold -= wage;
+    if (typeof toast === "function") toast(`${companion.name}: ${wage} 💰 жалования.`, "info");
+    return { paid: true, left: false, wage };
+  }
+  state.companion = null;
+  state.companionDay = 0;
+  state.companionBuffs = [];
+  invalidateStats();
+  if (typeof toast === "function") toast(`${companion.name} уходит: нечем платить ${wage} 💰.`, "warn");
+  return { paid: false, left: true, wage };
 }
 
 function archetypeMods(archetypeId = state?.archetype) {
@@ -616,6 +896,7 @@ function activeArchetype() {
 function stats() {
   if (state._statsCache && state._statsCache.rev === (state._statsRev || 0)) return state._statsCache.value;
   const gear = gearBonuses(); const companion = activeCompanion(); const mult = companionMultipliers();
+  const setBonus = activeSetBonuses();
   const mods = archetypeMods();
   const ach = achievementBonuses();
   const tal = { atk: 0, crit: 0, def: 0, dodge: 0, hp: 0, hpRegen: 0, lootChance: 0, maxEnergy: 0, counterOnDodge: 0, armorPierce: 0, lifesteal: 0, secondWind: 0 };
@@ -624,35 +905,42 @@ function stats() {
     if (!t || !rank || t.active) continue; // активные навыки — умения: пассивного стата не дают
     tal[t.stat] = (tal[t.stat] || 0) + t.value * rank;
   }
+  const attrWithBuff = (value, stat) => Math.max(value, Math.ceil(value * companionBuffMultiplier(stat)));
+  // «Сон на камнях»: −20% ко всем атрибутам ДО расчёта производных статов.
+  const roughDebuff = (state.tempDebuffs || []).find((d) => d && d.id === "slept_rough");
+  const roughMult = roughDebuff ? (Number(roughDebuff.statMult) || 0.8) : 1;
   const a = {
-    str: state.attrs.str + (gear.str || 0),
-    agi: state.attrs.agi + (gear.agi || 0),
-    end: state.attrs.end + (gear.end || 0),
-    int: state.attrs.int + (gear.int || 0),
+    str: Math.floor(attrWithBuff(state.attrs.str + (gear.str || 0), "str") * roughMult),
+    agi: Math.floor(attrWithBuff(state.attrs.agi + (gear.agi || 0), "agi") * roughMult),
+    end: Math.floor(attrWithBuff(state.attrs.end + (gear.end || 0), "end") * roughMult),
+    int: Math.floor((state.attrs.int + (gear.int || 0)) * roughMult),
   };
   const chestInst = state.equipped.chest ? getInstance(state.equipped.chest) : null;
   const chestArmorType = chestInst ? ITEMS[chestInst.id]?.armorType : null;
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
   const mainWeapon = mainInst ? ITEMS[mainInst.id] : null;
 
-  const maxHp = Math.round((BASE_STATS.hp + a.end * 10 + gear.hp + tal.hp + ach.hp) * mult.hp * mods.maxHp);
-  const maxMana = Math.round((BASE_STATS.mana + a.int * 10 + gear.mana) * mult.mana);
-  let atkMult = mult.damage * mods.atk * tempDebuffMultiplier("damage");
+  const maxHp = Math.round((BASE_STATS.hp + a.end * 10 + gear.hp + tal.hp + ach.hp + setBonus.maxHpFlat) * mult.hp * mods.maxHp * setBonus.maxHpMult * companionBuffMultiplier("maxHp"));
+  const maxMana = Math.round((BASE_STATS.mana + a.int * 10 + gear.mana + setBonus.manaBonus) * mult.mana * companionBuffMultiplier("maxMana"));
+  let atkMult = mult.damage * mods.atk * tempDebuffMultiplier("damage") * setBonus.atkMult * companionBuffMultiplier("damage");
   if (state.archetype === "duelist" && mainWeapon?.handed === "1h") atkMult *= 1.3;
   const monkBonus = state.archetype === "monk" ? a.str * 1 + a.agi * 1 : 0;
   const atk = Math.ceil((BASE_STATS.damage + a.str * 1 + monkBonus + gear.atk + tal.atk + ach.atk) * atkMult);
 
-  let def = Math.round((gear.def + tal.def) * tempDebuffMultiplier("def"));
+  let def = Math.round((gear.def + tal.def + setBonus.def) * tempDebuffMultiplier("def") * companionBuffMultiplier("def"));
   if (state.archetype === "guardian" && chestArmorType === "cloth") def = Math.round(def * 0.9);
+  let hpRegen = (tal.regen || 0) + setBonus.hpRegen;
+  if (companion?.id === "mira") hpRegen += Math.max(1, Math.floor(maxHp * 0.02));
 
-  const crit = Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit + tal.crit + ach.crit);
-  let dodge = Math.min(mods.dodgeCap, a.agi * AGILITY_DODGE_PERCENT + gear.dodge + tal.dodge + ach.dodge);
+  const crit = Math.min(BASE_STATS.critCap, a.agi * AGILITY_CRIT_PERCENT + gear.crit + tal.crit + ach.crit + setBonus.crit);
+  let dodge = Math.min(mods.dodgeCap, a.agi * AGILITY_DODGE_PERCENT + gear.dodge + tal.dodge + ach.dodge + setBonus.dodge);
   if (state.archetype === "assassin" && chestArmorType === "plate") dodge = Math.round(dodge * 0.8);
-  const counter = Math.min(COUNTERATTACK_CAP, a.agi * AGILITY_COUNTER_PERCENT);
-  const blockZones = Math.min(ZONES.length, mods.blockZones + gear.block);
+  const counter = Math.min(COUNTERATTACK_CAP, a.agi * AGILITY_COUNTER_PERCENT + setBonus.counterBonus);
+  const blockZones = Math.min(ZONES.length, mods.blockZones + gear.block + setBonus.blockZones);
   const maxEnergy = EXPLORATION_MAX + (state.level - 1) + (tal.maxEnergy || 0);
   const result = { maxHp, maxMana, maxEnergy, atk, def, crit, dodge, counter, blockZones, ragePerHit: mods.ragePerHit, attrs: state.attrs, gearAttrs: { str: gear.str || 0, end: gear.end || 0, agi: gear.agi || 0, int: gear.int || 0 }, gear, companion, companionMult: mult, mods, archetype: activeArchetype(), chestArmorType, mainWeapon,
-    hpRegen: tal.regen || 0, counterOnDodge: tal.counterOnDodge || 0, lootChance: (tal.lootChance || 0) + ach.loot, armorPierce: round1(tal.armorPierce || 0), lifesteal: tal.lifesteal || 0, secondWind: tal.secondWind || 0 };
+    hpRegen: hpRegen, counterOnDodge: tal.counterOnDodge || 0, lootChance: (tal.lootChance || 0) + ach.loot + setBonus.lootChance, armorPierce: round1(tal.armorPierce || 0), lifesteal: (tal.lifesteal || 0) + setBonus.lifesteal, secondWind: tal.secondWind || 0,
+    setBonuses: setBonus.activeSets, goldBonus: setBonus.goldBonus, damageReduction: setBonus.damageReduction };
   state._statsCache = { rev: state._statsRev || 0, value: result };
   return result;
 }
@@ -692,50 +980,46 @@ function createHero(biography, archetypeId, portrait = "m1", name = "", gender =
   state.portrait = PORTRAIT_MAP[portrait] ? portrait : "m1";
   state.gender = gender === "female" ? "female" : "male";
   state.archetype = ARCHETYPE_MAP[archetypeId] ? archetypeId : null;
-  
+
   state.attrs = { str: 1, agi: 1, end: 1, int: 1 };
   let bonusGold = 0;
   let bonusHp = 0;
   let bonusMana = 0;
-  const startEquipmentIds = [];
-  const startPotions = {};
+  let bonusPotions = 0;
 
   if (biography && typeof biography === "object") {
     for (const step of BACKGROUND_STEPS) {
+      if (step.id === "archetype") continue;
       const optionId = biography[step.id];
       if (!optionId) continue;
-      const option = step.options.find((o) => o.id === optionId);
+      const pool = step.optionsByArchetype
+        ? step.optionsByArchetype[state.archetype] || []
+        : step.options || [];
+      const option = pool.find((o) => o.id === optionId);
       if (!option || !option.effects) continue;
       const eff = option.effects;
-      
+
       for (const attr of ["str", "agi", "end", "int"]) {
-        if (eff[attr]) {
-          const bonus = Math.min(4, Math.max(0, Number(eff[attr]) || 0));
-          state.attrs[attr] += bonus;
-        }
+        if (!eff[attr]) continue;
+        state.attrs[attr] += Math.min(4, Math.max(0, Number(eff[attr]) || 0));
       }
       if (eff.gold) bonusGold += Number(eff.gold) || 0;
       if (eff.hp) bonusHp += Number(eff.hp) || 0;
       if (eff.mana) bonusMana += Number(eff.mana) || 0;
-      if (Array.isArray(eff.equipment)) startEquipmentIds.push(...eff.equipment);
-      if (Array.isArray(eff.potions)) {
-        for (const p of eff.potions) startPotions[p] = (startPotions[p] || 0) + 1;
+      // Новый формат — числом (+1 зелье), старый массив id поддержан для сейвов.
+      if (Number.isFinite(Number(eff.potions))) {
+        bonusPotions += Math.max(0, Number(eff.potions));
+      } else if (Array.isArray(eff.potions)) {
+        bonusPotions += eff.potions.length;
       }
     }
   }
 
+  // Стартовое снаряжение — только из архетипа, биография вещей не даёт.
   const arch = ARCHETYPE_MAP[state.archetype];
-  if (arch && Array.isArray(arch.startEquipment)) {
-    for (const id of arch.startEquipment) {
-      const item = ITEMS[id];
-      if (!item) continue;
-      const alreadyHasSlot = startEquipmentIds.some((eqId) => {
-        const eq = ITEMS[eqId];
-        return eq && eq.slot === item.slot && item.slot !== "ring" && item.slot !== "trinket";
-      });
-      if (!alreadyHasSlot) startEquipmentIds.push(id);
-    }
-  }
+  const startEquipmentIds = arch && Array.isArray(arch.startEquipment)
+    ? arch.startEquipment.filter((id) => ITEMS[id])
+    : [];
 
   state.owned = [];
   state.nextUid = 1;
@@ -749,27 +1033,31 @@ function createHero(biography, archetypeId, portrait = "m1", name = "", gender =
   for (const id of startEquipmentIds) {
     const item = ITEMS[id];
     if (!item) continue;
-    const inst = { uid: generateUid(), id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null };
+    const inst = { uid: generateUid(), id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null, upgrade: null };
     state.owned.push(inst);
     const slot = targetSlotFor(item, inst);
     if (slot) state.equipped[slot] = inst.uid;
   }
 
   state.gold = 60 + bonusGold;
-  state.potions = { hp_small: 0, hp_big: 0, mana_small: 0, ...startPotions };
+  state.potions = { hp_small: bonusPotions, hp_big: 0, mana_small: 0 };
   state.created = true;
   state.points = 0;
   state.phase = 0;
   state.day = 1;
   state.companion = null;
   state.companionDay = 0;
+  state.affinity = Object.fromEntries(COMPANIONS.map((c) => [c.id, 0]));
+  state.hireDiscounts = {};
+  state.companionBuffs = [];
   state.energy = EXPLORATION_MAX;
 
   invalidateStats();
   const st = stats();
   state.hp = st.maxHp + bonusHp;
   state.mana = st.maxMana + bonusMana;
-  
+  clampVitals();
+
   state.weekQuests = { weekStartDay: 0, format: WEEK_QUEST_FORMAT, list: [] };
   ensureWeekQuests(true);
   saveState();
@@ -1013,6 +1301,31 @@ function weekQuestResourceGain(resId, amount) {
   checkStoryQuestResource(resId, amount);
 }
 
+// ── Единый ход репутации фракции (Блок 6) ───────────────────────────────────
+// Возвращает { rep, tierBefore, tierAfter, factionLevelUp } или null, если
+// фракции нет. Флаг perk и «новость о тире» выставляются как в квестах.
+function addFactionRep(factionId, amount) {
+  const faction = FACTION_MAP[factionId];
+  if (!faction || !Number.isFinite(amount) || amount === 0) return null;
+  state.reputation = state.reputation || normalizeFactionMap({}, 0);
+  const repBefore = state.reputation[factionId] || 0;
+  const tierBefore = factionTier(repBefore).tier;
+  state.reputation[factionId] = repBefore + amount;
+  if (state.reputation[factionId] >= FACTION_TIERS[2].min) {
+    state.factionPerksUnlocked = state.factionPerksUnlocked || {};
+    state.factionPerksUnlocked[factionId] = true;
+  }
+  const tierAfter = factionTier(state.reputation[factionId]).tier;
+  let factionLevelUp = null;
+  if (tierAfter !== tierBefore) {
+    // Флаг «новость ещё не показана» — UI-тост гасит его.
+    state.factionNotified = state.factionNotified || {};
+    state.factionNotified[factionId] = true;
+    factionLevelUp = { faction: factionId, name: faction.name };
+  }
+  return { rep: state.reputation[factionId], tierBefore, tierAfter, factionLevelUp };
+}
+
 // ── Сюжетные квесты (Этап 2) ───────────────────────────────────────────────
 // Активные хранятся как { id, progress, status } в state.activeStoryQuests;
 // для ресурсных заданий прогресс считается напрямую из state.resources.
@@ -1183,6 +1496,7 @@ function claimStoryQuest(qId) {
 }
 
 function exploreFloor(floorId) {
+  if (typeof playFootstep === "function") playFootstep("floor", floorId);
   const reason = towerClosedReason();
   if (reason) return { ok: false, text: reason };
 
@@ -1204,6 +1518,27 @@ function exploreFloor(floorId) {
     state.activeEvent = rolledEvent;
     saveState();
     return { ok: true, text: rolledEvent.text, event: true };
+  }
+
+  // Спонтанное событие этажа (Блок 6): ~15% шанс со своим кулдауном.
+  // Разрывает обычное исследование и открывает модалку выбора действий.
+  const floorEvent = rollFloorEvent(floor.id, state);
+  if (floorEvent) {
+    state.activeFloorEvent = { eventId: floorEvent.id, floorId: floor.id };
+    saveState();
+    return { ok: true, text: `Случайная встреча: «${floorEvent.title}».`, floorEvent: true };
+  }
+
+  // Уникальное событие компаньона: 10% за исследование.
+  const companion = activeCompanion();
+  if (companion && Math.random() < COMPANION_EVENT_CHANCE) {
+    const pool = COMPANION_EVENTS.filter((e) => e.companion === companion.id);
+    if (pool.length) {
+      const ev = pool[Math.floor(Math.random() * pool.length)];
+      state.activeFloorEvent = { eventId: ev.id, floorId: floor.id, companion: companion.id };
+      saveState();
+      return { ok: true, text: `${companion.icon} ${companion.name}: «${ev.title}»`, floorEvent: true };
+    }
   }
 
   const gainProgress = (amount) => {
@@ -1338,15 +1673,51 @@ function calendarLongLabel(day = state.day) { const c = calendarInfo(day); retur
 
 function advancePhase() {
   state.phase += 1;
+  let nightMessage = null;
+
+  // Наступление ночи: сон в гостинице восстанавливает полностью, сон
+  // на улице — только половину и вешает дебафф «Сон на камнях».
+  if (state.phase === 3) {
+    const inHotel = typeof view !== "undefined" && view.screen === "hotel";
+    if (inHotel) {
+      const st = stats();
+      state.hp = st.maxHp;
+      state.mana = st.maxMana;
+      state.energy = st.maxEnergy;
+    } else {
+      state.tempDebuffs = (state.tempDebuffs || []).filter((d) => d && d.id !== "slept_rough");
+      state.tempDebuffs.push({
+        id: "slept_rough",
+        name: "Сон на камнях",
+        icon: "🪨",
+        // Ночь уже закончилась, а tickTempDebuffs() сработает при переходе
+        // в утро. days: 2 → после тика останется 1 день действия.
+        days: 2,
+        desc: "-20% ко всем статам (Сила, Ловкость, Выносливость, Интеллект) на день.",
+        statMult: 0.8,
+      });
+      invalidateStats();
+      const st = stats();
+      state.hp = Math.max(1, Math.round(st.maxHp * 0.5));
+      state.mana = Math.round(st.maxMana * 0.5);
+      state.energy = Math.max(1, Math.round(st.maxEnergy * 0.5));
+      nightMessage = "Вы поспали на холодных камнях. Спина ноет, мышцы забиты.";
+    }
+  }
+
   if (state.phase >= TIME_PHASES.length) {
     state.phase = 0;
     state.day += 1;
     ensureWeekQuests();
     tickTempDebuffs();
+    tickCompanionBuffs();
+    chargeCompanionWage();
   }
   expireCompanion();
   invalidateStats();
-  clampVitals(); saveState(); return phaseInfo();
+  clampVitals(); saveState();
+  if (nightMessage && typeof toast === "function") toast(nightMessage, "warn");
+  return phaseInfo();
 }
 
 function towerClosedReason() {
@@ -1367,23 +1738,56 @@ function hotelRest() {
   state.gold -= HOTEL_PRICE; state.day += 1; state.phase = 0;
   expireCompanion();
   tickTempDebuffs();
+  tickCompanionBuffs();
+  chargeCompanionWage();
   const st = stats(); state.hp = st.maxHp; state.mana = st.maxMana; state.energy = st.maxEnergy;
   ensureWeekQuests(); saveState();
   return { ok: true, text: `Номер оплачен. HP, мана и энергия восстановлены. ${phaseLabel()}.` };
 }
 
 function hireCompanion(companionId) {
-  const companion = COMPANION_MAP[companionId]; if (!companion) return { ok: false, text: "Такой спутницы здесь нет." };
+  const companion = COMPANION_MAP[companionId];
+  if (!companion) return { ok: false, text: "Такой спутницы здесь нет." };
   const current = activeCompanion();
-  if (current?.id === companion.id) return { ok: false, text: `${companion.name} уже с вами. Осталось ${companionDaysLeft()} дн.` };
-  const discount = companionDiscountToday(); const price = Math.max(1, Math.round(companion.price * (1 - discount)));
-  if (state.gold < price) return { ok: false, text: `Не хватает золота: нужно ${price} 💰.` };
-  const oldStats = stats(); const previous = current;
-  state.gold -= price; state.companion = companion.id; state.companionDay = state.day; invalidateStats(); const newStats = stats();
-  applyVitalsDelta(oldStats, newStats); saveState();
+  if (current?.id === companion.id) return { ok: false, text: `${companion.name} уже с вами. Жалование: ${companionWage(companion.id)} 💰/день.` };
+  const cost = companionHireCost(companion.id);
+  if (state.gold < cost.price) return { ok: false, text: `Не хватает золота: нужно ${cost.price} 💰.` };
+  // Найм теперь идёт через разговор: сначала условия, потом оплата.
+  const dialogId = companion.hireDialog || `hire_${companion.id}`;
+  if (typeof view !== "undefined") {
+    view.hiringCompanion = companion.id;
+    view.talkNpc = companion.id;
+    view.talkNpcText = null;
+    view.dialogNode = dialogId;
+  }
+  return { ok: true, companion, openDialog: true, dialogId, cost, text: `${companion.name} готова обсудить условия.` };
+}
+
+// Подтверждение найма после диалога. Списывает золото и активирует компаньона.
+function finalizeCompanionHire(companionId) {
+  const companion = COMPANION_MAP[companionId];
+  if (!companion) return { ok: false, text: "Такой спутницы здесь нет." };
+  const current = activeCompanion();
+  if (current?.id === companion.id) return { ok: false, text: `${companion.name} уже с вами.` };
+  const cost = companionHireCost(companion.id);
+  if (state.gold < cost.price) return { ok: false, text: `Не хватает золота: нужно ${cost.price} 💰.` };
+  const oldStats = stats();
+  const previous = current;
+  state.gold -= cost.price;
+  state.companion = companion.id;
+  state.companionDay = state.day;
+  state.companionBuffs = [];
+  if (state.hireDiscounts) delete state.hireDiscounts[companion.id];
+  invalidateStats();
+  applyVitalsDelta(oldStats, stats());
+  saveState();
   const replaced = previous && previous.id !== companion.id ? ` ${previous.name} уступает место.` : "";
-  const sale = discount > 0 ? ` (скидка ${Math.round(discount * 100)}%)` : "";
-  return { ok: true, companion, text: `${companion.name} с вами. ${companion.buffText} на ${COMPANION_BUFF_DAYS} дня.${replaced} Оплачено ${price} 💰${sale}. Время не сдвинулось.` };
+  const sale = cost.discount > 0 ? ` (скидка ${Math.round(cost.discount * 100)}%)` : "";
+  return {
+    ok: true,
+    companion,
+    text: `${companion.name} с вами. Жалование: ${companionWage(companion.id)} 💰/день.${replaced} Оплачено ${cost.price} 💰${sale}.`,
+  };
 }
 
 function spendFightEnergy() {
@@ -1673,7 +2077,27 @@ function craftItem(recipeId) {
   }
 
   const oldStats = stats();
-  const inst = addItemInstance(recipe.result, DURABILITY_MAX, rollRarity((state.level - 1) * CRAFT_RARITY_BONUS_PER_LEVEL));
+  // ── Бонус редкости крафта (Блок 5) ──
+  // База + шкала уровня + материалы (за каждый свыше двух) + фракционный бонус.
+  const matsCount = Object.keys(recipe.materials || {}).length;
+  let craftBonus = CRAFT_BASE_BONUS
+    + (state.level - 1) * CRAFT_RARITY_BONUS_PER_LEVEL
+    + Math.min(CRAFT_MATERIALS_BONUS_MAX, CRAFT_MATERIALS_BONUS * Math.max(0, matsCount - 2));
+  const craftFactionId = SHOP_FACTION[recipe.station];
+  if (craftFactionId && ((state.reputation || {})[craftFactionId] || 0) >= FACTION_TIERS[2].min) {
+    craftBonus += CRAFT_FACTION_BONUS; // тир фракции не ниже «Уважаемого»
+  }
+  // Pity: 3 common подряд — четвёртый крафт гарантированно uncommon+.
+  state._craftPity = state._craftPity || 0;
+  let craftRarity;
+  if (state._craftPity >= 3) {
+    craftRarity = "uncommon";
+    state._craftPity = 0;
+  } else {
+    craftRarity = rollRarity(craftBonus);
+    state._craftPity = craftRarity === "common" ? state._craftPity + 1 : 0;
+  }
+  const inst = addItemInstance(recipe.result, DURABILITY_MAX, craftRarity);
   const slot = targetSlotFor(item, inst);
   const eqInst = slot && state.equipped[slot] ? getInstance(state.equipped[slot]) : null;
   const better = slot && itemScore(item, slot, inst) > itemScore(eqInst ? ITEMS[eqInst.id] : null, slot, eqInst);
@@ -1855,19 +2279,85 @@ function trySteal(entryId, stock) {
 }
 
 function trainAttr(trainingId) {
-  const training = TRAINING_MAP[trainingId]; if (!training) return { ok: false, text: "Такой тренировки здесь нет." };
-  if (state.phase !== 0) return { ok: false, text: "Зал Охотников открыт только утром." };
+  const training = TRAINING_MAP[trainingId];
+  if (!training) return { ok: false, text: "Такой тренировки здесь нет." };
+  if (!state.trainingCount) state.trainingCount = { drill: 0, sparring: 0, heavy_lifting: 0 };
+  if (typeof view !== "undefined" && view.trainingQTE) {
+    return { ok: false, text: "Иван: Сначала закончи текущую тренировку." };
+  }
+  if ((state.trainingCount[trainingId] || 0) >= (Number(training.cap) || 10)) {
+    return { ok: false, text: "Иван: Хватит. Ты уже выжат." };
+  }
+  if (state.phase !== 0) return { ok: false, text: "Иван: Тренировки только утром." };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, text: `Нужно ${TRAINING_ENERGY_COST} ⚡. Отдохните или сходите в Башню.` };
-  const attr = training.attr; const cap = trainingCap(state.level);
-  if (state.attrs[attr] >= cap) return { ok: false, text: `${ATTR_INFO.find((a) => a.id === attr).name} уже на максимуме (${cap}) для ${state.level}-го уровня.` };
 
-  const oldStats = stats(); state.energy -= TRAINING_ENERGY_COST; state.attrs[attr] += 1; invalidateStats(); const newStats = stats();
-  const hpDiff = newStats.maxHp - oldStats.maxHp; const manaDiff = newStats.maxMana - oldStats.maxMana;
-  if (hpDiff > 0) state.hp += hpDiff; if (manaDiff > 0) state.mana += manaDiff;
-  for (let i = 0; i < TRAINING_PHASES; i += 1) advancePhase();
-  clampVitals(); saveState();
-  const attrName = ATTR_INFO.find((a) => a.id === attr).name;
-  return { ok: true, text: `${training.name}: ${attrName} +1. День закончился, наступила ночь.` };
+  // Статы и фаза теперь меняются только после QTE в completeTraining().
+  state.energy -= TRAINING_ENERGY_COST;
+  view.trainingQTE = {
+    trainingId,
+    sequence: ["left", "right", "strike"],
+    currentStep: 0,
+    timeLeft: 3.0,
+  };
+  saveState();
+  if (typeof render === "function") render();
+  return { ok: true, text: `Тренировка: ${training.name}. Соберись!` };
+}
+
+// Завершение QTE-тренировки. success=false — ошибка/таймер: травма,
+// потеря HP и одной фазы, без прироста атрибута.
+function completeTraining(success = true) {
+  const qte = typeof view !== "undefined" ? view.trainingQTE : null;
+  const trainingId = qte ? qte.trainingId : null;
+  const training = TRAINING_MAP[trainingId];
+  if (!training) {
+    if (typeof view !== "undefined") view.trainingQTE = null;
+    if (typeof render === "function") render();
+    return { ok: false, text: "Тренировка не найдена." };
+  }
+  if (!state.trainingCount) state.trainingCount = { drill: 0, sparring: 0, heavy_lifting: 0 };
+  if (!state.abilities) state.abilities = { preciseStrike: false, parry: false };
+
+  const stat = training.stat || training.attr;
+  const attrName = ATTR_INFO.find((a) => a.id === stat)?.name || stat;
+  const notes = [];
+
+  if (success) {
+    const oldStats = stats();
+    state.attrs[stat] += 1;
+    state.trainingCount[trainingId] = (state.trainingCount[trainingId] || 0) + 1;
+    invalidateStats();
+    applyVitalsDelta(oldStats, stats());
+    notes.push(`Тренировка завершена. ${training.name}: ${attrName} +1.`);
+
+    // Курс из 10 занятий открывает боевую способность.
+    if (state.trainingCount[trainingId] >= 10) {
+      if (trainingId === "heavy_lifting" && !state.abilities.preciseStrike) {
+        state.abilities.preciseStrike = true;
+        notes.push('Вы освоили "Точный удар"!');
+      }
+      if (trainingId === "sparring" && !state.abilities.parry) {
+        state.abilities.parry = true;
+        notes.push("Вы освоили Парирование!");
+      }
+    }
+  } else {
+    state.hp = Math.max(1, state.hp - 20);
+    state.tempDebuffs = state.tempDebuffs || [];
+    state.tempDebuffs.push({ id: "injury", name: "Травма", icon: "🤕", days: 1, damageMult: 0.8, desc: "-20% к урону на день." });
+    notes.push("Иван: Я же говорил, не лезь на рожон.");
+  }
+
+  // И успех, и провал сдвигают ровно одну фазу: утро → день.
+  advancePhase();
+  clampVitals();
+  saveState();
+
+  if (typeof view !== "undefined") view.trainingQTE = null;
+  const text = notes.join(" ");
+  if (typeof toast === "function" && text) toast(text, success ? "ok" : "warn");
+  if (typeof render === "function") render();
+  return { ok: success, injured: !success, text };
 }
 
 function makeCombatSandbox() {

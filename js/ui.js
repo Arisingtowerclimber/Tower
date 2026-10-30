@@ -9,7 +9,7 @@ const view = {
   sceneGroup: null, sceneGroupFloorId: null, autoExplore: null,
   autoExploreMode: "safe",
   npcShopOpen: false, traderStock: null,
-  talkNpc: null, talkNpcText: null,
+  talkNpc: null, talkNpcText: null, dialogNode: null,
   shopTab: "buy", sellSelection: [], activeShopNpc: null, shopNpcPhrase: null, shopFilterArmor: null,
   trainingTab: "train",
   inventoryTab: "gear",
@@ -31,6 +31,17 @@ const view = {
 
 let toastTimer = null;
 let invFilterCache = { key: "", list: [] };
+
+// ── QTE: общее состояние анимации ──────────────────────────────────────────
+// Указатель «Точного удара» ходит слева направо и обратно; таймеры окон
+// крутятся в requestAnimationFrame и обновляют DOM без полного render().
+const QTE_CRIT_TIME = 1.5;
+const QTE_PARRY_TIME = 1.0;
+const QTE_TRAINING_TIME = 3.0;
+let qteFrame = null;
+let qteLastTs = 0;
+let qteCursorPos = 0;
+let qteCursorDir = 1;
 
 function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
 function bar(cls, value, max, role = "") { const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100)); return `<div class="bar ${cls}"${role ? ` data-role="${role}"` : ""}><span style="width:${pct}%"></span></div>`; }
@@ -176,6 +187,25 @@ function shakeBattleContainer() {
   setTimeout(() => panel.classList.remove("shake-screen"), 300);
 }
 
+// Звук шагов по экрану/этажу: тип покрытия зависит от локации.
+let _stepTimeout = null;
+function playFootstep(screen, floorId = null) {
+  let id = null;
+  if (screen === "floor" && floorId !== null) {
+    if (floorId === 1 || floorId === 4) id = "footstep_dirt";
+    else if (floorId === 2 || floorId === 3 || floorId === 5) id = "footstep_stone";
+  } else if (screen === "hub" || screen === "market" || screen === "forge" || screen === "jewelry") {
+    id = "footstep_stone";
+  } else if (screen === "hotel" || screen === "alchemy") {
+    id = "footstep_wood";
+  }
+  if (!id) return;
+  if (_stepTimeout) clearTimeout(_stepTimeout);
+  Sfx.play(id);
+  // Второй шаг через 180 мс — звук воспринимается как пара шагов.
+  _stepTimeout = setTimeout(() => Sfx.play(id), 180);
+}
+
 function previewStats(attrs, archetypeId = null) {
   const gear = gearBonuses();
   const arch = ARCHETYPE_MAP[archetypeId];
@@ -237,37 +267,77 @@ function resetCreate() {
   };
 }
 
+// Сводка эффектов варианта биографии: { str: 1, hp: 10 } → "💪 +1 Сила · ❤️ +10 HP".
+function formatEffects(effects) {
+  if (!effects || typeof effects !== "object") return "";
+  const parts = [];
+  const push = (icon, value, label, hint = "") => {
+    if (!Number.isFinite(value) || value === 0) return;
+    const sign = value > 0 ? "+" : "";
+    parts.push(`${icon} ${sign}${value}${label ? ` ${label}` : ""}${value > 0 ? hint : ""}`);
+  };
+  const end = Number(effects.end);
+  const int = Number(effects.int);
+  push("💪", Number(effects.str), "Сила");
+  push("🏃", Number(effects.agi), "Ловкость");
+  push("🛡️", end, "Выносливость", end > 0 ? ` (+${end * 10} HP)` : "");
+  push("🧠", int, "Интеллект", int > 0 ? ` (+${int * 10} маны)` : "");
+  push("❤️", Number(effects.hp), "HP");
+  push("🔷", Number(effects.mana), "маны");
+  push("💰", Number(effects.gold), "золота");
+  const potions = Number(effects.potions);
+  if (Number.isFinite(potions) && potions !== 0) {
+    const n = Math.abs(potions);
+    const word = n % 10 === 1 && n % 100 !== 11
+      ? "зелье"
+      : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "зелья" : "зелий");
+    parts.push(`🧪 ${potions > 0 ? "+" : ""}${potions} ${word}`);
+  }
+  return parts.join(" · ");
+}
+
 function createHtml() {
   const c = view.create;
-  const step = BACKGROUND_STEPS[c.step];
   const totalSteps = BACKGROUND_STEPS.length;
-  const isLastStep = c.step >= totalSteps - 1;
   const portrait = PORTRAIT_MAP[c.portrait] || PORTRAITS[0];
 
   if (c.step >= totalSteps) {
     return createSummaryHtml(c, portrait);
   }
 
-  const progress = ((c.step + 1) / totalSteps) * 100;
-  
-  const optionsHtml = step.options.map((opt) => {
-    const selected = c.answers[step.id] === opt.id;
+  const step = BACKGROUND_STEPS[c.step];
+  const isArchetype = step.id === "archetype";
+  const options = isArchetype
+    ? ARCHETYPES
+    : (step.optionsByArchetype ? step.optionsByArchetype[c.archetype] || [] : step.options || []);
+  const progress = ((c.step + 1) / (totalSteps + 1)) * 100;
+  const isLastStep = c.step >= totalSteps - 1;
+
+  const optionsHtml = options.map((opt) => {
+    const selected = isArchetype ? c.archetype === opt.id : c.answers[step.id] === opt.id;
+    const effects = isArchetype ? null : opt.effects;
+    const action = isArchetype
+      ? `data-act="bio-archetype" data-id="${opt.id}"`
+      : `data-act="bio-option" data-step="${step.id}" data-option="${opt.id}"`;
     return `
-      <button class="archetype-card${selected ? " selected" : ""}" data-act="bio-option" data-step="${step.id}" data-option="${opt.id}" type="button">
+      <button class="archetype-card${selected ? " selected" : ""}" ${action} type="button">
         <span class="archetype-icon">${opt.icon || "•"}</span>
         <span class="archetype-body">
-          <b>${opt.label}</b>
+          <b>${opt.label || opt.name}</b>
           <span>${opt.desc}</span>
+          ${effects ? `<span class="effect-summary">${formatEffects(effects)}</span>` : ""}
         </span>
       </button>
     `;
   }).join("");
 
+  const canAdvance = isArchetype ? Boolean(c.archetype) : Boolean(c.answers[step.id]);
+
   return `
     <div class="create-bg"></div>
     <section class="create">
       <div class="create-head">
-        <p class="eyebrow">Перед подъёмом · Шаг ${c.step + 1} из ${totalSteps}</p>
+        <p class="eyebrow">Перед подъёмом · Шаг ${c.step + 1} из ${totalSteps + 1}</p>
         ${step.lore ? `<p class="lore">${esc(step.lore)}</p>` : ""}
         <h1>${step.title}</h1>
         <p class="lead">${step.text}</p>
@@ -280,73 +350,54 @@ function createHtml() {
           <div class="archetype-grid">${optionsHtml}</div>
           <div class="create-actions" style="margin-top: 20px; flex-direction: row; gap: 10px;">
             ${c.step > 0 ? `<button class="btn ghost" data-act="bio-back" type="button">← Назад</button>` : `<button class="btn ghost" data-act="create-reset" type="button">Сбросить</button>`}
-            ${c.answers[step.id] ? `<button class="btn primary" data-act="bio-next" type="button">${isLastStep ? "К сводке →" : "Далее →"}</button>` : `<button class="btn" type="button" disabled>Выберите вариант</button>`}
+            ${canAdvance ? `<button class="btn primary" data-act="bio-next" type="button">${isLastStep ? "К имени и портрету →" : "Далее →"}</button>` : `<button class="btn" type="button" disabled>${isArchetype ? "Выберите архетип" : "Выберите вариант"}</button>`}
           </div>
         </section>
       </div>
     </section>
   `;
 }
+
 function createSummaryHtml(c, portrait) {
   const attrs = { str: 1, agi: 1, end: 1, int: 1 };
   let bonusGold = 0;
-  const equipmentIds = [];
-  const potionsCount = {};
+  let bonusPotions = 0;
+  const pathChips = [];
 
   for (const step of BACKGROUND_STEPS) {
+    if (step.id === "archetype") continue;
     const optionId = c.answers[step.id];
     if (!optionId) continue;
-    const opt = step.options.find((o) => o.id === optionId);
-    if (!opt || !opt.effects) continue;
-    const eff = opt.effects;
-    for (const a of ["str", "agi", "end", "int"]) if (eff[a]) attrs[a] += Math.min(4, eff[a]);
-    if (eff.gold) bonusGold += eff.gold;
-    if (Array.isArray(eff.equipment)) equipmentIds.push(...eff.equipment);
-    if (Array.isArray(eff.potions)) for (const p of eff.potions) potionsCount[p] = (potionsCount[p] || 0) + 1;
+    const pool = step.optionsByArchetype ? step.optionsByArchetype[c.archetype] || [] : step.options || [];
+    const opt = pool.find((o) => o.id === optionId);
+    if (!opt) continue;
+    pathChips.push(`<span class="chip">${opt.icon || "•"} ${esc(opt.label)}</span>`);
+    const eff = opt.effects || {};
+    for (const a of ["str", "agi", "end", "int"]) {
+      if (eff[a]) attrs[a] += Math.min(4, Math.max(0, Number(eff[a]) || 0));
+    }
+    if (eff.gold) bonusGold += Number(eff.gold) || 0;
+    if (Number.isFinite(Number(eff.potions))) bonusPotions += Math.max(0, Number(eff.potions));
+    else if (Array.isArray(eff.potions)) bonusPotions += eff.potions.length;
   }
 
   const arch = ARCHETYPE_MAP[c.archetype];
-  if (arch && Array.isArray(arch.startEquipment)) {
-    for (const id of arch.startEquipment) {
-      const item = ITEMS[id];
-      if (!item) continue;
-      const alreadyHasSlot = equipmentIds.some((eqId) => {
-        const eq = ITEMS[eqId];
-        return eq && eq.slot === item.slot && item.slot !== "ring" && item.slot !== "trinket";
-      });
-      if (!alreadyHasSlot) equipmentIds.push(id);
-    }
-  }
-
-  const preview = previewStats(attrs, c.archetype);
+  const equipmentIds = arch && Array.isArray(arch.startEquipment) ? arch.startEquipment.filter((id) => ITEMS[id]) : [];
   const equipmentChips = equipmentIds.map((id) => {
     const item = ITEMS[id];
-    if (!item) return "";
     return `<span class="chip">${iconHtml(item.icon, 16)} ${item.name}</span>`;
   }).join("");
 
-  const potionChips = Object.entries(potionsCount).map(([id, count]) => {
-    const item = ITEMS[id];
-    if (!item) return "";
-    return `<span class="chip">${iconHtml(item.icon, 16)} ${item.name} ×${count}</span>`;
-  }).join("");
-
-  const archetypeCards = ARCHETYPES.map((a) => `
-    <button class="archetype-card${c.archetype === a.id ? " selected" : ""}" data-act="bio-archetype" data-id="${a.id}" type="button">
-      <span class="archetype-icon">${a.icon}</span>
-      <span class="archetype-body"><b>${a.name}</b><span>${a.desc}</span></span>
-    </button>
-  `).join("");
-
-  const canStart = Boolean(c.archetype) && Boolean(c.name.trim() || "Странник");
+  const preview = previewStats(attrs, c.archetype);
+  const canStart = Boolean(arch);
 
   return `
     <div class="create-bg"></div>
     <section class="create">
       <div class="create-head">
-        <p class="eyebrow">Шаг ${BACKGROUND_STEPS.length + 1} из ${BACKGROUND_STEPS.length + 1} · Сводка</p>
+        <p class="eyebrow">Шаг ${BACKGROUND_STEPS.length + 1} из ${BACKGROUND_STEPS.length + 1} · Имя и портрет</p>
         <h1>Ваш герой</h1>
-        <p class="lead">Проверьте биографию и выберите архетип.</p>
+        <p class="lead">Остался последний штрих: имя и лицо.</p>
       </div>
       <div class="create-grid">
         <section class="panel">
@@ -355,7 +406,9 @@ function createSummaryHtml(c, portrait) {
           <div class="field"><label for="hero-name">Имя героя</label><input class="name-input" id="hero-name" type="text" maxlength="20" data-role="create-name" autocomplete="off" spellcheck="false" placeholder="Странник" value="${esc(c.name)}"></div>
 
           <div class="field"><label>Портрет</label><div class="portrait-picker">${PORTRAITS.map((p) => `<button class="portrait-option${p.id === c.portrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" style="aspect-ratio: 1 / 1;" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
-          
+
+          <div class="field"><label>Пройденный путь</label><div class="chips">${pathChips.length ? pathChips.join("") : `<span class="chip dim">Биография не выбрана</span>`}</div></div>
+
           <h2 class="group-title">Итоговые атрибуты</h2>
           <div class="attr-list">
             ${ATTR_INFO.map((a) => `<div class="attr-row"><div class="attr-info"><b>${a.name}</b><span class="hint">${a.effect}</span></div><div class="attr-controls"><span class="attr-value">${attrs[a.id]}</span></div></div>`).join("")}
@@ -366,8 +419,8 @@ function createSummaryHtml(c, portrait) {
             <div class="chips">${equipmentChips || `<span class="chip dim">Пусто</span>`}</div>
           </div>
 
-          ${potionChips ? `<div class="field"><label>Зелья</label><div class="chips">${potionChips}</div></div>` : ""}
-          
+          ${bonusPotions > 0 ? `<div class="field"><label>Зелья</label><div class="chips"><span class="chip">🧪 Зелья ×${bonusPotions}</span></div></div>` : ""}
+
           <div class="points-bar" style="margin-top: 16px;">
             <span>Стартовое золото</span>
             <b>${60 + bonusGold} 💰</b>
@@ -380,9 +433,11 @@ function createSummaryHtml(c, portrait) {
             <div class="preview-portrait-caption"><b>${esc(c.name || "Странник")}</b></div>
           </div>
 
-          <h2 class="group-title">Выбор архетипа</h2>
-          <div class="archetype-grid">${archetypeCards}</div>
-          
+          ${arch ? `<div class="preview-archetype">
+            <div class="preview-archetype-head"><span class="archetype-icon">${arch.icon}</span><b>${arch.name}</b></div>
+            <span>${arch.desc}</span>
+          </div>` : `<div class="preview-archetype empty"><b>Архетип не выбран</b><span>Вернитесь на первый шаг.</span></div>`}
+
           <div class="stat-grid" style="margin-top: 20px; grid-template-columns: repeat(2, 1fr);">
             <div class="stat-box"><span>HP</span><b>${preview.maxHp}</b></div>
             <div class="stat-box"><span>Мана</span><b>${preview.maxMana}</b></div>
@@ -391,8 +446,8 @@ function createSummaryHtml(c, portrait) {
           </div>
 
           <div class="create-actions" style="margin-top: 20px;">
-            <button class="btn ghost" data-act="bio-back" type="button">← Назад к биографии</button>
-            <button class="btn primary big" data-act="start-game" type="button" ${canStart ? "" : "disabled"}>${canStart ? "Начать путь" : "Введите имя и выберите архетип"}</button>
+            <button class="btn ghost" data-act="bio-back" type="button">← Назад к мотиву</button>
+            <button class="btn primary big" data-act="start-game" type="button" ${canStart ? "" : "disabled"}>${canStart ? "Начать путь" : "Выберите архетип"}</button>
           </div>
         </section>
       </div>
@@ -457,8 +512,9 @@ function topbarHtml(st) {
   const hasRewards = wqDone > 0;
 
   // Активные временные дебаффы (от событий) — статус-стрип с оставшимися днями.
+  const debuffIcons = { injury: "🤕", slept_rough: "🪨" };
   const debuffs = (state.tempDebuffs || []).map((d) =>
-    `<span class="debuff-pill" title="${esc(d.desc || d.name)}">${d.icon || "⚠"} ${d.name} · ${d.days} дн.</span>`
+    `<span class="debuff-pill" title="${esc(d.desc || d.name)}">${d.icon || debuffIcons[d.id] || "⚠"} ${d.name} · ${d.days} дн.</span>`
   ).join("");
   const debuffStrip = debuffs ? `<div class="debuff-strip">${debuffs}</div>` : "";
 
@@ -518,7 +574,7 @@ function hubHtml(st) {
           <div class="status-item buff" style="margin: 0; padding: 8px 12px;">
             <span>Спутница</span>
             <b>${companion.icon} ${companion.name}</b>
-            <small>${companion.buffText} · ещё ${companionDaysLeft()} дн.</small>
+            <small>${companion.buffText} · ${companionAffinityInfo(companion.id).rank.name} · ${companionWage(companion.id)} 💰/день</small>
           </div>
         ` : ""}
       </div>
@@ -590,21 +646,21 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
 
   if (currentSlide) {
     const optionsHtml = currentSlide.options.map((opt, idx) => 
-      `<button class="btn primary" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(opt.text)}</button>`
+      `<button class="btn primary npc-story-option" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button">${esc(opt.text)}</button>`
     ).join("");
 
     return `
-      <div class="npc-dialogue-bar" style="display: flex; flex-direction: row; align-items: stretch; gap: 20px; background: rgba(20, 16, 14, 0.95); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-        <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="width: 150px; height: 150px; flex-shrink: 0; object-fit: cover; border-radius: 12px; border: 2px solid var(--gold);">
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-          <div>
-            <p class="npc-name" style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--gold2); text-transform: uppercase; letter-spacing: 0.05em;">${esc(npcName)}</p>
-            <p class="npc-dialogue" style="margin: 0; font-style: italic; font-size: 1.05rem; line-height: 1.5; color: #e2e8f0;">«${esc(currentSlide.npc)}»</p>
+      <div class="npc-dialogue-bar npc-story-bar">
+        <div class="npc-dialogue-main">
+          <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}">
+          <div class="npc-dialogue-text">
+            <p class="npc-name npc-name-lg">${esc(npcName)}</p>
+            <p class="npc-dialogue npc-dialogue-lg">«${esc(currentSlide.npc)}»</p>
           </div>
-          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
-            ${optionsHtml}
-            <button class="btn ghost" data-act="story-leave" data-npc="${npcId}" type="button" style="width: 100%; text-align: left;">Уйти</button>
-          </div>
+        </div>
+        <div class="npc-story-actions">
+          ${optionsHtml}
+          <button class="btn ghost npc-story-option" data-act="story-leave" data-npc="${npcId}" type="button">Уйти</button>
         </div>
       </div>
     `;
@@ -613,26 +669,41 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
   const phrase = view.shopNpcPhrase || getRandomPhrase(npcId, "greetings");
   
   const btn = (tabId, label) =>
-    `<button class="shop-tab${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button" style="text-align: center;">${label}</button>`;
+    `<button class="shop-tab npc-action-btn${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button">${label}</button>`;
   const craftStation = CRAFT_NPC_STATIONS[npcId];
   const craftBtn = craftStation && getRecipes(craftStation).length ? btn("craft", "📜 Крафт") : "";
-    
+
+  // Группы действий: пустые группы не выводятся, чтобы не оставлять дыр в сетке.
+  const actionGroups = [
+    { title: "Торговля", items: [btn("buy", buyLabel), sellLabel ? btn("sell", sellLabel) : ""] },
+    { title: "Мастерская", items: [
+      craftBtn,
+      FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : "",
+      npcId === "ron" ? btn("exchange", "🔁 Обмен") : "",
+    ] },
+    { title: "Информация", items: [
+      npcId === "ivan" ? "" : btn("quests", "📜 Есть задания?"),
+      storyQuestBarBtn(npcId),
+    ] },
+  ];
+  const actionsHtml = actionGroups.map((group) => {
+    const items = group.items.filter(Boolean);
+    if (!items.length) return "";
+    return `<span class="npc-action-group-title">${group.title}</span>${items.join("")}`;
+  }).join("");
+
   return `
     <div class="npc-dialogue-bar">
-      <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
-      <div class="npc-dialogue-text" style="display: flex; flex-direction: column; justify-content: flex-start; padding-top: 4px;">
-        <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
-        <p class="npc-dialogue">«${esc(phrase)}»</p>
+      <div class="npc-dialogue-main">
+        <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
+        <div class="npc-dialogue-text">
+          <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
+          <p class="npc-dialogue">«${esc(phrase)}»</p>
+        </div>
       </div>
-      <div class="npc-dialogue-actions">
-        ${extraAction}
-        ${btn("buy", buyLabel)}
-        ${sellLabel ? btn("sell", sellLabel) : ""}
-        ${craftBtn}
-        ${FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : ""}
-        ${npcId === "ron" ? btn("exchange", "🔁 Обмен") : ""}
-        ${npcId === "ivan" ? "" : btn("quests", "📜 Есть задания?")}
-        ${storyQuestBarBtn(npcId)}
+      <div class="npc-action-grid">
+        ${extraAction ? `<div class="npc-action-featured">${extraAction}</div>` : ""}
+        ${actionsHtml}
       </div>
     </div>
   `;
@@ -751,20 +822,39 @@ function marketHtml() {
   `;
 }
 
+function affinityBarHtml(companionId) {
+  const companion = COMPANION_MAP[companionId];
+  if (!companion) return "";
+  const info = companionAffinityInfo(companionId);
+  const nextText = info.next ? `${info.value} / ${info.next.min}` : `${info.value} / максимум`;
+  const bonusText = info.rank.bonus ? `+${Math.round(info.rank.bonus * 100)}% к баффу` : "без бонуса";
+  return `<div style="margin-top:10px;">
+    <div style="display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--gold2);">
+      <b>${companion.icon} ${esc(companion.name)}</b><span>${esc(info.rank.name)}</span>
+    </div>
+    <div class="bar" style="height:6px; margin-top:5px;"><span style="width:${info.percent}%"></span></div>
+    <div style="display:flex; justify-content:space-between; gap:8px; margin-top:4px; font-size:11px; opacity:.8;">
+      <span>${nextText}</span><span>${bonusText} · ${companionWage(companionId)} 💰/день</span>
+    </div>
+  </div>`;
+}
+
 function hotelHtml() {
-  const companion = activeCompanion(); const daysLeft = companionDaysLeft();
-  const canHotel = state.gold >= HOTEL_PRICE; const discount = companionDiscountToday();
-  const companionPrice = Math.max(1, Math.round(COMPANION_PRICE * (1 - discount)));
+  const companion = activeCompanion();
+  const canHotel = state.gold >= HOTEL_PRICE;
   const cards = COMPANIONS.map((c) => {
-    const active = companion?.id === c.id; const price = Math.max(1, Math.round(c.price * (1 - discount))); const canPay = state.gold >= price;
+    const active = companion?.id === c.id;
+    const cost = companionHireCost(c.id);
+    const canPay = state.gold >= cost.price;
+    const discountNote = cost.discount > 0 ? ` <span class="hint">−${Math.round(cost.discount * 100)}%</span>` : "";
     const action = active
-      ? `<button class="btn small primary" type="button" disabled>С вами ещё ${daysLeft} дн.</button>`
-      : `<button class="btn small" data-act="companion" data-id="${c.id}" ${canPay ? "" : "disabled"} type="button">${companion ? "Сменить" : "Нанять"} на ${COMPANION_BUFF_DAYS} дня</button>`;
-    return `<article class="companion-card${active ? " active" : ""}"><div class="companion-head"><img class="companion-portrait" src="${c.src || npcPortraitSrc(c.id)}" alt=""><div class="companion-name"><h3>${c.name}</h3><span class="companion-role">${c.role}</span><span class="companion-buff">${c.buffText}</span></div></div>${active ? `<span class="badge">Сейчас с вами</span>` : ""}<p class="item-desc">${c.desc}</p><div class="companion-foot"><span class="price">${price} 💰</span>${action}</div></article>`;
+      ? `<button class="btn small primary" type="button" disabled>С вами</button>`
+      : `<button class="btn small" data-act="companion" data-id="${c.id}" ${canPay ? "" : "disabled"} type="button">Нанять · ${cost.price} 💰</button>`;
+    return `<article class="companion-card${active ? " active" : ""}"><div class="companion-head"><img class="companion-portrait" src="${c.src || npcPortraitSrc(c.id)}" alt=""><div class="companion-name"><h3>${c.name}</h3><span class="companion-role">${c.role}</span><span class="companion-buff">${c.buffText} · ${companionWage(c.id)} 💰/день</span></div></div>${active ? `<span class="badge">Сейчас с вами</span>` : ""}<p class="item-desc">${c.desc}</p>${affinityBarHtml(c.id)}<div class="companion-foot" style="flex-wrap:wrap; gap:8px;"><span class="price">${cost.price} 💰${discountNote}</span><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn small ghost" data-act="companion-talk" data-id="${c.id}" type="button">Поговорить</button>${action}</div></div></article>`;
   }).join("");
   const companionNote = companion
-    ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${daysLeft} дн. Найм не сдвигает время.</span></div>`
-    : `<div class="companion-note">💞 Бафф действует ${COMPANION_BUFF_DAYS} дня и не сдвигает время. Активна только одна спутница.</div>`;
+    ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>`
+    : `<div class="companion-note">💞 Компаньон остаётся с вами, пока вы платите жалование. Отношения растут в боях и событиях.</div>`;
 
   const tab = view.shopTab === "quests" ? "quests" : view.shopTab === "story" ? "story" : "buy";
   const content =
@@ -783,29 +873,33 @@ function hotelHtml() {
 }
 
 function trainingAvailability(training) {
+  const cap = Number(training.cap) || 10;
+  const count = state.trainingCount?.[training.id] || 0;
   if (state.phase !== 0) return { ok: false, reason: "Только утром" };
+  if (count >= cap) return { ok: false, reason: `Потолок (${cap})` };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, reason: `Нужно ${TRAINING_ENERGY_COST} ⚡` };
-  const cap = trainingCap(state.level); if (state.attrs[training.attr] >= cap) return { ok: false, reason: `Максимум (${cap})` };
   return { ok: true, reason: "" };
 }
 
 function trainingHtml() {
-  const cap = trainingCap(state.level);
   const warning = state.phase === 0
-    ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает весь день.</div>`)
-    : `<div class="banner warn-banner">🌙 Сейчас не утро.</div>`;
+    ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает фазу: утро → день.</div>`)
+    : `<div class="banner warn-banner">🌙 Сейчас не утро. Иван отдыхает.</div>`;
 
   const trainingCards = TRAININGS.map((t) => {
     const avail = trainingAvailability(t);
-    const current = state.attrs[t.attr];
-    const attrName = ATTR_INFO.find((a) => a.id === t.attr).name;
-    const pct = Math.max(0, Math.min(100, Math.round((current / cap) * 100)));
-    const cost = `<span class="price">⚡ ${TRAINING_ENERGY_COST} · ⏳ ${TRAINING_PHASES} фазы</span>`;
+    const cap = Number(t.cap) || 10;
+    const stat = t.stat || t.attr;
+    const current = state.attrs[stat];
+    const count = state.trainingCount?.[t.id] || 0;
+    const attrName = ATTR_INFO.find((a) => a.id === stat).name;
+    const pct = Math.max(0, Math.min(100, Math.round((count / cap) * 100)));
+    const cost = `<span class="price">⚡ ${TRAINING_ENERGY_COST} · ⏳ ${TRAINING_PHASES} фаза · риск ${Math.round((t.risk || 0) * 100)}%</span>`;
     return `<article class="training-card${avail.ok ? "" : " disabled"}">
       <div class="training-head"><span class="training-icon">${t.icon}</span><div class="training-name"><h3>${t.name}</h3><span class="training-effect">${esc(t.effect || "")}</span></div></div>
       <p class="item-desc">${t.desc}</p>
       <div class="training-progress">
-        <span class="training-attr">${attrName}: ${current} / ${cap}</span>
+        <span class="training-attr">${attrName}: ${current} · курс ${count} / ${cap}</span>
         <div class="bar training-bar"><span style="width:${pct}%"></span></div>
       </div>
       <div class="training-foot">${cost}<button class="btn small${avail.ok ? " primary" : ""}" data-act="train" data-id="${t.id}" ${avail.ok ? "" : "disabled"} type="button">${avail.ok ? "Тренироваться" : avail.reason}</button></div>
@@ -955,7 +1049,10 @@ function timmyModalHtml() {
         <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="" onerror="this.style.display='none'">
         <p class="npc-dialogue">«${esc(view.timmyTip || randomTimmyTip())}»</p>
       </div>
-      <button class="btn small ghost" data-act="timmy-open" type="button" style="margin-top: 12px;">🔄 Спросить ещё</button>
+      <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+        <button class="btn small ghost" data-act="timmy-open" type="button">🔄 Спросить ещё</button>
+        <button class="btn small primary" data-act="npc-talk" data-npc="timmy" type="button">💬 Поговорить</button>
+      </div>
     </div>
   `;
 }
@@ -1073,8 +1170,8 @@ function questsModalHtml() {
 // Табы: audio (звук), ui (интерфейс), controls (управление).
 function settingsModalHtml() {
   const tab = view.settingsTab || "audio";
-  const savedMusic = platform.storage.get("tower_music_volume");
-  const musicVol = savedMusic !== null && savedMusic !== undefined && savedMusic !== "" ? parseFloat(savedMusic) : 0.3;
+  const musicVol = LocationAudio.getVolumeMusic();
+  const ambientVol = LocationAudio.getVolumeAmbient();
 
   const tabBtn = (id, label) =>
     `<button class="settings-tab${tab === id ? " active" : ""}" data-act="settings-tab" data-tab="${id}" type="button">${label}</button>`;
@@ -1085,7 +1182,12 @@ function settingsModalHtml() {
       <div class="settings-row">
         <label for="music-volume">Музыка</label>
         <input type="range" id="music-volume" min="0" max="1" step="0.01" value="${musicVol}">
-        <span class="settings-val">${Math.round(musicVol * 100)}%</span>
+        <span class="settings-val" data-role="music-volume-label">${Math.round(musicVol * 100)}%</span>
+      </div>
+      <div class="settings-row">
+        <label for="ambient-volume">Амбиент</label>
+        <input type="range" id="ambient-volume" min="0" max="1" step="0.05" value="${ambientVol}">
+        <span class="settings-val" data-role="ambient-volume-label">${Math.round(ambientVol * 100)}%</span>
       </div>
       <div class="settings-row">
         <label>Звуки (SFX)</label>
@@ -1303,7 +1405,7 @@ function storyQuestRewardText(def) {
 function storyQuestBarBtn(npcId) {
   if (!availableStoryQuestForNpc(npcId) && !activeStoryQuestForNpc(npcId)) return "";
   const inWork = !!activeStoryQuestForNpc(npcId);
-  return `<button class="shop-tab" data-act="shop-tab" data-tab="story" data-npc="${npcId}" type="button" style="text-align: center;">📖 Сюжет${inWork ? " ✓" : ""}</button>`;
+  return `<button class="shop-tab npc-action-btn${view.shopTab === "story" ? " active" : ""}" data-act="shop-tab" data-tab="story" data-npc="${npcId}" type="button">📖 Сюжет${inWork ? " ✓" : ""}</button>`;
 }
 
 function storyQuestPanelHtml(npcId) {
@@ -1640,7 +1742,7 @@ function forgeHtml() {
   return `<div class="screen-bg" style="background-image: url('assets/backgrounds/forge.webp');"></div>
     ${subHeader("Кузница", "Оружие и броня", "market", "← Назад")}
     ${npcDialogueBar("ron", "🛒 Купить", "💰 Хочу продать")}
-    ${npcStorySlide("ron") ? "" : `<div class="shop-grid"><div class="shop-main">${content}</div></div>`}
+    ${npcStorySlide("ron") ? "" : content}
   `;
 }
 
@@ -1659,7 +1761,7 @@ function jewelryHtml() {
     <div class="screen-bg" style="background-image: url('assets/backgrounds/jewelry.webp');"></div>
     ${subHeader("Ювелирная лавка", "Тонкая работа", "market", "← Назад")}
     ${npcDialogueBar("elize", "🛒 Купить", "💰 Хочу продать")}
-    ${npcStorySlide("elize") ? "" : `<div class="shop-grid"><div class="shop-main">${content}</div></div>`}
+    ${npcStorySlide("elize") ? "" : content}
   `;
 }
 
@@ -1716,7 +1818,7 @@ function alchemyHtml() {
     <div class="screen-bg" style="background-image: url('assets/backgrounds/alchemy.webp');"></div>
     ${subHeader("Лавка Алхимика", "Зелья и настои", "market", "← Назад")}
     ${npcDialogueBar("elain", "🛒 Купить", "💰 Хочу продать")}
-    ${npcStorySlide("elain") ? "" : `<div class="shop-grid single"><div class="shop-main">${content}</div></div>`}
+    ${npcStorySlide("elain") ? "" : content}
   `;
 }
 
@@ -2035,11 +2137,74 @@ function heroInventoryHtml() {
   return `<p class="hint">Снаряжение отображается на портрете. Кликните по слоту, чтобы сменить предмет.</p>`;
 }
 
+// ── Сетовые бонусы в профиле героя ─────────────────────────────────────────
+// Форматирует объект бонусов одного порога в читаемую строку.
+const SET_BONUS_LABELS = {
+  dodge: { suffix: "% уворота", signed: true },
+  crit: { suffix: "% крита", signed: true },
+  lootChance: { suffix: "% дропа", signed: true },
+  counterBonus: { suffix: "% контратаки", signed: true },
+  manaBonus: { suffix: " маны", signed: true },
+  hpRegen: { suffix: " HP/день", signed: true },
+  maxHpFlat: { suffix: " HP", signed: true },
+  maxHpMult: { suffix: "% макс. HP", mult: true },
+  def: { suffix: " защиты", signed: true },
+  blockZones: { suffix: " зон блока", signed: true },
+  damageReduction: { suffix: "% урона", reduction: true },
+  atkMult: { suffix: "% урона", mult: true },
+  lifesteal: { suffix: "% вампиризма", signed: true },
+  goldBonus: { suffix: "% золота", signed: true },
+};
+
+function setBonusText(bonuses) {
+  return Object.entries(bonuses || {}).map(([key, value]) => {
+    const label = SET_BONUS_LABELS[key];
+    if (!label || !Number.isFinite(value)) return "";
+    if (label.mult) return `+${Math.round((value - 1) * 100)}${label.suffix}`;
+    if (label.reduction) return `−${value}${label.suffix}`;
+    return `+${value} ${label.suffix}`;
+  }).filter(Boolean).join(", ");
+}
+
+function setBonusesHtml(st) {
+  const active = (st && st.setBonuses) || activeSetBonuses().activeSets;
+  if (!active || !active.length) return "";
+  const rows = active.map((entry) => {
+    const set = SETS[entry.id];
+    if (!set) return "";
+    const now = set.bonuses[entry.threshold] ? setBonusText(set.bonuses[entry.threshold]) : "";
+    const typeName = entry.pair ? "Пара" : (ARMOR_TYPE_NAMES[set.type] || "Броня");
+    const next = entry.nextThreshold
+      ? `<span class="set-next">ещё ${entry.nextThreshold - entry.count} → ${setBonusText(set.bonuses[entry.nextThreshold])}</span>`
+      : "";
+    return `<div class="set-bonus-row">
+      <div class="set-bonus-head"><b>${esc(set.name)}</b><span class="set-pieces">${entry.count}/${entry.size}</span></div>
+      <div class="set-bonus-meta"><span>${typeName} · тир ${set.tier}</span>${next}</div>
+      ${now ? `<div class="set-bonus-now">Сейчас: ${now}</div>` : ""}
+    </div>`;
+  }).join("");
+  if (!rows) return "";
+  return `<div class="attr-head"><h2 class="group-title">Сетовые бонусы</h2></div><div class="set-bonus-list">${rows}</div>`;
+}
+
 function heroHtml(st) {
   const xpMax = xpNeeded(state.level); const xpPct = Math.round((state.xp / xpMax) * 100);
   const companion = activeCompanion(); const archetype = ARCHETYPE_MAP[state.archetype] || null;
   const potionChips = Object.values(ITEMS).filter((i) => i.slot === "potion" && (state.potions[i.id] || 0) > 0).map((i) => `<button class="btn tiny ghost" data-act="drink" data-id="${i.id}" type="button">${iconHtml(i.icon, 16)} ${i.name} ×${state.potions[i.id]}</button>`).join("") || `<span class="empty">Зелий нет.</span>`;
   const counterFormatted = Math.round(st.counter * 10) / 10;
+
+  // Освоенные QTE-способности и активные дебаффы.
+  const learnedAbilities = [];
+  if (state.abilities?.preciseStrike) learnedAbilities.push("Точный удар");
+  if (state.abilities?.parry) learnedAbilities.push("Парирование");
+  const abilitiesHtml = learnedAbilities.length
+    ? `<div class="ability-badges"><span class="badge">✨ Освоено: ${learnedAbilities.join(", ")}</span></div>`
+    : "";
+  const DEBUFF_ICONS = { injury: "🤕", slept_rough: "🪨" };
+  const heroDebuffs = (state.tempDebuffs || []).map((d) =>
+    `<span class="debuff-pill" title="${esc(d.desc || d.name)}">${d.icon || DEBUFF_ICONS[d.id] || "⚠"} ${esc(d.name)} · ${d.days} дн.</span>`
+  ).join("");
+  const heroDebuffsHtml = heroDebuffs ? `<div class="debuff-strip hero-debuffs">${heroDebuffs}</div>` : "";
 
   return `
     <div class="hero-bg"></div>
@@ -2066,8 +2231,11 @@ function heroHtml(st) {
           <div class="stat-box"><span>Уворот</span><b>${st.dodge}%</b></div><div class="stat-box"><span>Крит</span><b>${st.crit}%</b></div>
           <div class="stat-box"><span>Контр</span><b>${counterFormatted}%</b></div><div class="stat-box"><span>Зон блока</span><b>${st.blockZones}</b></div>
         </div>
+        ${abilitiesHtml}
+        ${heroDebuffsHtml}
+        ${setBonusesHtml(st)}
         ${archetype ? `<div class="archetype-note">${iconHtml(archetype.icon, 20)} <span><b>${archetype.name}</b>: ${archetype.desc}</span></div>` : ""}
-        ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. Осталось ${companionDaysLeft()} дн.</span></div>` : ""}
+        ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>${affinityBarHtml(companion.id)}` : ""}
         <div class="attr-head"><h2 class="group-title">Репутация</h2></div>
         <div class="faction-list">${factionReputationHtml()}</div>
         <div class="attr-head"><h2 class="group-title">Атрибуты</h2></div>
@@ -2279,9 +2447,24 @@ function exploreResultModalHtml() {
   `;
 }
 
+// Реплика активного компаньона на событие. Возвращает готовую строку или "".
+// Одна и та же реплика для одного и того же key (без мигания при ререндере).
+function companionReaction(type, key = "") {
+  if (typeof activeCompanion !== "function") return "";
+  const companion = activeCompanion();
+  if (!companion) return "";
+  const set = COMPANION_REACTIONS[companion.id];
+  if (!set) return "";
+  const lines = set[type] || set.explore;
+  if (!Array.isArray(lines) || !lines.length) return "";
+  const seed = String(key || type).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return `${companion.icon} ${companion.name}: «${lines[seed % lines.length]}»`;
+}
+
 // Модалка процедурного события: заглушка-картинка, заголовок, текст и кнопки выбора.
 function renderEventModal(event) {
   if (!event) return "";
+  const reaction = companionReaction(event.type || "explore", event.id);
   const actions = (event.options || []).map((o) =>
     `<button class="btn primary" data-act="event-action" data-event="${event.id}" data-option="${o.id}" type="button" style="flex:1; min-width:160px;">${o.label}</button>`
   ).join("");
@@ -2291,6 +2474,58 @@ function renderEventModal(event) {
         <div class="event-image" aria-hidden="true">${event.icon || "❓"}</div>
         <h2 style="color: var(--gold2); font-size: 24px; margin: 16px 0 4px;">${event.icon || ""} ${event.name}</h2>
         <p style="font-size: 15px; line-height: 1.55; margin: 12px 0 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">${esc(event.text)}</p>
+        ${reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""}
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">${actions}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Спонтанные события этажей (Блок 6) ──────────────────────────────────────
+// Вход: state.activeFloorEvent = { eventId, floorId, encounter? }.
+// В отличие от renderEventModal кнопки = сразу выбор действий (не success/fail).
+function renderFloorEventModal(fe) {
+  if (!fe) return "";
+  // Открытый охотник — рисуем диалог охотника поверх.
+  if (fe.encounter) return renderHunterEncounterModal(fe);
+  const event = FLOOR_EVENTS[fe.eventId];
+  if (!event) return "";
+  const reaction = companionReaction(event.type || "explore", `${event.id}:${fe.floorId}`);
+  const actions = (event.actions || []).map((a) =>
+    `<button class="btn primary" data-act="floor-event-action" data-event="${event.id}" data-action="${a.id}" type="button" style="flex:1; min-width:160px;">${a.label}</button>`
+  ).join("");
+  return `
+    <div class="result-overlay" style="z-index: 195;">
+      <div class="result-card" style="max-width: 520px;">
+        <div class="event-image" aria-hidden="true">${event.icon || "❓"}</div>
+        <h2 style="color: var(--gold2); font-size: 24px; margin: 16px 0 4px;">${event.icon || ""} ${event.title}</h2>
+        <p style="font-size: 15px; line-height: 1.55; margin: 12px 0 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">${esc(event.text)}</p>
+        ${reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""}
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">${actions}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Диалог встречи с охотником Гильдии: помочь / убить / оставить в покое.
+function renderHunterEncounterModal(fe) {
+  const enc = (HUNTER_ENCOUNTERS || []).find((h) => h.id === fe.encounter);
+  if (!enc) return "";
+  const hint = enc.helpNeed ? (enc.helpNeed.potion ? "Помощь стоит лечащего зелья." : "Помощь стоит одного ресурса.") : "Помощь — за просто так.";
+  const actions = [
+    { id: "help", label: "🧪 Помочь" },
+    { id: "kill", label: "🗡 Убить" },
+    { id: "leave", label: "🚶 Оставить в покое" },
+  ].map((a) =>
+    `<button class="btn primary" data-act="hunter-enc-action" data-enc="${enc.id}" data-action="${a.id}" type="button" style="flex:1; min-width:150px;">${a.label}</button>`
+  ).join("");
+  return `
+    <div class="result-overlay" style="z-index: 195;">
+      <div class="result-card" style="max-width: 520px;">
+        <div class="event-image" aria-hidden="true">${enc.icon || "🏹"}</div>
+        <h2 style="color: var(--gold2); font-size: 24px; margin: 16px 0 4px;">${enc.icon || ""} ${enc.name}</h2>
+        <p style="font-size: 15px; line-height: 1.55; margin: 12px 0 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">${esc(enc.text)}</p>
+        <p style="font-size: 13px; color: rgba(220, 205, 175, 0.75); margin: -8px 0 16px;">${esc(hint)}</p>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">${actions}</div>
       </div>
     </div>
@@ -2403,7 +2638,9 @@ function battleHtml(st) {
     : "";
 
   // Бейджи врага выносим отдельным рядом под именем, чтобы не раздувать строку с названием.
+  const role = MOB_ROLES[enemy.role]; const roleBadge = role ? `<span class="chip">${role.icon} ${role.name}</span>` : "";
   const enemyBadges = [
+    roleBadge,
     enemy.rarity === "rare" ? `<span class="chip" style="border-color: #d9a94b; color: #d9a94b;" title="Редкий враг">Редкий</span>` : "",
     enemy.rarity === "elite" ? `<span class="chip" style="border-color: #c2483c; color: #c2483c;" title="Элитный враг">Элитный</span>` : "",
     enemy.modifier ? `<span class="chip" style="cursor: help;" title="${MOB_MODIFIERS[enemy.modifier].desc}">${MOB_MODIFIERS[enemy.modifier].name}</span>` : "",
@@ -2444,6 +2681,10 @@ function battleHtml(st) {
       }).join("");
 
   const log = battle.log.slice(-18).map((entry) => `<div class="log-line ${entry.cls}">${esc(entry.text)}</div>`).join("");
+  const companionBattleType = battle.over
+    ? (view.summary ? (view.summary.victory ? "victory" : "defeat") : (battle.hp <= 0 ? "victory" : "defeat"))
+    : (battle.turn === 0 ? "fight_start" : "");
+  const battleReaction = companionBattleType ? companionReaction(companionBattleType, `${battle.enemy.id}:${battle.turn}`) : "";
   const activeZoneTip = ZONE_MAP[view.attackZone]?.tip || "";
   const currentStyle = state.archetype === "monk" ? battle.monkStance : view.attackStyle;
   const estimatedDmg = estimateDamage(state, battle, view.attackZone, currentStyle, mainInst);
@@ -2534,6 +2775,7 @@ function battleHtml(st) {
 
       <!-- ЦЕНТР: Лог боя -->
       <div class="battle-log" id="battle-log" data-role="battle-log" style="flex: 1; max-height: none; margin-bottom: 10px; overflow-y: auto;">
+        ${battleReaction ? `<div class="companion-reaction" style="margin-bottom: 8px;">${esc(battleReaction)}</div>` : ""}
         ${log || `<div class="log-line info">Выберите зону удара и зоны блока, затем нажмите «Размен».</div>`}
       </div>
 
@@ -2650,6 +2892,189 @@ function battleModalHtml() {
   `;
 }
 
+// ── QTE-модалки ────────────────────────────────────────────────────────────
+function renderCritModal() {
+  const w = view.battle && view.battle.critWindow;
+  if (!w) return "";
+  return `
+    <div class="qte-modal" role="dialog" aria-label="Точный удар">
+      <div class="qte-card">
+        <h2 class="qte-title">ТОЧНЫЙ УДАР!</h2>
+        <p class="qte-subtitle">Остановите указатель в зелёной зоне</p>
+        <div class="crit-scale">
+          <div class="crit-cursor" data-role="crit-cursor" style="left:0%"></div>
+        </div>
+        <div class="crit-legend"><span>×1.3</span><span>×1.6</span><span>×1.9</span><span>×1.6</span><span>×1.3</span></div>
+        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:100%"></span></div>
+        <button class="parry-btn qte-stop-btn" data-act="crit-stop" type="button">Стоп!</button>
+      </div>
+    </div>`;
+}
+
+function renderParryModal() {
+  const w = view.battle && view.battle.parryWindow;
+  if (!w) return "";
+  return `
+    <div class="qte-modal" role="dialog" aria-label="Парирование">
+      <div class="qte-card parry-card">
+        <h2 class="qte-title parry-title">ПАРИРУЙ!</h2>
+        <p class="qte-subtitle">Удар в «${esc(w.zone || "")}»!</p>
+        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:100%"></span></div>
+        <button class="parry-btn" data-act="parry-block" type="button">Блок</button>
+      </div>
+    </div>`;
+}
+
+function renderTrainingQte() {
+  const qte = view.trainingQTE;
+  if (!qte) return "";
+  const training = TRAINING_MAP[qte.trainingId];
+  if (!training) return "";
+  const total = Array.isArray(qte.sequence) && qte.sequence.length ? qte.sequence.length : 3;
+  const step = Math.max(0, Math.min(total, Number(qte.currentStep) || 0));
+  const dots = Array.from({ length: total }, (_, i) =>
+    `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px;background:${i < step ? "var(--gold2)" : "rgba(255,255,255,0.18)"};box-shadow:${i < step ? "0 0 8px rgba(217,169,75,0.7)" : "none"};"></span>`
+  ).join("");
+  const pct = Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / QTE_TRAINING_TIME) * 100));
+  const button = (move, label) =>
+    `<button class="btn primary" data-act="training-qte" data-move="${move}" type="button" style="flex:1;min-height:48px;">${label}</button>`;
+  return `
+    <div class="qte-modal" role="dialog" aria-label="Тренировка">
+      <div class="qte-card">
+        <h2 class="qte-title">Тренировка: ${esc(training.name)}</h2>
+        <p class="qte-subtitle">Повтори движение: влево → вправо → удар</p>
+        <div style="margin:4px 0 14px;">${dots}</div>
+        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:${pct}%"></span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          ${button("left", "Влево")}
+          ${button("right", "Вправо")}
+          ${button("strike", "Удар")}
+        </div>
+      </div>
+    </div>`;
+}
+
+function stopQteLoop() {
+  if (qteFrame !== null) {
+    cancelAnimationFrame(qteFrame);
+    qteFrame = null;
+  }
+}
+
+function updateQteTimer(ratio) {
+  const fill = document.querySelector('[data-role="qte-timer-fill"]');
+  if (fill) fill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+}
+
+function ensureQteLoop() {
+  stopQteLoop();
+  const battle = view.battle;
+  const battleQte = battle && !battle.over && !view.summary && view.screen === "battle"
+    && (battle.critWindow || battle.parryWindow);
+  if (!view.trainingQTE && !battleQte) return;
+
+  qteLastTs = performance.now();
+  qteCursorPos = 0;
+  qteCursorDir = 1;
+
+  const tick = (now) => {
+    const dt = Math.min(0.1, Math.max(0, (now - qteLastTs) / 1000));
+    qteLastTs = now;
+
+    // Тренировка: три кнопки и общий таймер на 3 секунды.
+    if (view.trainingQTE) {
+      const q = view.trainingQTE;
+      q.timeLeft -= dt;
+      updateQteTimer(q.timeLeft / QTE_TRAINING_TIME);
+      if (q.timeLeft <= 0) { completeTraining(false); return; }
+      qteFrame = requestAnimationFrame(tick);
+      return;
+    }
+
+    const b = view.battle;
+    if (!b) { qteFrame = null; return; }
+
+    if (b.critWindow) {
+      b.critWindow.timeLeft -= dt;
+      qteCursorPos += qteCursorDir * dt * 0.9;
+      if (qteCursorPos >= 1) { qteCursorPos = 1; qteCursorDir = -1; }
+      else if (qteCursorPos <= 0) { qteCursorPos = 0; qteCursorDir = 1; }
+      const cursor = document.querySelector('[data-role="crit-cursor"]');
+      if (cursor) cursor.style.left = `${qteCursorPos * 100}%`;
+      updateQteTimer(b.critWindow.timeLeft / QTE_CRIT_TIME);
+      if (b.critWindow.timeLeft <= 0) { resolveCritTimeout(); return; }
+    } else if (b.parryWindow) {
+      b.parryWindow.timeLeft -= dt;
+      updateQteTimer(b.parryWindow.timeLeft / QTE_PARRY_TIME);
+      if (b.parryWindow.timeLeft <= 0) { resolveParryTimeout(); return; }
+    } else {
+      qteFrame = null;
+      return;
+    }
+    qteFrame = requestAnimationFrame(tick);
+  };
+  qteFrame = requestAnimationFrame(tick);
+}
+
+// Общий финиш QTE: победа/поражение и полный render.
+function settleQte() {
+  stopQteLoop();
+  const battle = view.battle;
+  if (battle && battle.hp <= 0 && !battle.over) {
+    view.summary = finishVictory(state, battle);
+  } else if (battle && state.hp <= 0 && !battle.over) {
+    view.summary = defeatSummary(state, battle, battle.enemy);
+  }
+  render();
+}
+
+function resolveCritStop() {
+  const battle = view.battle;
+  const w = battle && battle.critWindow;
+  if (!w) return;
+  const pos = qteCursorPos;
+  const mult = pos >= 0.42 && pos <= 0.58 ? 1.9 : (pos >= 0.25 && pos <= 0.75 ? 1.6 : 1.3);
+  const damage = Math.max(1, Math.round((Number(w.damageBase) || 0) * mult));
+  battle.hp = Math.max(0, battle.hp - damage);
+  battle.critWindow = null;
+  battleLog(battle, `Точный удар! (x${mult.toFixed(1)}) — ${damage} урона.`, "crit");
+  settleQte();
+}
+
+function resolveCritTimeout() {
+  const battle = view.battle;
+  const w = battle && battle.critWindow;
+  if (!w) return;
+  const damage = Math.max(1, Math.round(Number(w.damageBase) || 0));
+  battle.hp = Math.max(0, battle.hp - damage);
+  battle.critWindow = null;
+  battleLog(battle, `Указатель остановился сам — удар вышел неточным: ${damage} урона.`, "hit");
+  settleQte();
+}
+
+function resolveParryClick() {
+  const battle = view.battle;
+  const w = battle && battle.parryWindow;
+  if (!w) return;
+  const damage = Math.max(1, Math.round((Number(w.damageBase) || 0) * 0.5));
+  state.hp = Math.max(0, state.hp - damage);
+  battle.rage = Math.min(5, battle.rage + 1);
+  battle.parryWindow = null;
+  battleLog(battle, `Вы парировали! +1 кураж. Урон снижен до ${damage}.`, "block");
+  settleQte();
+}
+
+function resolveParryTimeout() {
+  const battle = view.battle;
+  const w = battle && battle.parryWindow;
+  if (!w) return;
+  const damage = Math.max(1, Math.round(Number(w.damageBase) || 0));
+  state.hp = Math.max(0, state.hp - damage);
+  battle.parryWindow = null;
+  battleLog(battle, `Парирование не удалось: ${damage} урона.`, "enemy");
+  settleQte();
+}
+
 function resultHtml() {
   const summary = view.summary;
   if (!summary) return "";
@@ -2743,6 +3168,8 @@ function battlePopupsHtml(newLines) {
 function renderBattle() {
   const battle = view.battle;
   if (!battle) { render(); return; }
+  // Если после размена открылось окно QTE — нужен полный рендер с модалкой.
+  if (battle.critWindow || battle.parryWindow) { render(); return; }
   const st = stats();
 
   const setBar = (role, value, max) => {
@@ -2840,6 +3267,7 @@ function render() {
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
   if (state.activeNpcId && view.screen !== "battle") html += traderDialogHtml();
   if (state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderEventModal(state.activeEvent);
+  if (state.activeFloorEvent && !state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderFloorEventModal(state.activeFloorEvent);
   
   if (view.exploreResult) html += exploreResultModalHtml();
   
@@ -2865,10 +3293,55 @@ function render() {
   html += battlePopupsHtml(newLines);
   if (view.screen === "battle" && (!view.battle || view.battle.turn === 0)) view.prevLog = 0;
 
+  // QTE поверх боя: сначала критический удар, затем парирование.
+  if (view.screen === "battle" && view.battle && !view.battle.over && !view.summary) {
+    if (view.battle.critWindow) html += renderCritModal();
+    else if (view.battle.parryWindow) html += renderParryModal();
+  }
+
+  // QTE тренировки: модалка живёт поверх экрана Зала Охотников.
+  if (view.trainingQTE) html += renderTrainingQte();
+
   screen.innerHTML = html;
   screen.dataset.screen = view.screen; 
   
   if (view.screen === "battle") requestAnimationFrame(scrollLog);
+  if (view.trainingQTE || view.screen === "battle") ensureQteLoop();
+  else stopQteLoop();
+
+  updateLocationAudio(view.screen, view.currentFloor, view.battle);
+}
+
+// Музыка/амбиент по текущему экрану. Вызывается из render(); смена трека
+// происходит только при реальной смене id (см. LocationAudio.playMusic).
+function updateLocationAudio(screen, floorId, battle) {
+  LocationAudio.init(); // на случай первого запуска
+
+  if (screen === "battle" && battle) {
+    LocationAudio.playMusic(battle.boss ? "boss" : "battle");
+    LocationAudio.playAmbient(null); // В бою амбиент не нужен
+    return;
+  }
+  if (screen === "floor" && floorId) {
+    LocationAudio.playMusic("tower");
+    LocationAudio.playAmbient("floor_" + floorId);
+    return;
+  }
+  if (screen === "tower" || screen === "hero") {
+    LocationAudio.playMusic("tower");
+    LocationAudio.playAmbient(null);
+    return;
+  }
+  if (screen === "market") {
+    LocationAudio.playMusic("market"); // Рынок звучит в слоте музыки
+    LocationAudio.playAmbient(null);   // и не дублируется как амбиент
+    return;
+  }
+  if (["hub", "forge", "alchemy", "jewelry", "hotel", "training"].includes(screen)) {
+    LocationAudio.playMusic("hub");
+    LocationAudio.playAmbient(screen);
+    return;
+  }
 }
 
 function beginBattle(def, floorId, opts = {}) {
@@ -2913,7 +3386,7 @@ function onInput(event) {
     Sfx.setVolume(el.value);
     const label = document.querySelector('[data-role="sfx-volume-label"]');
     if (label) label.textContent = Math.round(Sfx.getVolume() * 100) + "%";
-    Sfx.play("hit", { volume: Sfx.getVolume() });
+    Sfx.play("hit_slash", { volume: Sfx.getVolume() });
   }
 }
 
@@ -2941,9 +3414,15 @@ const NPC_TALK_TARGETS = {
   elize:   { screen: "jewelry",  tabField: "jewelryTab",  shopLabel: "Показать товары" },
   stella:  { screen: "hotel",    tabField: null,          shopLabel: "Снять номер" },
   ivan:    { screen: "training", tabField: "trainingTab", shopLabel: "Тренировки", shopTab: "train" },
+  timmy:   { screen: "training", tabField: "trainingTab", shopLabel: "Спросить совет", shopTab: "train" },
+  arthur:  { screen: "market",   tabField: null,          shopLabel: "Показать товары" },
+  // Компаньоны: найм идёт через hire-диалоги, а не через лавку.
+  mira:    { screen: "hotel",    tabField: null,          shopLabel: "Нанять" },
+  alva:    { screen: "hotel",    tabField: null,          shopLabel: "Нанять" },
+  solveig: { screen: "hotel",    tabField: null,          shopLabel: "Нанять" },
 };
 
-const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхимик", elize: "Элиза, ювелир", stella: "Стелла, хозяйка гостиницы", ivan: "Иван, Капитан" };
+const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхимик", elize: "Элиза, ювелир", stella: "Стелла, хозяйка гостиницы", ivan: "Иван, Капитан", timmy: "Тимми, молодой охотник", arthur: "Артур, странствующий торговец", mira: "Мира, травница", alva: "Альва, певица", solveig: "Сольвейг, наёмница" };
 
 function getRandomPhrase(npcId, phraseType) {
   const set = DIALOGS[npcId];
@@ -2952,7 +3431,7 @@ function getRandomPhrase(npcId, phraseType) {
   return phrase || "";
 }
 
-const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", stella: "Гостиница «Усталый путник»", ivan: "Зал Охотников" };
+const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", stella: "Гостиница «Усталый путник»", ivan: "Зал Охотников", timmy: "Зал Охотников", arthur: "Торговая площадь", mira: "Гостиница «Усталый путник»", alva: "Гостиница «Усталый путник»", solveig: "Гостиница «Усталый путник»" };
 function firstMeetModalHtml(npcId) {
   const set = DIALOGS[npcId];
   if (!set || !set.story) return "";
@@ -2989,9 +3468,85 @@ function storyQuestTalkBtnHtml(npcId) {
   return `<button class="btn ghost" data-act="npc-talk-story" data-npc="${npcId}" type="button">📖 Сюжет</button>`;
 }
 
+// Диалоговое дерево: узел + опции с mood-цветами. opt.action === "open_shop"
+// открывает лавку NPC, opt.next === null закрывает разговор.
+function openDialogShop(npcId) {
+  const target = NPC_TALK_TARGETS[npcId];
+  const screen = target?.screen || (npcId === "timmy" ? "training" : npcId === "arthur" ? "market" : null);
+  if (!screen) {
+    toast("Здесь нечем торговать.", "warn");
+    return;
+  }
+  if (isNight() && ["forge", "alchemy", "jewelry", "training"].includes(screen)) {
+    toast("Ночью эта локация закрыта. Дождитесь утра.", "warn");
+    return;
+  }
+  const phrase = getRandomPhrase(npcId, "shop_open");
+  if (phrase) toast(phrase, "ok");
+  view.talkNpc = null;
+  view.talkNpcText = null;
+  view.dialogNode = null;
+  if (target?.tabField) view[target.tabField] = target.shopTab || "quests";
+  go(screen);
+}
+
+function renderDialogTree(npcId, nodeId) {
+  const tree = DIALOG_TREES[npcId];
+  if (!tree) return "";
+  let node = tree[nodeId] || tree.start;
+  if (!node || (node.requires && !dialogRequiresMet(node.requires))) node = tree.start;
+  if (!node) return "";
+
+  ensureWeekQuests();
+  const q = state.weekQuests.list.find((x) => x.npc === npcId);
+  let questButton = "";
+  if (q) {
+    if (q.status === "offered") questButton = `<button class="btn small primary" data-act="npc-talk-quest" data-npc="${npcId}" type="button">Взять задание</button>`;
+    else if (q.status === "active") questButton = `<button class="btn small" disabled type="button">Задание в работе</button>`;
+    else if (q.status === "done") questButton = `<button class="btn small primary" data-act="claim-npc-quest" data-id="${q.id}" type="button">Сдать задание</button>`;
+  }
+  const topicsButton = DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length
+    ? `<button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" type="button">🗣 Поболтать</button>`
+    : "";
+  const mood = state.npcMood?.[npcId];
+  const moodLabel = mood === "good" ? "расположен" : mood === "bad" ? "недоволен" : "";
+
+  // Скрытые опции (requires) не показываем, но сохраняем исходный индекс:
+  // обработчик dialog-option ищет опцию по data-option в полном массиве.
+  const optionsHtml = (node.options || [])
+    .map((opt, index) => ({ opt, index }))
+    .filter(({ opt }) => dialogRequiresMet(opt.requires))
+    .map(({ opt, index }) => {
+      const moodClass = opt.mood === "good" ? " good" : opt.mood === "bad" ? " bad" : " neutral";
+      return `<button class="btn dialog-option${moodClass}" data-act="dialog-option" data-npc="${npcId}" data-option="${index}" type="button">${esc(opt.label)}</button>`;
+    }).join("");
+
+  return `
+    <div class="result-overlay" data-act="npc-talk-backdrop" style="z-index: 184;">
+      <div class="result-card" style="max-width: 560px; text-align: left;">
+        <div style="display:flex; gap:15px; align-items:center; text-align:left;">
+          <img src="${npcPortraitSrc(npcId)}" alt="${esc(NPC_NAMES[npcId] || npcId)}" style="width:84px; height:84px; flex:0 0 84px; border-radius:12px; object-fit:cover; border:1px solid var(--gold); background:#1c1511;" onerror="this.outerHTML='<b style=font-size:52px>🧙</b>'">
+          <div>
+            <h2 style="color:var(--gold2); font-size:22px; margin:0 0 4px;">${esc(NPC_TALK_PLACE[npcId] || NPC_NAMES[npcId] || npcId)}</h2>
+            <span class="hint">${esc(NPC_NAMES[npcId] || npcId)}${moodLabel ? ` · ${moodLabel}` : ""}</span>
+          </div>
+        </div>
+        <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(node.text || "")}»</p>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">${optionsHtml}</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
+          ${questButton}
+          ${storyQuestTalkBtnHtml(npcId)}
+          ${topicsButton}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function npcDialogHtml(npcId) {
   const target = NPC_TALK_TARGETS[npcId];
   if (!target) return "";
+  if (DIALOG_TREES[npcId]) return renderDialogTree(npcId, view.dialogNode || "start");
   const dialogue = view.talkNpcText || getRandomPhrase(npcId, "greetings");
   ensureWeekQuests();
   const q = state.weekQuests.list.find((x) => x.npc === npcId);
@@ -3269,7 +3824,14 @@ function onClick(event) {
     case "bio-archetype": {
       const c = view.create;
       if (!c) break;
-      c.archetype = el.dataset.id;
+      const nextArchetype = el.dataset.id;
+      // Смена класса не должна тянуть ответы от прежнего архетипа.
+      if (c.archetype !== nextArchetype) {
+        c.archetype = nextArchetype;
+        for (const step of BACKGROUND_STEPS) {
+          if (step.optionsByArchetype) delete c.answers[step.id];
+        }
+      }
       render();
       break;
     }
@@ -3289,13 +3851,13 @@ function onClick(event) {
       break;
     case "floor-open": view.currentFloor = Number(el.dataset.floor); view.screen = "floor"; render(); break;
     case "quests-open": view.questsOpen = true; render(); break;
-    case "quests-close": view.questsOpen = false; render(); break;
+    case "quests-close": view.questsOpen = false; Sfx.play("chest_close"); render(); break;
     case "settings-open": view.settingsOpen = true; render(); break;
-    case "settings-close": view.settingsOpen = false; render(); break;
+    case "settings-close": view.settingsOpen = false; Sfx.play("chest_close"); render(); break;
     case "settings-tab": view.settingsTab = el.dataset.tab || "audio"; render(); break;
     case "test-sound": Sfx.play("open"); break;
     case "bestiary-open": view.bestiaryOpen = true; render(); break;
-    case "bestiary-close": view.bestiaryOpen = false; render(); break;
+    case "bestiary-close": view.bestiaryOpen = false; Sfx.play("chest_close"); render(); break;
     case "bestiary-filter":
       if (["all", "defeated", "unknown", "boss"].includes(el.dataset.filter)) { view.bestiaryFilter = el.dataset.filter; render(); }
       break;
@@ -3305,9 +3867,57 @@ function onClick(event) {
       go(el.dataset.screen);
       break;
     case "npc-talk":
-      if (NPC_TALK_TARGETS[el.dataset.npc]) { view.talkNpc = el.dataset.npc; view.talkNpcText = getRandomPhrase(el.dataset.npc, "greetings"); render(); }
+      if (NPC_TALK_TARGETS[el.dataset.npc]) { view.talkNpc = el.dataset.npc; view.talkNpcText = getRandomPhrase(el.dataset.npc, "greetings"); view.dialogNode = "start"; view.timmyTip = null; render(); }
       break;
-    case "npc-talk-backdrop": view.talkNpc = null; view.talkNpcText = null; render(); break;
+    case "dialog-option": {
+      const npcId = el.dataset.npc;
+      const tree = DIALOG_TREES[npcId];
+      if (!tree) break;
+      const node = tree[view.dialogNode || "start"] || tree.start;
+      const opt = node && Array.isArray(node.options) ? node.options[Number(el.dataset.option)] : null;
+      if (!opt) break;
+      if (!dialogRequiresMet(opt.requires)) break;
+      if (opt.effects) {
+        const applied = applyDialogEffects(opt.effects, npcId);
+        if (applied.text) toast(applied.text, opt.mood === "bad" ? "warn" : "ok");
+      }
+      if (opt.mood) {
+        state.npcMood[npcId] = opt.mood;
+        saveState();
+      }
+      if (opt.action === "open_shop") {
+        openDialogShop(npcId);
+        break;
+      }
+      if (opt.effects && opt.effects.action === "hire") {
+        const companionId = opt.effects.companionId || npcId;
+        const hired = finalizeCompanionHire(companionId);
+        if (!hired.ok) { toast(hired.text, "warn"); break; }
+        toast(hired.text, "ok");
+        view.hiringCompanion = null;
+        if (opt.next === null || opt.next === undefined) {
+          view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null;
+        } else {
+          view.dialogNode = opt.next;
+        }
+        render();
+        break;
+      }
+      if (opt.next === null || opt.next === undefined) {
+        const farewell = getRandomPhrase(npcId, "farewell");
+        view.talkNpc = null;
+        view.talkNpcText = null;
+        view.dialogNode = null;
+        view.hiringCompanion = null;
+        render();
+        if (farewell) toast(farewell, "ok");
+        break;
+      }
+      view.dialogNode = opt.next;
+      render();
+      break;
+    }
+    case "npc-talk-backdrop": view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null; view.hiringCompanion = null; render(); break;
     case "npc-talk-topics": {
       view.topicsNpc = el.dataset.npc || null;
       view.topicReply = null;
@@ -3333,7 +3943,7 @@ function onClick(event) {
     }
     case "npc-talk-close": {
       const npc = view.talkNpc;
-      view.talkNpc = null; view.talkNpcText = null; render();
+      view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null; view.hiringCompanion = null; render();
       if (npc) toast(getRandomPhrase(npc, "farewell"), "ok");
       break;
     }
@@ -3342,7 +3952,7 @@ function onClick(event) {
       if (!target) break;
       if (isNight() && ["forge", "alchemy", "jewelry", "training"].includes(target.screen)) { toast("Ночью эта локация закрыта. Дождитесь утра.", "warn"); break; }
       toast(getRandomPhrase(npcId, "shop_open"), "ok");
-      view.talkNpc = null; view.talkNpcText = null;
+      view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null;
       if (target.tabField) view[target.tabField] = target.shopTab || "quests";
       go(target.screen);
       break;
@@ -3429,6 +4039,10 @@ function onClick(event) {
     }
     case "shop-tab": {
       const tab = el.dataset.tab || "buy";
+      const actionGrid = el.closest(".npc-action-grid");
+      if (actionGrid) {
+        actionGrid.querySelectorAll(".npc-action-btn").forEach((b) => b.classList.toggle("active", b === el));
+      }
       if (view.shopTab === "sell" && tab !== "sell") view.sellSelection = [];
       view.shopTab = tab;
       view.activeShopNpc = el.dataset.npc || view.activeShopNpc;
@@ -3573,7 +4187,7 @@ function onClick(event) {
       const npcId = el.dataset.npc;
       const target = NPC_TALK_TARGETS[npcId];
       if (!target) break;
-      view.talkNpc = null; view.talkNpcText = null;
+      view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null;
       view.shopTab = "story";
       go(target.screen);
       break;
@@ -3584,18 +4198,18 @@ function onClick(event) {
     case "create-reset": resetCreate(view.create?.name || "", view.create?.portrait || "m1", view.create?.archetype || null); render(); break;
     case "start-game": tryStartGame(); break;
     case "doll-slot": view.dollSlot = view.dollSlot === el.dataset.slot ? null : el.dataset.slot; view.invItemUid = null; render(); break;
-    case "doll-close": view.dollSlot = null; render(); break;
+    case "doll-close": view.dollSlot = null; Sfx.play("chest_close"); render(); break;
     case "doll-equip": res = equipItemToSlot(el.dataset.uid, el.dataset.slot); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.dollSlot = null; render(); break;
     case "doll-unequip": res = unequipSlot(el.dataset.slot); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.dollSlot = null; render(); break;
     case "inv-slot-click": view.invItemUid = view.invItemUid === el.dataset.uid ? null : el.dataset.uid; view.dollSlot = null; render(); break;
-    case "inv-menu-close": view.invItemUid = null; render(); break;
+    case "inv-menu-close": view.invItemUid = null; Sfx.play("chest_close"); render(); break;
     case "inv-equip": res = equipItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.invItemUid = null; render(); break;
     case "inv-filter": view.invFilter = el.dataset.filter || "all"; render(); break;
     case "add-attr": res = addAttr(el.dataset.attr); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "title-open": view.titleModal = true; render(); break;
     case "talents-open": view.talentsModal = true; render(); break;
-    case "talents-close": view.talentsModal = false; render(); break;
-    case "title-close": view.titleModal = false; render(); break;
+    case "talents-close": view.talentsModal = false; Sfx.play("chest_close"); render(); break;
+    case "title-close": view.titleModal = false; Sfx.play("chest_close"); render(); break;
     case "title-pick": {
       const res = selectTitle(el.dataset.title);
       toast(res.text, res.ok ? "ok" : "warn");
@@ -3617,13 +4231,23 @@ function onClick(event) {
       break;
     case "hotel-rest": res = hotelRest(); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "companion": res = hireCompanion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "companion-talk": {
+      const c = COMPANION_MAP[id];
+      if (!c) break;
+      view.hiringCompanion = c.id;
+      view.talkNpc = c.id;
+      view.talkNpcText = null;
+      view.dialogNode = c.hireDialog || `hire_${c.id}`;
+      render();
+      break;
+    }
     case "train": res = trainAttr(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "hunt-accept": res = acceptWeekQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "hunt-claim": res = claimNpcQuest(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "timmy-open": view.timmyTip = randomTimmyTip(); render(); break;
-    case "timmy-close": view.timmyTip = null; render(); break;
+    case "timmy-close": view.timmyTip = null; Sfx.play("chest_close"); render(); break;
     case "buy": res = buyItem(id, el.dataset.shop || "forge"); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
-    case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
+    case "craft": res = craftItem(id); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) Sfx.play("forge_craft"); render(); break;
     case "sell": res = sellItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "sell-potion": res = sellPotion(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "drink": res = drinkPotion(id); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) Sfx.play("potion"); render(); break;
@@ -3642,7 +4266,7 @@ function onClick(event) {
       render();
       break;
     case "battle-left-tab": view.battleModal = el.dataset.tab; render(); break;
-    case "battle-modal-close": view.battleModal = null; render(); break;
+    case "battle-modal-close": view.battleModal = null; Sfx.play("chest_close"); render(); break;
     case "sell-resource": res = sellResource(id); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "explore": {
@@ -3680,6 +4304,8 @@ function onClick(event) {
     case "auto-stop": stopAutoExplore("Авто-исследование остановлено."); break;
     case "scene-action": resolveSceneAction(el.dataset.action); break;
     case "scene-backdrop": resolveSceneAction("leave"); break;
+    case "floor-event-action": resolveFloorEventAction(el.dataset.event, el.dataset.action); break;
+    case "hunter-enc-action": resolveHunterEncounterAction(el.dataset.enc, el.dataset.action); break;
     case "npc-action": {
       const act = el.dataset.npcAction;
       if (act === "buy") {
@@ -3730,6 +4356,23 @@ function onClick(event) {
     case "monk-stance": if (view.battle && MONK_STANCES.some((s) => s.id === el.dataset.stance)) { view.battle.monkStance = el.dataset.stance; render(); } break;
     case "block-zone": toggleBlock(el.dataset.zone); break;
     
+    // QTE-реакции
+    case "crit-stop": resolveCritStop(); break;
+    case "parry-block": resolveParryClick(); break;
+    case "training-qte": {
+      const qte = view.trainingQTE;
+      if (!qte) break;
+      const expected = Array.isArray(qte.sequence) ? qte.sequence[qte.currentStep] : null;
+      if (el.dataset.move !== expected) {
+        completeTraining(false);
+        break;
+      }
+      qte.currentStep += 1;
+      if (qte.currentStep >= qte.sequence.length) completeTraining(true);
+      else render();
+      break;
+    }
+
     // БОЕВЫЕ ДЕЙСТВИЯ С ТРЯСКОЙ
     case "exchange": 
       shake();
@@ -3834,8 +4477,15 @@ function onClick(event) {
 function handleKey(event) {
   if (!state) return;
   if (!state.created) { if (event.key === "Enter" && view.create) tryStartGame(); return; }
+  // ESC закрывает настройки и модалки — до проверки фокуса, чтобы работало с ползунка.
+  if (event.key === "Escape") {
+    if (view.settingsOpen) { view.settingsOpen = false; Sfx.play("chest_close"); render(); return; }
+    if (view.titleModal) { view.titleModal = false; Sfx.play("chest_close"); render(); return; }
+    if (view.talentsModal) { view.talentsModal = false; Sfx.play("chest_close"); render(); return; }
+    if (view.questsOpen) { view.questsOpen = false; Sfx.play("chest_close"); render(); return; }
+  }
   if (event.target?.closest?.("input, textarea, select")) return;
-  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; render(); return; }
+  if (event.key === "Escape" && (view.dollSlot || view.invItemUid)) { view.dollSlot = null; view.invItemUid = null; Sfx.play("chest_close"); render(); return; }
   if (view.summary && event.key === "Enter") { document.querySelector('[data-act="result-continue"]')?.click(); return; }
   if (view.screen !== "battle" || !view.battle || view.battle.over) return;
   const match = /^(?:Digit|Numpad)([1-5])$/.exec(event.code); 

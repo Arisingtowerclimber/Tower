@@ -346,6 +346,1266 @@ const DIALOG_BRANCHES = {
   ],
 };
 
+// ── Диалоговые деревья NPC (Блок 2) ────────────────────────────────────────
+// Узел: { text, options: [{ label, next, mood?, effects?, action? }] }.
+// next: null — закрыть диалог. action: "open_shop" — открыть лавку NPC.
+// effects применяет applyDialogEffects (state.js): gold, rep, flag, item.
+const DIALOG_TREES = {
+  ron: {
+    start: {
+      text: "Сталь не ждёт. Люди — тоже. Говори: клинок, броня или беда?",
+      options: [
+        { label: "🛒 Показать товары", next: "shop" },
+        { label: "Что такое Башня на самом деле?", next: "lore_tower" },
+        { label: "Ты ведь не всегда был кузнецом.", next: "personal" },
+        { label: "О чём шепчутся в городе?", next: "rumors" },
+        { label: "Твоя сталь держит удар. Это честная работа.", next: "praise", mood: "good", effects: { rep: 1, flag: "ron_praised" } },
+        { label: "Твои клинки — ржавый хлам.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ron_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Моя работа.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны пал. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Смотри, что сегодня на прилавке. Уголь горячий. Терпение — горячее.",
+      options: [
+        { label: "К прилавку", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Башня — не здание. Это рана в мире. Каждый этаж — чужой мир, и каждый лезет в наш.",
+      options: [
+        { label: "А что с металлом оттуда?", next: "lore_metal" },
+        { label: "А другие города?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_metal: {
+      text: "Металл из Башни звенит иначе. Он помнит чужое небо. Куёшь — будто чужой голос под рукой. Если клинок запоёт — беги. Или пой. Я не судья.",
+      options: [
+        { label: "Страшно, когда поёт сталь.", next: "hope" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед стоит. Пока. Остальные города — имена на пепле. Дубовый Брод... не будем.",
+      options: [
+        { label: "Дубовый Брод — это твой дом?", next: "family" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Спрашиваешь про семью. Был дом. Жена. Сын. Теперь — горн и наковальня. Не жалей меня. Жалость ржавеет.",
+      options: [
+        { label: "Расскажи о них.", next: "family" },
+        { label: "Почему ты остался в Йорстеде?", next: "forge_oath" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    family: {
+      text: "Марта не дождалась. Кир... ему было семь. Я держал дверь, пока они бежали. Дверь выдержала. Стена — нет.",
+      options: [
+        { label: "Ты сделал всё, что мог.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_comforted" } },
+        { label: "Соболезную.", next: "start" },
+      ],
+    },
+    forge_oath: {
+      text: "Я не спасаю мир. Я делаю так, чтобы тот, кто идёт спасать, вернулся. Иногда возвращается. Ради этого и стою у горна.",
+      options: [
+        { label: "Это больше, чем меч.", next: "praise" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    praise: {
+      text: "Слышу редко. Сталь любит тех, кто умеет ждать. Держи совет: не бери клинок, который тяжелее тебя. И не спорь с кузнецом.",
+      options: [
+        { label: "Взять монету за честную работу.", next: "praise_paid", effects: { gold: 15, flag: "ron_tip_paid" }, requires: { notFlag: "ron_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Не благодари. Это не подарок. Это аванс за то, что вернёшься живым. Вернёшься — сочтёмся.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Слова дешёвые, как шлак. Я запомню. Твой заказ будет ждать. Долго.",
+      options: [
+        { label: "Я пошутил. Плохо.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? Слышал. Хорошая работа. Не геройство — работа. Держи, на уголь.",
+      options: [
+        { label: "Взять монету.", next: "progress_1_paid", effects: { gold: 25, flag: "ron_goblin_paid" }, requires: { notFlag: "ron_goblin_paid" } },
+        { label: "Оставь себе. Мне хватает.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Купи угля. Хорошего. Тот, что дешевле, зря переводит сталь. И тебя.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны... Значит, дно есть. Я выкую тебе клинок, который не будет петь. Пока.",
+      options: [
+        { label: "Почему не будет петь?", next: "lore_metal" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Элейн варит зелья из трав, которые растут в чужом мире. Не спрашивай, что она туда добавляет. Она и сама не всегда знает.",
+      options: [
+        { label: "А про Ивана и Тимми?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Волк и Ворон. Раньше — кровь. Сейчас — кружка на двоих. Башня уравняла. Или просто устали ненавидеть.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед ещё стоит. Пока стою я — будет кому подковать лошадь и заточить меч. Это немного. Это всё.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Ступай. И не забудь: хорошая сталь не прощает спешки.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  elain: {
+    start: {
+      text: "Осторожно, не зацепи колбы! Я Элейн. Раны, ожоги, дурные мысли — всё сюда. Мысли — за отдельную плату.",
+      options: [
+        { label: "🧪 Показать товары", next: "shop" },
+        { label: "Откуда ты берёшь травы?", next: "lore_tower" },
+        { label: "Ты ведь не всегда была алхимиком.", next: "personal" },
+        { label: "Что говорят в городе?", next: "rumors" },
+        { label: "Твои зелья спасают жизни. Спасибо.", next: "praise", mood: "good", effects: { rep: 1, flag: "elain_praised" } },
+        { label: "Твои отвары — просто грязная вода.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elain_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Больше не будет рваных ран.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Пузырьки не бей. Перемешивать я уже успела. Выбирай.",
+      options: [
+        { label: "К прилавку", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "В Башне растут травы, которых нет в нашем мире. Без них мои зелья — просто вода. Горькая. Проверяла.",
+      options: [
+        { label: "А что не так с лесом на первом этаже?", next: "lore_world" },
+        { label: "А если Башня дойдёт до Йорстеда?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_world: {
+      text: "Лес не подчиняется природе. Деревья растут из камня. Звери не боятся огня. А травы... травы там честнее людей.",
+      options: [
+        { label: "Почему честнее?", next: "recipe" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед — последняя аптека на сотни миль. Если он падёт, лечить будет некому. Так что я не закрываюсь. Даже ночью.",
+      options: [
+        { label: "Ты не боишься?", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Моя мать была травницей. Умерла от болезни, которую сама же лечила. Не хватило одного корня. Я запомнила какого.",
+      options: [
+        { label: "А сестра?", next: "sister" },
+        { label: "Ты поэтому пошла в алхимию?", next: "recipe" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    sister: {
+      text: "Сестра ушла в Башню за тем корнем. Не вернулась. Я не злюсь. Я жду. И варю. Одно помогает другому.",
+      options: [
+        { label: "Может, она ещё вернётся.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_comforted" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    recipe: {
+      text: "Хороший отвар — это терпение. Поспешишь — получится компот. Вкусный, но от смерти не помогает. Обычно.",
+      options: [
+        { label: "Обычно?", next: "lore_world" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    praise: {
+      text: "Приятно. Травы не терпят благодарности, а люди — терпят. Заходи, пока склероций свежий.",
+      options: [
+        { label: "Взять бинты и монету.", next: "praise_paid", effects: { gold: 12, flag: "elain_tip_paid" }, requires: { notFlag: "elain_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Не спорь. Это не милость. Это чтобы ты не сдох от первого пореза. Мне потом руки мыть.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Глупость не лечится отваром. Но у меня есть кое-что от головной боли. Тебе уже пора.",
+      options: [
+        { label: "Прости. Я не так сказал.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? Хорошо. Меньше гоблинов — меньше рваных ран. Вот, возьми бинты. И не спорь.",
+      options: [
+        { label: "Взять бинты и монету.", next: "progress_1_paid", effects: { gold: 20, flag: "elain_goblin_paid" }, requires: { notFlag: "elain_goblin_paid" } },
+        { label: "Оставь бинты тем, кому хуже.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Монета — за работу. Бинты — за то, что вернулся. Это разные вещи. Не путай.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны мёртв. Тогда почему у меня руки дрожат? ...Наверное, от радости. Наверное.",
+      options: [
+        { label: "Ты боишься, что будет дальше.", next: "hope" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Рон ворчит, но после каждого твоего похода ставит чайник. Не говори ему, что я знаю. Он станет невыносим.",
+      options: [
+        { label: "А про Стеллу?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Стелла знает все слухи. Иногда мне кажется, она их сама и придумывает. Но они сбываются. Это хуже.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед ещё дышит. Слышишь? Это не ветер. Это город. Пока дышит — лечим.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Не хворай. И не пей из неподписанных склянок. Мне потом отмывать.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  elize: {
+    start: {
+      text: "Тише. Камни не любят суеты. Говори коротко. Что тебе нужно?",
+      options: [
+        { label: "💍 Показать украшения", next: "shop" },
+        { label: "Откуда эти камни?", next: "lore_tower" },
+        { label: "Кто ты была до лавки?", next: "personal" },
+        { label: "Что шепчут камни?", next: "rumors" },
+        { label: "Твоя работа — редкое искусство.", next: "praise", mood: "good", effects: { rep: 1, flag: "elize_praised" } },
+        { label: "Этот блеск — дешёвая подделка.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elize_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Его тесак — история.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Его трон молчит.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Оправы вон там. Камни — вот тут. Не дыши на витрину.",
+      options: [
+        { label: "К прилавку", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Камни из Башни светятся в темноте. Они красивы. Но я помню, что они означают.",
+      options: [
+        { label: "Что они означают?", next: "lore_stones" },
+        { label: "А что с Йорстедом?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_stones: {
+      text: "Каждый камень помнит свет своего мира. Лесной — зелёный. Склепный — белый. Демонический — красный. Красные я не беру в руки без перчаток.",
+      options: [
+        { label: "Почему без перчаток?", next: "warning" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед раньше торговал с двенадцатью городами. Теперь — с памятью о них. Память платит хуже.",
+      options: [
+        { label: "Но город ещё стоит.", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Мой дом был домом ювелиров. Мы продали всё, чтобы уехать. Кроме одного кольца. Оно до сих пор на мне. Не спрашивай, чьё.",
+      options: [
+        { label: "Расскажи о наставнике.", next: "mentor" },
+        { label: "Почему ты осталась?", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    mentor: {
+      text: "Мой наставник ушёл в Башню за камнем, которого не существует. Камень он нашёл. Наставник — нет.",
+      options: [
+        { label: "Ты поэтому не ходишь в Башню?", next: "warning" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    warning: {
+      text: "Не носи красный камень на голой коже. Он не светится. Он смотрит.",
+      options: [
+        { label: "А если уже ношу?", next: "lore_stones" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    praise: {
+      text: "Искусство не любит громких слов. Но твои слова легли ровно, как камень в оправу. Благодарю.",
+      options: [
+        { label: "Принять маленький камень на память.", next: "praise_paid", effects: { gold: 18, flag: "elize_tip_paid" }, requires: { notFlag: "elize_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Он ничего не стоит. Пока. Носи с собой — и однажды он тебя вспомнит.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Подделка — это когда рука спешит. Моя рука не спешит. Уходи, пока я не запомнила твой голос.",
+      options: [
+        { label: "Прости. Я не подумал.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? Его тесак был из плохого железа. Теперь он — история. Возьми этот осколок. Он ничего не стоит. Пока.",
+      options: [
+        { label: "Принять осколок и монету.", next: "progress_1_paid", effects: { gold: 25, flag: "elize_goblin_paid" }, requires: { notFlag: "elize_goblin_paid" } },
+        { label: "Оставь камень себе.", next: "hope", mood: "good", effects: { rep: 1, flag: "elize_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Камень будет холодным. Не пугайся. Это не смерть. Это память.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны. Его трон был из душ. Теперь души свободны, а камень... камень молчит. Впервые за годы.",
+      options: [
+        { label: "Это хорошая тишина?", next: "hope" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Элейн добрая. Слишком. Такие, как она, обычно первыми уходят в Башню за кем-то. И не возвращаются.",
+      options: [
+        { label: "А Артур?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Артур продаёт реликвии павших городов. Он говорит, что это торговля. Я говорю — это мародёрство с поклоном.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед стоит. Камни в его стенах ещё помнят солнце. Пока помнят — город жив.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "До встречи. И не хлопай дверью — камни пугаются.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  stella: {
+    start: {
+      text: "О, свежее лицо! Добро пожаловать в «Усталый путник». Согреться, отдохнуть или послушать, кто что натворил?",
+      options: [
+        { label: "🛏️ Снять номер", next: "shop" },
+        { label: "Что ты знаешь о Башне?", next: "lore_tower" },
+        { label: "Ты ведь не всегда была хозяйкой.", next: "personal" },
+        { label: "Какие слухи ходят?", next: "rumors" },
+        { label: "Здесь тепло, как дома. Спасибо, хозяйка.", next: "praise", mood: "good", effects: { rep: 1, flag: "stella_praised" } },
+        { label: "Твоя гостиница — дыра с тараканами.", next: "insult", mood: "bad", effects: { rep: -2, flag: "stella_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Меньше визга по ночам.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Теперь можно спать?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Номер всё тот же. Эль свежий. Простыни чистые. Постояльцы — наполовину.",
+      options: [
+        { label: "Снять номер", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Раньше здесь было больше постояльцев. Теперь... только те, кто нужен Башне. И те, кто ей уже не нужен.",
+      options: [
+        { label: "А куда делись остальные?", next: "lore_guests" },
+        { label: "А что с городом?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_guests: {
+      text: "Комнаты я не сдаю повторно, пока гость не вернётся. Глупо? Может быть. Зато у каждого ещё есть шанс.",
+      options: [
+        { label: "И многие возвращаются?", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед — это не город. Это гостиница побольше. Все зашли переждать. Никто не ушёл.",
+      options: [
+        { label: "И ты держишь дверь открытой.", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Я держу эту гостиницу двадцать лет. Муж погиб, когда стена рухнула. Сын ушёл в Башню. Комната его ждёт.",
+      options: [
+        { label: "Расскажи о муже.", next: "husband" },
+        { label: "А сын?", next: "room" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    husband: {
+      text: "Он любил говорить: «Стелла, у нас всегда есть место для ещё одного». Вот я и держу. Место есть. Его нет.",
+      options: [
+        { label: "Ты хранишь не комнату. Ты хранишь его.", next: "praise", mood: "good", effects: { rep: 1, flag: "stella_comforted" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    room: {
+      text: "Номер с видом на Башню. Вид оплачивается отдельно. Страх — бесплатно. Сын говорил, что это лучшая цена в городе.",
+      options: [
+        { label: "Он вернётся.", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    gossip: {
+      text: "Сплетни — это не ложь. Это правда, которой ещё не нашли удобную форму. И я помогаю ей найтись.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise: {
+      text: "Вот это по-нашему! За такие слова налью кружку в долг. Один раз. Не привыкай.",
+      options: [
+        { label: "Взять сдачу за прошлую ночь.", next: "praise_paid", effects: { gold: 10, flag: "stella_tip_paid" }, requires: { notFlag: "stella_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Не благодари. Просто вернись. И желательно — не в сапогах с чужой кровью. Ковёр не казённый.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Тараканы платят вперёд и не хамят. Ты — пока нет. Дверь вон там.",
+      options: [
+        { label: "Прости. День был тяжёлый.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? О, это тот, который визжал на весь этаж? Я слышала его даже здесь. Через два мира. Ну, может, преувеличиваю.",
+      options: [
+        { label: "Взять ужин за счёт заведения.", next: "progress_1_paid", effects: { gold: 10, flag: "stella_goblin_paid" }, requires: { notFlag: "stella_goblin_paid" } },
+        { label: "Мне хватит кружки.", next: "hope", mood: "good", effects: { rep: 1, flag: "stella_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Ешь. И слушай: если кто-то спросит, кто убил Вождя, — я скажу, что это была я. Шучу. Может быть.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны мёртв. Значит, скоро появится новый герой. И новый слух. Садись, расскажу, пока не придумали.",
+      options: [
+        { label: "Слушаю.", next: "gossip" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Иван и Тимми пьют вместе. Ты видел? Волк и Ворон. Если бы их отцы это видели — перевернулись бы в гробах. Или заказали бы ещё кружку.",
+      options: [
+        { label: "А про Артура?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Артур говорит, что его товар из-за моря. За моря теперь только пепел. Но плащи у него хорошие, не спорю.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед ещё стоит. И пока я ставлю на стол горячее — он будет стоять. Это не надежда. Это работа.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Ночь тёплая. Заглядывай ещё — но не с пустым кошельком.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  ivan: {
+    start: {
+      text: "Новобранец? Вижу, взгляд серьёзный. Если хочешь выжить в Башне — слушай. Если хочешь славы — иди мимо.",
+      options: [
+        { label: "⚔️ Тренировки", next: "shop" },
+        { label: "Что ждёт на глубине?", next: "lore_tower" },
+        { label: "Кто ты был до Катаклизма?", next: "personal" },
+        { label: "Что между тобой и Тимми?", next: "timmy" },
+        { label: "Ты хороший командир. Люди за тобой идут.", next: "praise", mood: "good", effects: { rep: 1, flag: "ivan_praised" } },
+        { label: "Твои тренировки — пустая трата времени.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ivan_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Первый босс взят.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Дно достигнуто.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Вот мои тренировки и контракты. Сначала выживать, потом побеждать. Порядок не переставляй.",
+      options: [
+        { label: "К тренировкам", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Башня — мультипланарное измерение. Каждый этаж — отдельный мир. Лес. Шахты. Склеп. Лагерь орков. Демонический план. Не ищи логику. Ищи выход.",
+      options: [
+        { label: "А правила этажей?", next: "lore_world" },
+        { label: "Почему Йорстед ещё стоит?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_world: {
+      text: "На первом этаже деревья растут из камня. На третьем время идёт назад. На пятом реальность плавится. Правила меняются. Ты — нет.",
+      options: [
+        { label: "Значит, держаться своих правил.", next: "oath" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед — один из немногих уцелевших. Остальные пали. Мы держим стену не потому, что сильные. Потому что больше некому.",
+      options: [
+        { label: "Ты веришь, что город выстоит?", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Я капитан Гильдии Охотников. До Катаклизма — наследник дома Волка. Теперь у меня нет дома. У меня есть пост.",
+      options: [
+        { label: "Расскажи о доме Волка.", next: "house" },
+        { label: "А семья?", next: "grief" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    house: {
+      text: "Дом Волка и дом Ворона грызли друг друга десятилетиями. Сейчас это неважно. Башня не спрашивает, какой у тебя герб. Она спрашивает, сколько ты стоишь.",
+      options: [
+        { label: "А Тимми — Ворон.", next: "timmy" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    timmy: {
+      text: "Тимми — Ворон. Его отец убил моего дядю. Я должен был убить его. Вместо этого мы пьём в Зале Охотников. Сейчас все мы — дом Выживших.",
+      options: [
+        { label: "Ты жалеешь об этом?", next: "oath" },
+        { label: "Он уважает тебя. По-своему.", next: "hope", mood: "good", effects: { rep: 1, flag: "ivan_timmy_peace" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    oath: {
+      text: "Присяга — это не слова. Это когда ты стоишь, хотя можешь бежать. Я стою. Пока.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    grief: {
+      text: "Мой брат погиб в войне домов. Не в Башне. В войне за герб. Я до сих пор не знаю, за что. Теперь знаю: ни за что.",
+      options: [
+        { label: "Поэтому ты не хочешь новой войны.", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    praise: {
+      text: "Дисциплина — это когда тебя хвалят, а ты всё равно выходишь на тренировку. Хорошо. Не расслабляйся.",
+      options: [
+        { label: "Взять премию Гильдии.", next: "praise_paid", effects: { gold: 20, flag: "ivan_tip_paid" }, requires: { notFlag: "ivan_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Это не награда. Это аванс. Потрать на броню, а не на эль. Я проверю.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Слова без дисциплины — шум. Ещё одно такое — и будешь бегать вокруг Зала до заката.",
+      options: [
+        { label: "Виноват. Больше не повторится.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? Первый босс. Первая настоящая проверка. Ты прошёл. Не возгордись — второй этаж не мягче.",
+      options: [
+        { label: "Взять премию за босса.", next: "progress_1_paid", effects: { gold: 40, flag: "ivan_goblin_paid" }, requires: { notFlag: "ivan_goblin_paid" } },
+        { label: "Оставь в фонд Гильдии.", next: "hope", mood: "good", effects: { rep: 2, flag: "ivan_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Купи броню. Не герб. Герб не держит удар. Проверено.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны мёртв. Тогда почему я не чувствую облегчения? ...Потому что Башня не заканчивается. Она просто делает паузу.",
+      options: [
+        { label: "Значит, будем готовы к следующей.", next: "oath" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Рон — лучший кузнец города. Не говори ему. Он станет невыносим.",
+      options: [
+        { label: "А Стелла?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Стелла знает больше, чем говорит. Это её оружие. Не отбирай.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед стоит. Пока стоит — есть куда возвращаться. Это не мало. Это всё, что у нас есть.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Свободен. И не забывай отдыхать — мёртвые не тренируются.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  timmy: {
+    start: {
+      text: "О, новенький! Я Тимми. Молодой охотник, гроза гоблинов, любимец барменши. Два из трёх — правда.",
+      options: [
+        { label: "🏹 Спросить совет", next: "shop" },
+        { label: "Что ты знаешь об этажах?", next: "lore_tower" },
+        { label: "Ты ведь из дома Ворона?", next: "personal" },
+        { label: "Что у тебя с Иваном?", next: "ivan" },
+        { label: "Ты храбрый. Не каждый идёт в Башню.", next: "praise", mood: "good", effects: { rep: 1, flag: "timmy_praised" } },
+        { label: "Ты ещё ребёнок. Какой из тебя охотник?", next: "insult", mood: "bad", effects: { rep: -2, flag: "timmy_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Я его сделал.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Я спустился на дно.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Советы бесплатные. За правильные иногда платят уважением. Слушай внимательно.",
+      options: [
+        { label: "Спросить совет", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Первый этаж — лес. Второй — шахты. Третий — склеп, где время идёт назад. Не пытайся понять. Просто не ложись там спать.",
+      options: [
+        { label: "А четвертый и пятый?", next: "lore_world" },
+        { label: "А что с Йорстедом?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_world: {
+      text: "Четвертый — лагерь орков из другого плана. Пятый — демонический. Там реальность плавится. Башня умеет ждать. Если этаж кажется пустым — ты просто не видишь, что там.",
+      options: [
+        { label: "И оно уже видит меня?", next: "scars" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед — последний город, где ещё наливают. Остальные пали. Так что пей, пока наливают. И воюй, пока стоит.",
+      options: [
+        { label: "Мрачно.", next: "hope" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Я из дома Ворона. Мой отец убил дядю Ивана. А сейчас мы вместе пьём в Зале Охотников. Вот так. Катаклизм сравнял нас всех.",
+      options: [
+        { label: "И что теперь?", next: "ivan" },
+        { label: "А твой отец?", next: "father" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    ivan: {
+      text: "Иван? Он думает, что я не знаю. Знаю. И он знает, что я знаю. Мы просто не говорим. Так проще пить.",
+      options: [
+        { label: "Ты его уважаешь?", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_ivan_peace" } },
+        { label: "А он тебя?", next: "father" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    father: {
+      text: "Отец хотел, чтобы я продолжил вражду. Я пошёл в Башню. Там врагов выбираешь не ты. Как оказалось, это легче.",
+      options: [
+        { label: "Ты не жалеешь?", next: "scars" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    scars: {
+      text: "Мой самый большой шрам? Не от монстра. Упал с лестницы в гостинице. Стелла до сих пор смеётся. Башня — ерунда по сравнению с её языком.",
+      options: [
+        { label: "А остальные шрамы?", next: "joke" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    joke: {
+      text: "Каждый шрам — история. Мои все врут. На самом деле я просто неуклюжий. Не говори Ивану. Он заставит отжиматься.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise: {
+      text: "Правда? Спасибо! Я... я стараюсь. Вот, держи совет бесплатно: не стой под ударом. И не хвались до боя.",
+      options: [
+        { label: "Взять монету на стрелы.", next: "praise_paid", effects: { gold: 8, flag: "timmy_tip_paid" }, requires: { notFlag: "timmy_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Только не говори, что я добрый. У меня репутация. Ну, была. Пока ты не пришёл.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Ну и ладно. Ну и пожалуйста. Я всё равно знаю больше, чем ты думаешь. Наверное. Не проверяй.",
+      options: [
+        { label: "Ладно, ты не ребёнок. Прости.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Ты убил Вождя Гоблинов? Серьёзно? Я его видел. Он был... большой. И злой. Ладно, ты крут. Только не говори Ивану, что я так сказал.",
+      options: [
+        { label: "Взять монету. На стрелы.", next: "progress_1_paid", effects: { gold: 15, flag: "timmy_goblin_paid" }, requires: { notFlag: "timmy_goblin_paid" } },
+        { label: "Оставь себе. Купи нормальный шлем.", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Спасибо! Я куплю... что-нибудь. Не шлем. Шлем портит причёску. Не говори Ивану.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны? Ты? ...Ладно, я официально впечатлён. Но если ты теперь будешь ходить и рассказывать это всем — я тебя поколочу. Шутка. Почти.",
+      options: [
+        { label: "Ты бы пошёл со мной?", next: "hope" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Рон ворчит, что молодёжь не умеет держать клинок. Потом подковывает мне сапоги бесплатно. Странный способ заботиться.",
+      options: [
+        { label: "А про Элизу?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Элиза говорит с камнями. Я проверял — они не отвечают. Но она всё равно выглядит так, будто знает больше.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед ещё стоит. Значит, есть куда вернуться после Башни. Выпить, поспать, соврать о подвигах. Нормальная жизнь.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Удачи! И если увидишь что-то страшное — беги. Это тоже совет.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  arthur: {
+    start: {
+      text: "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников. Совесть, например. Шучу. Совесть не продаётся.",
+      options: [
+        { label: "💰 Показать товары", next: "shop" },
+        { label: "Откуда твой товар?", next: "lore_tower" },
+        { label: "Ты ведь из павшего дома?", next: "personal" },
+        { label: "Что говорят о других?", next: "rumors" },
+        { label: "Ты умеешь вести дело. Уважаю.", next: "praise", mood: "good", effects: { rep: 1, flag: "arthur_praised" } },
+        { label: "Ты торгуешь краденым.", next: "insult", mood: "bad", effects: { rep: -2, flag: "arthur_insulted" } },
+        { label: "👑 Вождь Гоблинов мёртв. Спрос на гоблинское падает.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "🕯 Владыка Бездны мёртв. Демонические реликвии подешевеют?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: "leave" },
+      ],
+    },
+    shop: {
+      text: "Смотри, выбирай, не стесняйся. Цены — как в лучших домах. Товар — из-за моря. Какого моря — не спрашивай.",
+      options: [
+        { label: "К товарам", action: "open_shop" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    lore_tower: {
+      text: "Башня — это рынок, который никто не закрывает. Каждый этаж — новый мир, новые товары, новые покупатели. Правда, покупатели иногда с клыками.",
+      options: [
+        { label: "А что с павшими городами?", next: "lore_world" },
+        { label: "А Йорстед?", next: "lore_city" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_world: {
+      text: "Пока города падают, у торговца работа есть. Грустно? Да. Но кто-то же должен продавать павшим городам последние вещи.",
+      options: [
+        { label: "Это называется мародёрство.", next: "relic" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    lore_city: {
+      text: "Йорстед — последний перекрёсток. Здесь сошлись те, кто раньше убивал друг друга. Теперь торгуются. Прогресс.",
+      options: [
+        { label: "И ты на этом прогресс зарабатываешь.", next: "deal" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    personal: {
+      text: "Я из дома, которого больше нет. Мы торговали специями, шелками, чужими секретами. Теперь торгую тем, что осталось. Это называется адаптация.",
+      options: [
+        { label: "Расскажи о доме.", next: "house" },
+        { label: "И ты не жалеешь?", next: "business" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    house: {
+      text: "Мой отец проиграл всё в одну ночь. Дом, имя, даже герб. Я не проигрываю. Я продаю. Разница есть.",
+      options: [
+        { label: "Разница есть.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_comforted" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    business: {
+      text: "Я не торгую краденым. Я торгую вещами, которые потеряли хозяев. Это разные вещи. Иногда.",
+      options: [
+        { label: "Иногда?", next: "relic" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    relic: {
+      text: "Эта вещь из города, которого нет. Не спрашивай, откуда. Спрашивай, сколько. Это правильный вопрос.",
+      options: [
+        { label: "Сколько?", next: "deal" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    deal: {
+      text: "Сделка — это когда оба уходят довольными. Или один довольный, а второй не заметил. Я предпочитаю первое. Обычно.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise: {
+      text: "Приятно, когда ценят. За доброе слово — скидка. Почти. Ладно, просто запомню тебя добрым покупателем.",
+      options: [
+        { label: "Взять скидку монетой.", next: "praise_paid", effects: { gold: 15, flag: "arthur_tip_paid" }, requires: { notFlag: "arthur_tip_paid" } },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    praise_paid: {
+      text: "Только никому. Если узнают, что я умею быть щедрым, цены упадут. А я этого не переживу.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    insult: {
+      text: "Краденое? Обижаешь. Я беру только то, что плохо лежит... и хорошо платит. Шутка. Почти.",
+      options: [
+        { label: "Плохая шутка. Прости.", next: "start", mood: "neutral" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_1: {
+      text: "Вождь гоблинов? Поздравляю! У меня как раз есть клинок, снятый с его... коллеги. Почти новый. Недорого.",
+      options: [
+        { label: "Принять скидку за босса.", next: "progress_1_paid", effects: { gold: 35, flag: "arthur_goblin_paid" }, requires: { notFlag: "arthur_goblin_paid" } },
+        { label: "Обойдусь без твоих реликвий.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_refused_pay" } },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    progress_1_paid: {
+      text: "Видишь? Честная сделка. Ты убил — я продал. Все довольны. Кроме Вождя. Но он уже не клиент.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    progress_2: {
+      text: "Владыка Бездны? Значит, спрос на демонические реликвии упадёт. Или взлетит. Рынок непредсказуем.",
+      options: [
+        { label: "Ты думаешь о ценах даже сейчас?", next: "deal" },
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    rumors: {
+      text: "Иван и Тимми? Волк и Ворон. Раньше они бы убили друг друга. Сейчас делят счёт. Прогресс, как я говорю.",
+      options: [
+        { label: "А про Элизу?", next: "rumors2" },
+        { label: "Назад", next: "start" },
+      ],
+    },
+    rumors2: {
+      text: "Элиза не торгуется. Вообще. Это либо святая, либо очень хороший стратег. Ставлю на второе.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    hope: {
+      text: "Йорстед стоит — значит, есть кому продавать. А пока есть кому продавать, есть смысл вставать утром. Почти поэзия.",
+      options: [
+        { label: "Назад", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
+    leave: {
+      text: "Удачной охоты! И заходи ещё — у меня всегда есть что-то новенькое. Или почти новенькое.",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  // ── Найм компаньонов: разговоры в гостинице ─────────────────────────────
+  mira: {
+    hire_mira: {
+      text: "Мира сидит у камина, перебирая травы. «О, новый постоялец. Ты выглядишь так, будто не спал неделю.»",
+      options: [
+        { label: "Мне нужна твоя помощь. Сколько?", next: "hire_price", mood: "neutral" },
+        { label: "Просто проходил мимо. Ты красиво поёшь?", next: "hire_song", mood: "good", effects: { affinity: 2 } },
+        { label: "Что ты умеешь, кроме трав?", next: "hire_story", mood: "neutral" },
+        { label: "Уйти", next: "hire_leave" },
+      ],
+    },
+    hire_story: {
+      text: "«Я лечу тех, кто возвращается из Башни. Тех, кто не возвращается, — поминаю. Работа как работа.»",
+      options: [
+        { label: "Почему ты этим занимаешься?", next: "hire_wounded" },
+        { label: "Мне нужна такая помощь.", next: "hire_price" },
+        { label: "Назад", next: "hire_mira" },
+      ],
+    },
+    hire_wounded: {
+      text: "«Когда-то я не успела. Один охотник. Он умер у меня на руках, а я искала нужный корень. Теперь ищу быстрее.»",
+      options: [
+        { label: "Это не твоя вина.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
+        { label: "Ты просто не справилась.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Назад", next: "hire_mira" },
+      ],
+    },
+    hire_song: {
+      text: "«Ты слышал? Это была моя колыбельная для раненых. Они говорят, она успокаивает. Но я пою не для всех.»",
+      options: [
+        { label: "Я бы хотел услышать её снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
+        { label: "Спой ещё. Может, я усну.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
+        { label: "Назад", next: "hire_mira" },
+      ],
+    },
+    hire_discount: {
+      text: "«Не льсти. Но ты слушаешь. Это редкость. Ладно — скидка. Немного.»",
+      options: [
+        { label: "Сколько теперь?", next: "hire_price" },
+        { label: "Назад", next: "hire_mira" },
+      ],
+    },
+    hire_price: {
+      text: "«Мои услуги стоят 500 золотых плюс надбавка за твой уровень. Я не беру меньше. Но если ты будешь вежлив — возможно, я снижу цену.»",
+      options: [
+        { label: "Я согласен. Вот оплата.", next: "hired_mira", effects: { action: "hire", companionId: "mira" }, requires: { minGold: 500 } },
+        { label: "500? Это грабёж!", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Мне нужно подумать.", next: "hire_mira" },
+      ],
+    },
+    hire_angry: {
+      text: "«Нет. Я передумала. Не хочу иметь дело с таким, как ты.»",
+      options: [
+        { label: "Уйти", next: "hire_refuse" },
+      ],
+    },
+    hire_refuse: {
+      text: "Не хочу иметь дело с таким, как ты. Уходи.",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hired_mira: {
+      text: "«Хорошо. Теперь я с тобой. Постарайся не умереть в первый же день.»",
+      options: [
+        { label: "Постараюсь.", next: null },
+        { label: "А если умру?", next: "hire_after" },
+      ],
+    },
+    hire_after: {
+      text: "«Тогда я приду и вытащу тебя. Умирать при мне — плохая привычка.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hire_leave: {
+      text: "«Иди. И выспись. Это тоже лекарство.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  alva: {
+    hire_alva: {
+      text: "Альва стоит у окна, белые волосы ловят свет. «Ты пришёл за песней или за тишиной? Второе дороже.»",
+      options: [
+        { label: "За твоей помощью. Сколько?", next: "hire_price", mood: "neutral" },
+        { label: "За песней.", next: "hire_song", mood: "good", effects: { affinity: 2 } },
+        { label: "Что ты делаешь в гостинице?", next: "hire_story", mood: "neutral" },
+        { label: "Уйти", next: "hire_leave" },
+      ],
+    },
+    hire_story: {
+      text: "«Пою для тех, кто не может уснуть. Иногда — для тех, кто не должен просыпаться. Не спрашивай.»",
+      options: [
+        { label: "Ты потеряла свой дом?", next: "hire_past" },
+        { label: "Мне нужна твоя помощь.", next: "hire_price" },
+        { label: "Назад", next: "hire_alva" },
+      ],
+    },
+    hire_past: {
+      text: "«Я пела в доме, которого больше нет. Теперь пою в гостинице. Публика изменилась. Аплодисменты — тоже.»",
+      options: [
+        { label: "Твоя песня всё ещё жива.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
+        { label: "Значит, ты никто без своего дома.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Назад", next: "hire_alva" },
+      ],
+    },
+    hire_song: {
+      text: "«Тогда слушай. ... Это была колыбельная. Для одного охотника. Он уснул. Навсегда. Я больше не пою её всем.»",
+      options: [
+        { label: "Я не буду просить снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
+        { label: "Спой ещё. Я заплачу.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Назад", next: "hire_alva" },
+      ],
+    },
+    hire_discount: {
+      text: "«Ты слышишь не только ноты. Это... приятно. Ладно, скидка.»",
+      options: [
+        { label: "Сколько теперь?", next: "hire_price" },
+        { label: "Назад", next: "hire_alva" },
+      ],
+    },
+    hire_price: {
+      text: "«Мой голос стоит 500 золотых и ежедневной платы. Он не для всех. Но ты уже слушал — значит, почти свой.»",
+      options: [
+        { label: "Я согласен. Вот оплата.", next: "hired_alva", effects: { action: "hire", companionId: "alva" }, requires: { minGold: 500 } },
+        { label: "Петь за такие деньги? Смешно.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Мне нужно подумать.", next: "hire_alva" },
+      ],
+    },
+    hire_angry: {
+      text: "«Смешно? Тогда иди смеяться в другое место.»",
+      options: [
+        { label: "Уйти", next: "hire_refuse" },
+      ],
+    },
+    hire_refuse: {
+      text: "Не хочу иметь дело с таким, как ты. Уходи.",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hired_alva: {
+      text: "«Хорошо. Я буду рядом. И не вздумай умереть, не дослушав.»",
+      options: [
+        { label: "Постараюсь.", next: null },
+        { label: "Что я услышу?", next: "hire_after" },
+      ],
+    },
+    hire_after: {
+      text: "«То, что тебе нужно. Не то, что ты хочешь. Это разные песни.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hire_leave: {
+      text: "«Иди. Тишина тоже иногда лечит.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+
+  solveig: {
+    hire_solveig: {
+      text: "Сольвейг сидит на столе, свесив ноги. «Ну? Чего уставился? Нанимать пришёл или драться?»",
+      options: [
+        { label: "Нанимать. Сколько?", next: "hire_price", mood: "neutral" },
+        { label: "Драться.", next: "hire_fight", mood: "good", effects: { affinity: 2 } },
+        { label: "Почему ты здесь?", next: "hire_story", mood: "neutral" },
+        { label: "Уйти", next: "hire_leave" },
+      ],
+    },
+    hire_fight: {
+      text: "«Ха! Мне нравится. Но драться будем после найма. Или вместо. Платить всё равно придётся.»",
+      options: [
+        { label: "Тогда нанимаю.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
+        { label: "Давай без найма, просто по морде.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Назад", next: "hire_solveig" },
+      ],
+    },
+    hire_story: {
+      text: "«Пришла с севера. Там больше нет ничего, кроме ветра и мёртвых. Здесь хотя бы платят.»",
+      options: [
+        { label: "Ты скучаешь по дому?", next: "hire_scar" },
+        { label: "Мне нужен боец.", next: "hire_price" },
+        { label: "Назад", next: "hire_solveig" },
+      ],
+    },
+    hire_scar: {
+      text: "«Скучаю? По чему? По снегу, который заметает могилы? Нет. Я скучаю по тем, кто остался. Это другое.»",
+      options: [
+        { label: "Я понимаю.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
+        { label: "Жалко тебя.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Назад", next: "hire_solveig" },
+      ],
+    },
+    hire_discount: {
+      text: "«Не жалей. Жалость — для слабаков. Но ты не отвернулся. Ладно, скидка. Один раз.»",
+      options: [
+        { label: "Сколько теперь?", next: "hire_price" },
+        { label: "Назад", next: "hire_solveig" },
+      ],
+    },
+    hire_price: {
+      text: "«500 золотых и ежедневная плата. Дёшево за такую, как я. И не торгуйся — я плохо торгуюсь. Кулаками.»",
+      options: [
+        { label: "Я согласен. Вот оплата.", next: "hired_solveig", effects: { action: "hire", companionId: "solveig" }, requires: { minGold: 500 } },
+        { label: "500? За бабу с топором?", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
+        { label: "Мне нужно подумать.", next: "hire_solveig" },
+      ],
+    },
+    hire_angry: {
+      text: "«Вот теперь точно не наймёшься.»",
+      options: [
+        { label: "Уйти", next: "hire_refuse" },
+      ],
+    },
+    hire_refuse: {
+      text: "Не хочу иметь дело с таким, как ты. Уходи.",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hired_solveig: {
+      text: "«Отлично. Теперь я твой щит и твой меч. В основном меч. Постарайся не путать.»",
+      options: [
+        { label: "Постараюсь.", next: null },
+        { label: "А щит?", next: "hire_after" },
+      ],
+    },
+    hire_after: {
+      text: "«Щит — это когда я стою между тобой и чем-то большим. Не благодари. Плати.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+    hire_leave: {
+      text: "«Иди. И не забудь: если встретишь что-то большое — зови. Я не люблю пропускать веселье.»",
+      options: [{ label: "Уйти", next: null }],
+    },
+  },
+};
+
 // ── Фракции и репутация (Этап 1) ───────────────────────────────────────────
 // Каждый NPC с лавкой представляет свою фракцию. Ежедневные заказы
 // (weeklyQuests) повышают репутацию фракции, что даёт скидку в её лавке.
@@ -365,7 +1625,11 @@ const FACTION_TIERS = [
   { min: 20, name: "Почтенный",  discount: 0.15 },
   { min: 35, name: "Легенда",    discount: 0.20 },
 ];
-const FACTION_BY_NPC = Object.fromEntries(FACTIONS.map((f) => [f.npc, f.id]));
+// npc: null (Охотники без лавки) не попадает в карту — иначе
+// Object.fromEntries создал бы ключ "null".
+const FACTION_BY_NPC = Object.fromEntries(
+  FACTIONS.filter((f) => f.npc).map((f) => [f.npc, f.id])
+);
 const SHOP_FACTION = { forge: "smiths", alchemy: "alchemists", jewelry: "jewelers" };
 
 // Текущий тир репутации и следующий тир (для прогресса).
@@ -436,186 +1700,363 @@ const UNIQUE_EFFECTS = [
 ];
 const LIFESTEAL_PERCENT = 0.05;
 const THORNS_PERCENT = 0.1;
-const CRAFT_RARITY_BONUS_PER_LEVEL = 0.01;
+// ── Бонус к редкости крафта (Блок 5) ────────────────────────────────────────
+// Итоговый бонус = CRAFT_BASE_BONUS + (уровень-1)*CRAFT_RARITY_BONUS_PER_LEVEL
+// + CRAFT_MATERIALS_BONUS*max(0, число материалов - 2) (максимум +15%)
+// + CRAFT_FACTION_BONUS ( если тир фракции станции ≥ «Уважаемый» ).
+const CRAFT_RARITY_BONUS_PER_LEVEL = 0.03;
+const CRAFT_BASE_BONUS = 0.10;
+const CRAFT_MATERIALS_BONUS = 0.05; // за каждый материал свыше двух
+const CRAFT_MATERIALS_BONUS_MAX = 0.15; // потолок за материалы
+const CRAFT_FACTION_BONUS = 0.05; // тир фракции не ниже «Уважаемого» (tier >= 2)
 const ELITE_RARITY_BONUS = 0.1;
 const BACKGROUND_STEPS = [
   {
+    id: "archetype",
+    title: "Архетип",
+    text: "Кем ты был до зова Башни?",
+    lore: "Башня не спрашивает имени. Она смотрит на походку, хватку и шрамы.",
+    // Варианты шага рендерятся из ARCHETYPES (ui.js), здесь — краткая сводка.
+    options: [
+      { id: "duelist", label: "Дуэлянт", desc: "Танец клинка: быстрота, точность и презрение к броне.", icon: "🤺" },
+      { id: "guardian", label: "Страж", desc: "Живая стена: щит, стойка и ответный удар.", icon: "🛡️" },
+      { id: "assassin", label: "Убийца", desc: "Смерть с двух рук: тень, скорость и яд.", icon: "🗡️" },
+      { id: "monk", label: "Аскет", desc: "Отказ от стали: кулак, стойка и внутренний жар.", icon: "🧘" }
+    ]
+  },
+  {
     id: "childhood",
     title: "Детство",
-    text: "Что ты помнишь из детства, до зова Башни?",
-    lore: "Говорят, Башня стоит здесь со времён падения первой империи — её шпиль виден даже из колыбели.",
-    options: [
-      { 
-        id: "slums", 
-        label: "Тени трущоб", 
-        desc: "Тёмные улицы научили уворачиваться и беречь каждый медяк.", 
-        icon: "🏚️",
-        effects: { agi: 2, gold: 10 } 
-      },
-      { 
-        id: "smith", 
-        label: "Дыхание горна", 
-        desc: "Ожоги наковальни оставили силу, терпение и тяжёлую дубину.", 
-        icon: "⚒️",
-        effects: { str: 2, end: 1, equipment: ["wood_club"] } 
-      },
-      { 
-        id: "monastery", 
-        label: "Свечи обители", 
-        desc: "Долгие чтения при свечах обострили разум и разбудили внутренний источник.", 
-        icon: "📖",
-        effects: { int: 2, mana: 10 } 
-      },
-      { 
-        id: "farm", 
-        label: "Тяжёлый хлеб", 
-        desc: "Труд под солнцем выковал тело, что не гнётся от невзгод.", 
-        icon: "🌾",
-        effects: { end: 2, hp: 20 } 
-      }
-    ]
+    text: "Что осталось в памяти от первых лет?",
+    lore: "Детство — первая сталь, которую получает человек. Остальное — закалка.",
+    optionsByArchetype: {
+      duelist: [
+        {
+          id: "duelist_child_arena",
+          label: "Среди гладиаторов",
+          desc: "Яма для боёв, где хлеб добывался кровью.",
+          icon: "⚔️",
+          effects: { agi: 1, end: 1 }
+        },
+        {
+          id: "duelist_child_yard",
+          label: "Двор наставника",
+          desc: "Тысяча ударов по столбу — раньше, чем первое слово.",
+          icon: "🗡️",
+          effects: { str: 1, gold: 10 }
+        },
+        {
+          id: "duelist_child_troupe",
+          label: "Бродячая труппа",
+          desc: "Поклоны, клинки и монеты, брошенные в пыль.",
+          icon: "🎭",
+          effects: { int: 2 }
+        }
+      ],
+      guardian: [
+        {
+          id: "guardian_child_wall",
+          label: "Тень городской стены",
+          desc: "Стена выше дома — и урок: не быть ниже.",
+          icon: "🧱",
+          effects: { end: 2 }
+        },
+        {
+          id: "guardian_child_quarry",
+          label: "Каменный двор",
+          desc: "Камень в руках тяжелел с каждым годом.",
+          icon: "⛏️",
+          effects: { str: 1, end: 1 }
+        },
+        {
+          id: "guardian_child_barracks",
+          label: "Кухня гарнизона",
+          desc: "Слухи стражников — первая школа войны.",
+          icon: "🍲",
+          effects: { end: 1, gold: 10 }
+        }
+      ],
+      assassin: [
+        {
+          id: "assassin_child_alley",
+          label: "Тени переулков",
+          desc: "Голод учит тишине быстрее любой школы.",
+          icon: "🌑",
+          effects: { agi: 1, gold: 10 }
+        },
+        {
+          id: "assassin_child_roofs",
+          label: "Крыши и карнизы",
+          desc: "Падение — единственный учитель, которого не прощают.",
+          icon: "🏚️",
+          effects: { agi: 1, end: 1 }
+        },
+        {
+          id: "assassin_child_house",
+          label: "Дом без окон",
+          desc: "Здесь учили читать людей, а не книги.",
+          icon: "🕯️",
+          effects: { int: 1, potions: 1 }
+        }
+      ],
+      monk: [
+        {
+          id: "monk_child_cloister",
+          label: "Тишина обители",
+          desc: "Молитва, пост и холодный пол под коленями.",
+          icon: "🕯️",
+          effects: { int: 2 }
+        },
+        {
+          id: "monk_child_well",
+          label: "Двор с колодцем",
+          desc: "Вёдра с водой и долгие поклоны закалили спину.",
+          icon: "🪣",
+          effects: { end: 2 }
+        },
+        {
+          id: "monk_child_vigil",
+          label: "Долгие посты",
+          desc: "Голод и безмолвие учат слышать себя.",
+          icon: "🌙",
+          effects: { end: 1, int: 1 }
+        }
+      ]
+    }
   },
   {
     id: "youth",
     title: "Юность",
-    text: "Какое ремесло ты постиг, когда детство осталось позади?",
-    lore: "Дорога к Башне усеяна не камнями, а сломанными судьбами тех, кто решил попытать счастья.",
-    options: [
-      { 
-        id: "guard", 
-        label: "Караул у ворот", 
-        desc: "Ночные смены у городских ворот закалили тело и оставили на память щит.", 
-        icon: "🛡️",
-        effects: { end: 2, equipment: ["wood_shield"] } 
-      },
-      { 
-        id: "thief", 
-        label: "Ночной промысел", 
-        desc: "Чужие карманы и тёмные крыши научили бесшумной ходьбе и бережному обращению с кинжалом.", 
-        icon: "🗡️",
-        effects: { agi: 2, equipment: ["dagger"] } 
-      },
-      { 
-        id: "alchemist", 
-        label: "Дым реторт", 
-        desc: "Часы над кипящими склянками отточили разум; пара целебных зелий осталась на память.", 
-        icon: "🧪",
-        effects: { int: 2, potions: ["hp_small", "hp_small"] } 
-      },
-      { 
-        id: "mercenary", 
-        label: "Клинок за монету", 
-        desc: "Чужая война платит золотом и учит бить первым.", 
-        icon: "⚔️",
-        effects: { str: 1, agi: 1, gold: 30 } 
-      }
-    ]
+    text: "Какое ремесло осталось в руках?",
+    lore: "Дорога к Башне усеяна не камнями, а сломанными судьбами.",
+    optionsByArchetype: {
+      duelist: [
+        {
+          id: "duelist_youth_mercenary",
+          label: "Наёмный клинок",
+          desc: "Чужая война платила золотом и учила бить первым.",
+          icon: "⚔️",
+          effects: { str: 1, gold: 15 }
+        },
+        {
+          id: "duelist_youth_duels",
+          label: "Дуэли за монету",
+          desc: "Честь стоила дешевле, чем хороший удар.",
+          icon: "🤺",
+          effects: { agi: 1, gold: 10 }
+        },
+        {
+          id: "duelist_youth_school",
+          label: "Школа фехтования",
+          desc: "Пыльные трактаты о том, как не умереть.",
+          icon: "📖",
+          effects: { int: 2 }
+        }
+      ],
+      guardian: [
+        {
+          id: "guardian_youth_watch",
+          label: "Караул у ворот",
+          desc: "Ночные смены и чужие лица, которым нет доверия.",
+          icon: "🛡️",
+          effects: { end: 1, gold: 10 }
+        },
+        {
+          id: "guardian_youth_shieldwall",
+          label: "Щит в первой шеренге",
+          desc: "Стойка держится на плече соседа. Или не держится.",
+          icon: "🪖",
+          effects: { str: 1, end: 1 }
+        },
+        {
+          id: "guardian_youth_guard",
+          label: "Служба в страже",
+          desc: "Приказы, смены и один украденный сон.",
+          icon: "🏰",
+          effects: { end: 1, potions: 1 }
+        }
+      ],
+      assassin: [
+        {
+          id: "assassin_youth_night",
+          label: "Ночной промысел",
+          desc: "Чужие карманы и тёмные крыши.",
+          icon: "🗡️",
+          effects: { agi: 1, gold: 15 }
+        },
+        {
+          id: "assassin_youth_poison",
+          label: "Яд и шёпот",
+          desc: "Смерть не обязана быть громкой.",
+          icon: "🧪",
+          effects: { int: 1, potions: 1 }
+        },
+        {
+          id: "assassin_youth_contract",
+          label: "Работа по контракту",
+          desc: "Имя жертвы важнее имени исполнителя.",
+          icon: "📜",
+          effects: { agi: 1, end: 1 }
+        }
+      ],
+      monk: [
+        {
+          id: "monk_youth_obedience",
+          label: "Годы послушания",
+          desc: "Смирение оказалось тяжелее камня.",
+          icon: "🧎",
+          effects: { end: 2 }
+        },
+        {
+          id: "monk_youth_stances",
+          label: "Стойки на рассвете",
+          desc: "Тигр, Журавль и Медведь — до первого пота.",
+          icon: "🧘",
+          effects: { agi: 1, int: 1 }
+        },
+        {
+          id: "monk_youth_scribes",
+          label: "Переписывание свитков",
+          desc: "Чужие слова оставляли мозоли на разуме.",
+          icon: "📜",
+          effects: { int: 2 }
+        }
+      ]
+    }
   },
   {
-    id: "reason",
-    title: "Причина прихода в Йорстед",
-    text: "Почему ты здесь? Что гонит тебя к Башне?",
-    lore: "Никто не приходит в Йорстед просто так — каждого ведёт либо мечта, либо то, от чего хочется убежать.",
+    id: "adult",
+    title: "Взрослая жизнь",
+    text: "Чем закончилась пора ученичества?",
+    lore: "Взрослость — это когда шрамы уже не удивляют, а предупреждают.",
+    optionsByArchetype: {
+      duelist: [
+        {
+          id: "duelist_adult_arena",
+          label: "Кровь на арене",
+          desc: "Толпа помнит победителей и забывает остальных.",
+          icon: "⚔️",
+          effects: { str: 1, end: 1 }
+        },
+        {
+          id: "duelist_adult_fame",
+          label: "Слава дуэлянта",
+          desc: "Имя, которое произносят с опаской.",
+          icon: "🏅",
+          effects: { agi: 1, gold: 15 }
+        },
+        {
+          id: "duelist_adult_master",
+          label: "Уроки старого мастера",
+          desc: "Наставник ушёл, оставив только науку.",
+          icon: "🎓",
+          effects: { int: 1, potions: 1 }
+        }
+      ],
+      guardian: [
+        {
+          id: "guardian_adult_siege",
+          label: "Осада и пепел",
+          desc: "Стена пала. Ты — нет.",
+          icon: "🔥",
+          effects: { end: 2 }
+        },
+        {
+          id: "guardian_adult_veteran",
+          label: "Ветеран стены",
+          desc: "Тяжёлый щит и ещё более тяжёлый опыт.",
+          icon: "🛡️",
+          effects: { str: 1, gold: 10 }
+        },
+        {
+          id: "guardian_adult_oath",
+          label: "Клятва защитника",
+          desc: "Слово, данное тем, кто уже не может сказать.",
+          icon: "📿",
+          effects: { end: 1, int: 1 }
+        }
+      ],
+      assassin: [
+        {
+          id: "assassin_adult_nameless",
+          label: "Заказ без имени",
+          desc: "Никто не спрашивал, кто ты. Только когда.",
+          icon: "🕯️",
+          effects: { agi: 1, gold: 15 }
+        },
+        {
+          id: "assassin_adult_court",
+          label: "Тень при дворе",
+          desc: "Интриги оказались острее любого клинка.",
+          icon: "🎭",
+          effects: { int: 1, potions: 1 }
+        },
+        {
+          id: "assassin_adult_hunted",
+          label: "Охота на охотника",
+          desc: "Тех, кто шёл по следу, больше нет.",
+          icon: "🐺",
+          effects: { agi: 1, end: 1 }
+        }
+      ],
+      monk: [
+        {
+          id: "monk_adult_hermit",
+          label: "Путь отшельника",
+          desc: "Годы в тишине, где отвечает только эхо.",
+          icon: "🏔️",
+          effects: { int: 2 }
+        },
+        {
+          id: "monk_adult_fist",
+          label: "Кулак и посох",
+          desc: "Оружие отринуто, но руки помнят всё.",
+          icon: "🥋",
+          effects: { str: 1, end: 1 }
+        },
+        {
+          id: "monk_adult_mountains",
+          label: "Молчание гор",
+          desc: "Здесь не было свидетелей — только путь.",
+          icon: "🌄",
+          effects: { end: 1, potions: 1 }
+        }
+      ]
+    }
+  },
+  {
+    id: "motive",
+    title: "Мотив",
+    text: "Что ведёт тебя в Башню?",
+    lore: "Каждый, кто входит в Башню, несёт с собой причину. Некоторые несут её на плечах.",
     options: [
-      { 
-        id: "glory", 
-        label: "Погоня за легендой", 
-        desc: "Имя, выбитое на стенах Башни, стоит дороже золота — а пока есть монеты на дорогу.", 
+      {
+        id: "motive_wealth",
+        label: "Богатство",
+        desc: "Золото откроет двери, что заперты для прочих.",
         icon: "💰",
-        effects: { gold: 50 } 
+        effects: { gold: 50 }
       },
-      { 
-        id: "revenge", 
-        label: "Кровная месть", 
-        desc: "То, что ты ищешь, скрылось за шпилем. Ненависть обостряет и клинок, и взгляд.", 
+      {
+        id: "motive_revenge",
+        label: "Месть",
+        desc: "Одна тень в Башне знает твоё имя. Она ответит.",
         icon: "🔥",
-        effects: { str: 1, agi: 1 } 
+        effects: { str: 1 }
       },
-      { 
-        id: "exile", 
-        label: "Печать изгнания", 
-        desc: "Родина закрыла ворота. Дорога на север выковала тело, способное выжить где угодно.", 
-        icon: "⛓️",
-        effects: { end: 2 } 
-      },
-      { 
-        id: "knowledge", 
-        label: "Запретные письмена", 
-        desc: "В Башне спят тексты, которым не следовало существовать. Разум тянется к ним, как к пламени.", 
+      {
+        id: "motive_knowledge",
+        label: "Знание",
+        desc: "Тайны глубин стоят дороже любой короны.",
         icon: "📜",
-        effects: { int: 2, mana: 15 } 
-      }
-    ]
-  },
-  {
-    id: "baptism",
-    title: "Боевое крещение",
-    text: "Вспомни свой первый настоящий бой — и его шрам.",
-    lore: "Первая кровь не смывается. Она остаётся на руках и в снах.",
-    options: [
-      { 
-        id: "wolf", 
-        label: "След клыка", 
-        desc: "Первый бой — против зверя, что вышел из леса. Остался шрам и ржавый нож.", 
-        icon: "🐺",
-        effects: { str: 2, equipment: ["rusty_knife"] } 
+        effects: { int: 2 }
       },
-      { 
-        id: "village", 
-        label: "Дым над крышами", 
-        desc: "Когда бандиты подожгли дома, пришлось встать в строй. Выжившие отплатили золотом.", 
-        icon: "🏘️",
-        effects: { gold: 50, end: 1 } 
-      },
-      { 
-        id: "deserter", 
-        label: "Наука отступать", 
-        desc: "Иногда единственный способ выжить — уйти. Ноги запомнили этот урок лучше головы.", 
-        icon: "🏃",
-        effects: { agi: 2 } 
-      },
-      { 
-        id: "healer", 
-        label: "Чужая рана", 
-        desc: "Среди боя приходилось не убивать, а зашивать. От тех дней остались три склянки.", 
-        icon: "🩹",
-        effects: { int: 2, potions: ["hp_small", "hp_small", "hp_small"] } 
-      }
-    ]
-  },
-  {
-    id: "secret",
-    title: "Тайна",
-    text: "Что ты скрываешь даже от себя?",
-    lore: "У каждого, кто ступает на порог Башни, есть тайна, которую хочется оставить за спиной.",
-    options: [
-      { 
-        id: "noble", 
-        label: "Голубая кровь", 
-        desc: "От прошлого осталось имя, которое лучше не произносить, и кошель старого золота.", 
-        icon: "👑",
-        effects: { gold: 200, int: 1 } 
-      },
-      { 
-        id: "curse", 
-        label: "Тёмное наследие", 
-        desc: "Нечто древнее шепчет изнутри, отдавая силу и забирая жизненный жар.", 
-        icon: "🕯️",
-        effects: { mana: 20, hp: -10 } 
-      },
-      { 
-        id: "debt", 
-        label: "Печать ростовщика", 
-        desc: "Золото в кармане — чужое, и оно жжётся. Когда-нибудь за него спросят.", 
-        icon: "🪙",
-        effects: { gold: 100 } 
-      },
-      { 
-        id: "possession", 
-        label: "Чужой взгляд внутри", 
-        desc: "Иногда руки действуют сами, и под ногтями проступают когти, что жаждут крови.", 
-        icon: "👁️",
-        effects: { equipment: ["claws"] } 
+      {
+        id: "motive_defense",
+        label: "Защита",
+        desc: "Кто-то должен встать между тьмой и домом.",
+        icon: "🛡️",
+        effects: { end: 1 }
       }
     ]
   }
@@ -945,6 +2386,15 @@ const HOTEL_PRICE = 20;
 const COMPANION_PRICE = 100;
 const COMPANION_BUFF_DAYS = 2;
 
+// Ранги отношений. bonus — прибавка к профильному баффу компаньона,
+// wageMult — множитель ежедневного жалования.
+const COMPANION_AFFINITY_LEVELS = [
+  { min: 0, name: "Незнакомка", bonus: 0, wageMult: 1.0 },
+  { min: 100, name: "Подруга", bonus: 0.1, wageMult: 0.9 },
+  { min: 200, name: "Близкая", bonus: 0.2, wageMult: 0.7 },
+  { min: 300, name: "Родная душа", bonus: 0.35, wageMult: 0.5 },
+];
+
 const TIME_PHASES = [
   { id: "morning", name: "Утро", icon: "🌅", towerOpen: true },
   { id: "day", name: "День", icon: "☀️", towerOpen: true },
@@ -961,6 +2411,11 @@ const COMPANIONS = [
     buff: "hp", 
     buffText: "+10% к максимуму HP", 
     price: COMPANION_PRICE, 
+    baseHireCost: 500,
+    dailyWage: 50,
+    battleAction: "heal",
+    hireDialog: "hire_mira",
+    affinityLevels: COMPANION_AFFINITY_LEVELS,
     src: "assets/portraits/mira.webp", 
     desc: "«Твоему телу нужен покой, а твоему упрямству — моя рука. Ложись и закрой глаза, милый.» Высокая и статная, Мира излучает спокойную, зрелую красоту. В ее изумрудных глазах читается безграничная теплота, но ее забота не терпит возражений. Сон в ее объятиях — это не просто отдых, это глубокое, живительное восстановление. Ее присутствие заставляет забытые раны затягиваться, а измученное тело — обретать новую прочность." 
   },
@@ -972,6 +2427,11 @@ const COMPANIONS = [
     buff: "hybrid", 
     buffText: "+5% к максимуму HP, +5% к урону", 
     price: COMPANION_PRICE, 
+    baseHireCost: 500,
+    dailyWage: 50,
+    battleAction: "stun",
+    hireDialog: "hire_alva",
+    affinityLevels: COMPANION_AFFINITY_LEVELS,
     src: "assets/portraits/alva.webp", 
     desc: "«Твои мысли слишком шумны, а движения полны суеты. Позволь мне остудить твой разум... и зажечь твой клинок.» Роскошные белые волосы и пронзительный взгляд синих глаз делают Альву похожей на неприступную зимнюю богиню. Ее острые, аристократичные черты лица и ледяная сдержанность, казалось, делают ее неприступной. Но за этой маской скрывается удивительная, почти хрупкая нежность, которую она дарит лишь избранным. Ночь в ее объятиях дарует не только глубокий покой, но и обостряет чувства, превращая каждое твое движение в смертоносный, выверенный танец." 
   },
@@ -983,12 +2443,138 @@ const COMPANIONS = [
     buff: "damage", 
     buffText: "+10% к урону", 
     price: COMPANION_PRICE, 
+    baseHireCost: 500,
+    dailyWage: 50,
+    battleAction: "strike",
+    hireDialog: "hire_solveig",
+    affinityLevels: COMPANION_AFFINITY_LEVELS,
     src: "assets/portraits/solveig.webp", 
     desc: "«Ты думаешь, что устал? Ха! Тогда я покажу тебе, что значит настоящая усталость. А ну вставай, слабак!» Молодая, дикая и неудержимая, Сольвейг похожа на северную бурю, заключенную в человеческий облик. Две пышные золотые косы, пронзительные зеленые глаза и едва заметные родовые татуировки, словно обжигающие ее бледную кожу. Она не знает нежности в привычном понимании — ее ласка это вызов, ее объятия это спарринг. Ночь с ней не даст покоя, но зато пробудит в тебе зверя. Проснувшись рядом с Сольвейг, ты чувствуешь, что твои мышцы гудят от силы, а клинок просится в бой." 
   }
 ];
 
 const COMPANION_MAP = Object.fromEntries(COMPANIONS.map((c) => [c.id, c]));
+
+// ── Реакции компаньонов (Блок 3) ───────────────────────────────────────────
+// Ключи — типы событий. explore — запасной вариант для процедурных событий
+// без type. Реплика выбирается детерминированно по id события.
+const COMPANION_REACTIONS = {
+  mira: {
+    corpse: [
+      "Не оставляй его без камня. Даже в Башне мёртвые заслуживают тени.",
+      "Смотри не на кровь, а на руки. Они уже не боятся.",
+    ],
+    chest: [
+      "Бери только нужное. Лишнее тянет вниз, как камень на шее.",
+      "Чужое золото пахнет тревогой. Я бы проверила крышку ещё раз.",
+    ],
+    altar: [
+      "Здесь пахнет старыми молитвами. Не насмехайся — они ещё слышат.",
+      "Тише. Дай камню вспомнить, что он был святым.",
+    ],
+    beast: [
+      "Тварь ранена. Добей быстро — милосердие тоже работа.",
+      "Не подходи с открытой стороны. У зверя хватит сил на последний рывок.",
+    ],
+    hunter: [
+      "Охотник жив. Значит, ещё есть кого вытаскивать.",
+      "У него взгляд тех, кто слишком долго ходил один. Помоги, если можешь.",
+    ],
+    fight_start: [
+      "Дыши ровно. Я рядом, и раны твои — мои.",
+      "Не геройствуй. Просто вернись ко мне целым.",
+    ],
+    victory: [
+      "Тише. Победа не отменяет усталости.",
+      "Дай руку. Раны затянутся, если не мешать.",
+    ],
+    defeat: [
+      "Нет. Вставай. Слышишь? Я не позволю тебе остаться здесь.",
+      "Тьма не заберёт тебя. Дыши. Ещё раз.",
+    ],
+    explore: [
+      "Чувствуешь? Воздух стал тяжелее. Держись ближе ко мне.",
+      "Я соберу травы, а ты смотри по сторонам. Так надёжнее.",
+    ],
+  },
+  alva: {
+    corpse: [
+      "Его песня оборвалась на середине. Слышишь, как тихо стало?",
+      "Смерть — это пауза. Не задерживайся в ней.",
+    ],
+    chest: [
+      "Сундук звенит фальшиво. Красивые вещи часто врут.",
+      "Открывай. Но помни: цена иногда спрятана под крышкой.",
+    ],
+    altar: [
+      "Камень поёт, если слушать долго. Не перебивай его.",
+      "Здесь молились те, кто уже не споёт. Оставь им тишину.",
+    ],
+    beast: [
+      "У зверя тоже есть ритм. Сбей его — и победа твоя.",
+      "Не смотри в глаза. Смотри в лапы — там его намерение.",
+    ],
+    hunter: [
+      "Он держится за жизнь, как за последнюю ноту. Не фальшивь.",
+      "В его взгляде — зима. Подай руку, пока не замёрз.",
+    ],
+    fight_start: [
+      "Задай ритм первым. Пусть сталь поёт твоим голосом.",
+      "Страх — это фальшивая нота. Не дай ей прозвучать.",
+    ],
+    victory: [
+      "Тишина после победы — лучшая из песен.",
+      "Ты держишь удар. Теперь научись держать дыхание.",
+    ],
+    defeat: [
+      "Нет. Не сейчас. Песня ещё не допета.",
+      "Вставай. Я не буду петь над твоей могилой.",
+    ],
+    explore: [
+      "Слушай. Башня дышит, и её дыхание сбивается к глубине.",
+      "Здесь эхо отвечает не сразу. Значит, впереди пустота.",
+    ],
+  },
+  solveig: {
+    corpse: [
+      "Ха! Этот уже не встанет. Обыщи и идём.",
+      "Смотри под ноги. Мёртвые любят хватать за сапоги.",
+    ],
+    chest: [
+      "Сундук! Наконец-то что-то, кроме камней и паутины.",
+      "Открывай быстрее, пока я не открыла его сама.",
+    ],
+    altar: [
+      "Камни, свечи, кости... Я бы тут не задерживалась.",
+      "Если оно зашевелится — бей первым. Я прикрою.",
+    ],
+    beast: [
+      "Зверь! Вот это честная драка, а не подлые ловушки.",
+      "Не убивай сразу. Дай ему шанс показать клыки.",
+    ],
+    hunter: [
+      "Охотник? Живой? Значит, ещё не всё потеряно.",
+      "Держись, стрелок. Сейчас вытащим тебя из этой дыры.",
+    ],
+    fight_start: [
+      "Наконец-то! Покажи им, на что ты годишься!",
+      "Не сдерживайся. Бей так, чтобы запомнили.",
+    ],
+    victory: [
+      "Ха! Вот это был бой. Ещё один такой — и я поверю в тебя.",
+      "Хорошо бьёшь. Теперь не умри от первой же царапины.",
+    ],
+    defeat: [
+      "Вставай, слабак! Я не для того шла сюда, чтобы тащить тебя обратно.",
+      "Нет-нет-нет. Слышишь? Вставай. Приказ.",
+    ],
+    explore: [
+      "Не топчись. Или идём, или я иду одна.",
+      "Чуешь? Впереди кто-то дышит. Наконец-то веселье.",
+    ],
+  },
+};
+
 
 const GOLD_DROP_MULT = 0.25;
 
@@ -1021,16 +2607,18 @@ const WEEKLY_EVENTS = {
 };
 
 const TRAINING_ENERGY_COST = 5;
-const TRAINING_PHASES = 3;
+const TRAINING_PHASES = 1;
 
 function trainingCap(level = state.level) {
   return level <= 1 ? 5 : level * 2;
 }
 
+// Тренировки Зала Охотников. cap — личный потолок именно этой тренировки,
+// stat — какой атрибут растёт, risk — шанс травмы за занятие.
 const TRAININGS = [
-  { id: "strength", attr: "str", name: "Круг Силы", icon: "🪨", desc: "Здесь сосредоточены древние камни. Некоторые из них удивительно тяжелы для своего размера.", effect: "+1 к силе (+1 к урону)" },
-  { id: "agility", attr: "agi", name: "Спарринг", icon: "🤺", desc: "Отшлифуй свою технику в тренировочном бою с другим авантюристом.", effect: "+1 к ловкости (+1% уворот, +0.5% крит)" },
-  { id: "endurance", attr: "end", name: "Царь Горы", icon: "⛰️", desc: "Серия повторяющихся упражнений, где выбивший последний побеждает.", effect: "+1 к выносливости (+2 к максимуму HP)" },
+  { id: "drill", attr: "end", stat: "end", name: "Строй", icon: "🪖", cap: 10, risk: 0.2, desc: "Иван гоняет вас по плацу, пока шаг не станет единым. Ноги гудят, зато спина держит.", effect: "+1 к выносливости за тренировку" },
+  { id: "sparring", attr: "agi", stat: "agi", name: "Спарринг", icon: "🤺", cap: 10, risk: 0.25, desc: "Учебный бой на деревянных клинках. Быстрота важнее силы — Иван бьёт по пальцам за каждый зевок.", effect: "+1 к ловкости за тренировку" },
+  { id: "heavy_lifting", attr: "str", stat: "str", name: "Тяжести", icon: "🏋️", cap: 10, risk: 0.3, desc: "Камни, мешки с песком и старые наковальни. После десятого подхода руки перестают дрожать — или отказывают.", effect: "+1 к силе за тренировку" },
 ];
 
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));
@@ -1070,12 +2658,22 @@ const HUNTER_TIPS = [
   { minFloor: 1, text: "Советую бить гоблинов в живот, у них там нет брони." },
   { minFloor: 1, text: "Капюшон и лохмотья — не броня. Багбир ломает их одним щелчком." },
   { minFloor: 1, text: "Не путай редкость с ценностью: ржавый нож лутается часто, но стоит гроши." },
+  { minFloor: 1, text: "Мы здесь не для славы. Мы здесь, чтобы город спал спокойно." },
+  { minFloor: 1, text: "Башня умеет ждать. Если этаж кажется пустым — ты просто не видишь, что там." },
+  { minFloor: 1, text: "Тимми и Иван? Да, у них прошлое. Но сейчас они нужны друг другу. Как и все мы." },
   { minFloor: 2, text: "Кобольды ставят блоки, бери приёмы на пробитие." },
   { minFloor: 2, text: "Кобольд-надсмотрщик держит два блока сразу — бей в живот, там кольчуга не спасёт." },
-  { minFloor: 3, text: "Не забудь про мифрил, он падает с орков." },
+  { minFloor: 4, text: "Мифрил падает с огров в Лагере Орков — не пропусти жилу." },
   { minFloor: 3, text: "Скелеты ничего не чувствуют, но кости хрупкие — руби по ногам." },
   { minFloor: 4, text: "Огр открыт, пока замахивается. Один его удар — половина твоего здоровья." },
   { minFloor: 5, text: "Дьяволы целятся в голову и в грудь. Держи блок там, и половина урона уйдёт в сталь." },
+  { minFloor: 1, text: "Перед боем проверь, чем бьёт враг. Если у него топор — не подставляй плечо. Если копьё — не стой по прямой." },
+  { minFloor: 2, text: "Не трать зелья на царапины. Лечись после боя, а в бою береги одно — на случай, когда земля уйдёт из-под ног." },
+  { minFloor: 3, text: "Призрак бьёт сквозь броню. Против него важнее мана и голова, чем сталь на груди." },
+  { minFloor: 4, text: "С орками не меняйся ударами. Бей, отходи, жди. У них больше силы, чем терпения." },
+  { minFloor: 5, text: "Демонический план меняется, пока ты моргаешь. Запоминай дорогу назад, даже если идёшь вперёд." },
+  { minFloor: 2, text: "Лут не бери весь. Если сумка трещит — ты не богаче, ты медленнее. А медленных Башня любит." },
+  { minFloor: 3, text: "Редкий лут пахнет не золотом, а ошибкой. Если что-то лежит слишком удобно — сначала ткни в него копьём." },
 ];
 
 const ITEMS = {
@@ -1090,7 +2688,7 @@ const ITEMS = {
 
   rags: { id: "rags", name: "Рваная рубаха", slot: "chest", icon: "👕", def: 0, hp: 0, armorType: "cloth", price: 0, shopTier: 0, desc: "Лучше, чем ничего." },
   gambeson: { id: "gambeson", name: "Стёганый гамбезон", slot: "chest", icon: "🥋", def: 4, hp: 40, armorType: "cloth", mana: 5, price: 40, shopTier: 1, desc: "Мягкая броня, но держит удар." },
-  leather: { id: "leather", name: "Кожаный доспех", slot: "chest", icon: "🥋", def: 6, hp: 60, armorType: "leather", price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
+  leather_armor: { id: "leather_armor", name: "Кожаный доспех", slot: "chest", icon: "🥋", def: 6, hp: 60, armorType: "leather", price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
   chain: { id: "chain", name: "Кольчуга", slot: "chest", icon: "🥋", def: 10, hp: 90, armorType: "chain", price: 210, shopTier: 2, desc: "Тысяча колец, ни одного лишнего." },
   scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "🥋", def: 12, hp: 110, armorType: "chain", price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
   plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
@@ -1132,7 +2730,7 @@ const ITEMS = {
   neck_guard: gearItem("neck_guard", "Медальон караульного", "neck", "📿", 110, 2, { hp: 40, crit: 1 }, "Знак поста, который давно не сменяли."),
   neck_crystal: gearItem("neck_crystal", "Кристальный подвесок", "neck", "💠", 330, 3, { hp: 60, crit: 2 }, "Внутри что-то медленно пульсирует."),
   ring_copper: gearItem("ring_copper", "Медное кольцо", "ring", "💍", 35, 1, { crit: 1 }, "Тусклое, но своё."),
-  ring_silver: gearItem("ring_silver", "Кольцо из холодного железа", "ring", "💍", 120, 2, { crit: 2, hp: 20 }, "Тяжелое кольцо, выкованное из холодного железа. Охраняет владельца от злых чар."),
+  ring_silver: gearItem("ring_silver", "Кольцо из холодного серебра", "ring", "💍", 120, 2, { crit: 2, hp: 20 }, "Тяжелое кольцо, выкованное из холодного серебра. Охраняет владельца от злых чар."),
   ring_crystal: gearItem("ring_crystal", "Кристальное кольцо", "ring", "💍", 350, 3, { crit: 3, hp: 20 }, "Осколок, оправленный в серебро."),
   trinket_coin: gearItem("trinket_coin", "Счастливая монета", "trinket", "💰", 35, 1, { dodge: 1 }, "Счастливая, пока не потрачена."),
   trinket_totem: gearItem("trinket_totem", "Железный тотем", "trinket", "🔮", 120, 2, { dodge: 2, hp: 20 }, "Тёплый, если долго держать."),
@@ -1173,8 +2771,6 @@ const ITEMS = {
   // ── Новая броня (armorType) ──
   wanderer_coat: gearItem("wanderer_coat", "Плащ странника", "chest", "🧥", 35, 1, { def: 3, hp: 45, mana: 8, armorType: "cloth" }, "Стёганая ткань, пахнущая дорогой и дымом."),
   mage_robe: gearItem("mage_robe", "Мантия чародея", "chest", "🧙", 80, 1, { def: 2, hp: 30, mana: 40, armorType: "cloth" }, "Ткань хранит тепло чужих заклинаний."),
-  hard_leather: gearItem("hard_leather", "Просмолённая кожа", "chest", "🥋", 55, 1, { def: 7, hp: 55, armorType: "leather" }, "Слои кожи вяжут дёгтем в единый пласт."),
-  shadow_leather: gearItem("shadow_leather", "Кожа ловца дорожек", "chest", "🥋", 180, 2, { def: 6, hp: 60, dodge: 5, armorType: "leather" }, "Сшита по следам; в ней двигаешься тише."),
   riveted_chain: gearItem("riveted_chain", "Клёпаная кольчуга", "chest", "🥋", 330, 3, { def: 13, hp: 100, armorType: "chain" }, "Каждое кольцо расклёпано вручную."),
   knight_plate: gearItem("knight_plate", "Полный латный доспех", "chest", "🛡️", 620, 3, { def: 18, hp: 140, dodge: -6, armorType: "plate" }, "Вес гасит чужие удары и вашу прыть."),
   hood_mage: gearItem("hood_mage", "Капюшон чародея", "head", "🧢", 60, 2, { def: 2, hp: 15, mana: 20, armorType: "cloth" }, "Тесьма вдоль шва отводит лишние мысли."),
@@ -1184,7 +2780,6 @@ const ITEMS = {
 
   // ── Броня тир 1 (Железо) ──
   student_robe: gearItem("student_robe", "Ученическая роба", "chest", "🧥", 50, 1, { def: 2, hp: 10, mana: 10, armorType: "cloth" }, "Роба ученика алхимика — ткань теперь пахнет травами."),
-  rough_leather: gearItem("rough_leather", "Грубый кожаный доспех", "chest", "🥋", 80, 1, { def: 4, hp: 20, dodge: 2, armorType: "leather" }, "Свинженные куски, сшитые без вкуса, но вовремя."),
   rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "🥋", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
   iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "🥋", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
   dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "assets/icons/dented_plate.webp", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
@@ -1210,8 +2805,6 @@ const ITEMS = {
 
   // ── Броня тир 2 (Сталь) ──
   dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
-  reinforced_leather: gearItem("reinforced_leather", "Укрепленная кожа", "chest", "🥋", 200, 2, { def: 8, hp: 40, dodge: 4, armorType: "leather" }, "Кожа с вбиваемыми стальными шипами."),
-  steel_chain: gearItem("steel_chain", "Стальная кольчуга", "chest", "🥋", 300, 2, { def: 14, hp: 60, armorType: "chain" }, "Каждое кольцо — углеродистая сталь."),
   steel_chainmail: { id: "steel_chainmail", name: "Стальная кольчуга", slot: "chest", armorType: "chain", def: 14, hp: 110, price: 280, shopTier: 2, icon: "🥋", desc: "Тяжёлая, но надёжная броня, способная остановить даже меч." },
   steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "🛡️", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
 
@@ -1236,47 +2829,46 @@ const ITEMS = {
   cold_iron_ring: gearItem("cold_iron_ring", "Кольцо из холодного железа", "ring", "💍", 60, 2, { crit: 2 }, "Простое кольцо из холодного железа, отполированное до блеска. Нежить его не любит."),
   cold_iron_neck: gearItem("cold_iron_neck", "Амулет из холодного железа", "neck", "📿", 65, 2, { dodge: 2 }, "Амулет из холодного железа, чей тихий звон отводит беду и нежить."),
 // === ITEMS: Сталь (этаж 3) ===
-  steel_knight_sword: { id: "steel_knight_sword", name: "Рыцарский стальной меч", slot: "mainhand", icon: "⚔️", atk: 42, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 16, bludgeoning: 0 }, price: 220, shopTier: 2, desc: "Прямой рыцарский клинок из холодной стали." },
-  steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 2, desc: "Двуручник, чей клинок длиннее человеческой тени." },
-  steel_sledge: { id: "steel_sledge", name: "Стальная кувалда", slot: "mainhand", icon: "🔨", atk: 58, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 55 }, price: 380, shopTier: 2, desc: "Кузнечная кувалда, перекованная в орудие для черепов." },
+  steel_knight_sword: { id: "steel_knight_sword", name: "Рыцарский стальной меч", slot: "mainhand", icon: "⚔️", atk: 42, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 16, bludgeoning: 0 }, price: 220, shopTier: 3, desc: "Прямой рыцарский клинок из холодной стали." },
+  steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 3, desc: "Двуручник, чей клинок длиннее человеческой тени." },
+  steel_sledge: { id: "steel_sledge", name: "Стальная кувалда", slot: "mainhand", icon: "🔨", atk: 58, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 55 }, price: 380, shopTier: 3, desc: "Кузнечная кувалда, перекованная в орудие для черепов." },
 
-  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 180, shopTier: 2, desc: "Стальной щит, за которым можно переждать целый бой." },
+  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 180, shopTier: 3, desc: "Стальной щит, за которым можно переждать целый бой." },
 
-  steel_head: gearItem("steel_head", "Стальной шлем", "head", "⛑️", 150, 2, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
-  steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "🛡️", 300, 2, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
-  steel_legs: gearItem("steel_legs", "Стальные поножи", "legs", "👖", 240, 2, { def: 12, hp: 100, armorType: "plate" }, "Стальные поножи, в которых шаг становится гулким."),
-  steel_feet: gearItem("steel_feet", "Стальные сапоги", "feet", "🥾", 200, 2, { def: 10, hp: 90, armorType: "plate" }, "Стальные сапоги, что вбивают врага в землю."),
+  steel_head: gearItem("steel_head", "Стальной шлем", "head", "⛑️", 150, 3, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
+  steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "🛡️", 300, 3, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
+  steel_legs: gearItem("steel_legs", "Стальные поножи", "legs", "👖", 240, 3, { def: 12, hp: 100, armorType: "plate" }, "Стальные поножи, в которых шаг становится гулким."),
+  steel_feet: gearItem("steel_feet", "Стальные сапоги", "feet", "🥾", 200, 3, { def: 10, hp: 90, armorType: "plate" }, "Стальные сапоги, что вбивают врага в землю."),
 
-  steel_ring: gearItem("steel_ring", "Стальное кольцо", "ring", "💍", 150, 2, { crit: 3 }, "Стальное кольцо, холодящее палец перед точным ударом."),
-  steel_trinket: gearItem("steel_trinket", "Стальной талисман", "trinket", "🔮", 140, 2, { hp: 60 }, "Талисман из стали, дающий телу вторую прочность."),
+  steel_ring: gearItem("steel_ring", "Стальное кольцо", "ring", "💍", 150, 3, { crit: 3 }, "Стальное кольцо, холодящее палец перед точным ударом."),
+  steel_trinket: gearItem("steel_trinket", "Стальной талисман", "trinket", "🔮", 140, 3, { hp: 60 }, "Талисман из стали, дающий телу вторую прочность."),
 // === ITEMS: Мифрил (этаж 4) ===
-  mithril_sword: { id: "mithril_sword", name: "Мифриловый меч", slot: "mainhand", icon: "🗡️", atk: 62, crit: 5, weaponType: "sword", handed: "1h", damage: { slashing: 38, piercing: 24, bludgeoning: 0 }, price: 480, shopTier: 3, desc: "Клинок из мифрила, что поёт в воздухе, предсказывая крит." },
-  mithril_halberd: { id: "mithril_halberd", name: "Мифриловая алебарда", slot: "mainhand", icon: "🪓", atk: 70, crit: 4, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 34, bludgeoning: 6 }, price: 560, shopTier: 3, desc: "Мифриловая алебарда — копьё и топор в одном древке." },
-  mithril_axe: { id: "mithril_axe", name: "Мифриловая секира", slot: "mainhand", icon: "🪓", atk: 78, crit: 3, weaponType: "axe", handed: "2h", damage: { slashing: 58, piercing: 0, bludgeoning: 20 }, price: 640, shopTier: 3, desc: "Двуручная секира из мифрила, рассекающая воздух и броню." },
+  mithril_sword: { id: "mithril_sword", name: "Мифриловый меч", slot: "mainhand", icon: "🗡️", atk: 62, crit: 5, weaponType: "sword", handed: "1h", damage: { slashing: 38, piercing: 24, bludgeoning: 0 }, price: 480, shopTier: 4, desc: "Клинок из мифрила, что поёт в воздухе, предсказывая крит." },
+  mithril_halberd: { id: "mithril_halberd", name: "Мифриловая алебарда", slot: "mainhand", icon: "🪓", atk: 70, crit: 4, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 34, bludgeoning: 6 }, price: 560, shopTier: 4, desc: "Мифриловая алебарда — копьё и топор в одном древке." },
+  mithril_axe: { id: "mithril_axe", name: "Мифриловая секира", slot: "mainhand", icon: "🪓", atk: 78, crit: 3, weaponType: "axe", handed: "2h", damage: { slashing: 58, piercing: 0, bludgeoning: 20 }, price: 640, shopTier: 4, desc: "Двуручная секира из мифрила, рассекающая воздух и броню." },
 
-  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, price: 320, shopTier: 3, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
+  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, price: 320, shopTier: 4, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
 
-  mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "💠", 320, 3, { def: 12, hp: 100, crit: 2, armorType: "chain" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
-  mithril_chest: gearItem("mithril_chest", "Мифриловая кольчуга", "chest", "🥋", 560, 3, { def: 16, hp: 130, crit: 3, armorType: "chain" }, "Мифриловая кольчуга, лёгкая настолько, что не замедляет руку."),
-  mithril_hands: gearItem("mithril_hands", "Мифриловые перчатки", "hands", "🧤", 300, 3, { def: 12, hp: 100, crit: 3, armorType: "chain" }, "Мифриловые перчатки, в которых пальцы точны до дрожи."),
-  mithril_legs: gearItem("mithril_legs", "Мифриловые поножи", "legs", "👖", 420, 3, { def: 14, hp: 115, crit: 2, armorType: "chain" }, "Мифриловые поножи, что невесомы на ноге."),
+  mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "💠", 320, 4, { def: 12, hp: 100, crit: 2, armorType: "plate" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
+  mithril_chest: gearItem("mithril_chest", "Мифриловая кираса", "chest", "🛡️", 560, 4, { def: 16, hp: 130, crit: 3, armorType: "plate" }, "Мифриловая кираса, лёгкая настолько, что не замедляет руку."),
+  mithril_hands: gearItem("mithril_hands", "Мифриловые рукавицы", "hands", "🧤", 300, 4, { def: 12, hp: 100, crit: 3, armorType: "plate" }, "Мифриловые рукавицы, в которых пальцы точны до дрожи."),
+  mithril_legs: gearItem("mithril_legs", "Мифриловые поножи", "legs", "👖", 420, 4, { def: 14, hp: 115, crit: 2, armorType: "plate" }, "Мифриловые поножи, что невесомы на ноге."),
 
-  mithril_ring: gearItem("mithril_ring", "Мифриловое кольцо", "ring", "💍", 350, 3, { crit: 4 }, "Кольцо из мифрила, обострившее глаз до предела."),
-  mithril_trinket: gearItem("mithril_trinket", "Мифриловый амулет", "trinket", "🔮", 340, 3, { crit: 3 }, "Мифриловый амулет, что шепчет, куда бить."),
+  mithril_ring: gearItem("mithril_ring", "Мифриловое кольцо", "ring", "💍", 350, 4, { crit: 4 }, "Кольцо из мифрила, обострившее глаз до предела."),
+  mithril_trinket: gearItem("mithril_trinket", "Мифриловый амулет", "trinket", "🔮", 340, 4, { crit: 3 }, "Мифриловый амулет, что шепчет, куда бить."),
 // === ITEMS: Адский камень (этаж 5) ===
-  hell_great_sword: { id: "hell_great_sword", name: "Двуручник из адского камня", slot: "mainhand", icon: "⚔️", atk: 92, dodge: -2, weaponType: "sword", handed: "2h", damage: { slashing: 58, piercing: 34, bludgeoning: 0 }, price: 780, shopTier: 4, desc: "Двуручник, выкованный из адского камня и закалённый в крови." },
-  hell_halberd: { id: "hell_halberd", name: "Алебарда из адского камня", slot: "mainhand", icon: "🪓", atk: 100, dodge: -3, weaponType: "spear", handed: "2h", damage: { slashing: 40, piercing: 50, bludgeoning: 10 }, price: 880, shopTier: 4, desc: "Адская алебарда, чей крюк рвёт и плоть, и реальность." },
-  hell_maul: { id: "hell_maul", name: "Молот из адского камня", slot: "mainhand", icon: "🔨", atk: 110, dodge: -4, weaponType: "mace", handed: "2h", damage: { slashing: 5, piercing: 0, bludgeoning: 105 }, price: 980, shopTier: 4, desc: "Молот из адского камня, от которого трещит сама земля." },
+  hell_great_sword: { id: "hell_great_sword", name: "Двуручник из адского камня", slot: "mainhand", icon: "⚔️", atk: 92, dodge: -2, weaponType: "sword", handed: "2h", damage: { slashing: 58, piercing: 34, bludgeoning: 0 }, price: 780, shopTier: 5, desc: "Двуручник, выкованный из адского камня и закалённый в крови." },
+  hell_halberd: { id: "hell_halberd", name: "Алебарда из адского камня", slot: "mainhand", icon: "🪓", atk: 100, dodge: -3, weaponType: "spear", handed: "2h", damage: { slashing: 40, piercing: 50, bludgeoning: 10 }, price: 880, shopTier: 5, desc: "Адская алебарда, чей крюк рвёт и плоть, и реальность." },
+  hell_maul: { id: "hell_maul", name: "Молот из адского камня", slot: "mainhand", icon: "🔨", atk: 110, dodge: -4, weaponType: "mace", handed: "2h", damage: { slashing: 5, piercing: 0, bludgeoning: 105 }, price: 980, shopTier: 5, desc: "Молот из адского камня, от которого трещит сама земля." },
 
-  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, price: 600, shopTier: 4, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
+  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, price: 600, shopTier: 5, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
 
-  hell_head: gearItem("hell_head", "Шлем из адского камня", "head", "👹", 600, 4, { def: 16, hp: 130, armorType: "plate" }, "Шлем из адского камня, из глазниц которого сочится дым."),
-  hell_chest: gearItem("hell_chest", "Кираса из адского камня", "chest", "🛡️", 850, 4, { def: 20, hp: 160, armorType: "plate" }, "Кираса из адского камня, что жжёт того, кто ударит по ней."),
-  hell_legs: gearItem("hell_legs", "Поножи из адского камня", "legs", "👖", 750, 4, { def: 18, hp: 145, armorType: "plate" }, "Поножи из адского камня, чей вес давит на землю."),
-  hell_feet: gearItem("hell_feet", "Сапоги из адского камня", "feet", "🥾", 650, 4, { def: 16, hp: 130, armorType: "plate" }, "Сапоги из адского камня, оставляющие тлеющие следы."),
-
-  hell_ring: gearItem("hell_ring", "Кольцо из адского камня", "ring", "💍", 550, 4, { crit: 4, hp: 30 }, "Кольцо из адского камня, что питает удар жизнью."),
-  hell_trinket: gearItem("hell_trinket", "Амулет из адского камня", "trinket", "🔮", 580, 4, { crit: 3, hp: 50 }, "Амулет из адского камня, что делает тело крепче и удар точнее."),
+  hell_ring: gearItem("hell_ring", "Кольцо из адского камня", "ring", "💍", 550, 5, { crit: 4, hp: 30 }, "Кольцо из адского камня, что питает удар жизнью."),
+  hell_trinket: gearItem("hell_trinket", "Амулет из адского камня", "trinket", "🔮", 580, 5, { crit: 3, hp: 50 }, "Амулет из адского камня, что делает тело крепче и удар точнее."),
+// === ITEMS: Дневники охотников (выпадают из событий этажей, не продаются) ===
+  diary_goblin: gearItem("diary_goblin", "Дневник новичка", "trinket", "📔", 0, 0, { hp: 10, crit: 1, lore: "День 3. Гоблины сбиваются в группы. Раньше их было по двое, теперь — по пять. Что-то их гонит сверху." }, "Потрёпанный блокнот с кривыми записями про жизнь в лесу."),
+  diary_crypt: gearItem("diary_crypt", "Дневник ветерана", "trinket", "📕", 0, 0, { hp: 15, dodge: 1, lore: "Склеп не пуст. Кто-то ходит между саркофагами. Я слышал шаги, но никого не видел." }, "Осторожный почерк старого гробокопателя."),
+  diary_hell: gearItem("diary_hell", "Дневник безумца", "trinket", "📗", 0, 0, { hp: 20, crit: 2, lore: "У Владыки есть слабое место. Не в броне — в самом сердце. Дробящий удар, точно в грудь. Запомни. Запомни. Запомни." }, "Записи, обожжённые по краям; последние страницы залиты воском."),
 // === ITEMS: Сеты (Рудокоп / Страж склепа / Адский клинок) ===
   // — Рудокоп (холодное железо, leather, этаж 2) —
   set_miner_head: gearItem("set_miner_head", "Шлем рудокопа", "head", "⛑️", 90, 2, { def: 4, hp: 40, dodge: 2, armorType: "leather", rarity: "legendary", unique: "lucky" }, "Шлем рудокопа с тусклой лампой — говорят, он приносит удачу."),
@@ -1286,22 +2878,205 @@ const ITEMS = {
   set_miner_feet: gearItem("set_miner_feet", "Сапоги рудокопа", "feet", "🥾", 90, 2, { def: 5, hp: 45, dodge: 4, armorType: "leather" }, "Сапоги рудокопа с подошвой, что держит на осыпи."),
 
   // — Страж склепа (сталь, plate, этаж 3) —
-  set_guard_head: gearItem("set_guard_head", "Шлем стража склепа", "head", "🪖", 180, 2, { def: 12, hp: 100, block: 1, armorType: "plate" }, "Шлем стража склепа, из-под которого не видно глаз."),
-  set_guard_chest: gearItem("set_guard_chest", "Латы стража склепа", "chest", "🛡️", 360, 2, { def: 16, hp: 130, block: 1, armorType: "plate", rarity: "legendary", unique: "thorns" }, "Латы стража склепа, чьи шипы возвращают удар обидчику."),
-  set_guard_legs: gearItem("set_guard_legs", "Поножи стража склепа", "legs", "👖", 280, 2, { def: 14, hp: 115, block: 1, armorType: "plate" }, "Поножи стража склепа, кованные для вечной стражи."),
-  set_guard_hands: gearItem("set_guard_hands", "Рукавицы стража склепа", "hands", "🧤", 220, 2, { def: 10, hp: 90, block: 1, armorType: "plate" }, "Рукавицы стража склепа, что держат клинок даже после смерти."),
-  set_guard_feet: gearItem("set_guard_feet", "Сапоги стража склепа", "feet", "🥾", 240, 2, { def: 12, hp: 95, block: 1, armorType: "plate" }, "Сапоги стража склепа, что не скользят на могильных плитах."),
+  set_guard_head: gearItem("set_guard_head", "Шлем стража склепа", "head", "🪖", 180, 3, { def: 12, hp: 100, block: 1, armorType: "plate" }, "Шлем стража склепа, из-под которого не видно глаз."),
+  set_guard_chest: gearItem("set_guard_chest", "Латы стража склепа", "chest", "🛡️", 360, 3, { def: 16, hp: 130, block: 1, armorType: "plate", rarity: "legendary", unique: "thorns" }, "Латы стража склепа, чьи шипы возвращают удар обидчику."),
+  set_guard_legs: gearItem("set_guard_legs", "Поножи стража склепа", "legs", "👖", 280, 3, { def: 14, hp: 115, block: 1, armorType: "plate" }, "Поножи стража склепа, кованные для вечной стражи."),
+  set_guard_hands: gearItem("set_guard_hands", "Рукавицы стража склепа", "hands", "🧤", 220, 3, { def: 10, hp: 90, block: 1, armorType: "plate" }, "Рукавицы стража склепа, что держат клинок даже после смерти."),
+  set_guard_feet: gearItem("set_guard_feet", "Сапоги стража склепа", "feet", "🥾", 240, 3, { def: 12, hp: 95, block: 1, armorType: "plate" }, "Сапоги стража склепа, что не скользят на могильных плитах."),
 
   // — Адский клинок (адский камень, plate, этаж 5) —
-  set_hellblade_head: gearItem("set_hellblade_head", "Шлем адского клинка", "head", "👹", 700, 4, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate" }, "Шлем адского клинка, увенчанный рогами."),
-  set_hellblade_chest: gearItem("set_hellblade_chest", "Кираса адского клинка", "chest", "🛡️", 950, 4, { def: 20, hp: 160, dodge: -4, crit: 4, armorType: "plate", rarity: "legendary", unique: "lifesteal" }, "Кираса адского клинка, что пьёт кровь врагов, даря силу."),
-  set_hellblade_legs: gearItem("set_hellblade_legs", "Поножи адского клинка", "legs", "👖", 820, 4, { def: 18, hp: 145, dodge: -3, crit: 3, armorType: "plate" }, "Поножи адского клинка, тяжёлые, как грехи их владельца."),
-  set_hellblade_hands: gearItem("set_hellblade_hands", "Рукавицы адского клинка", "hands", "🧤", 720, 4, { def: 16, hp: 120, dodge: -2, crit: 2, armorType: "plate" }, "Рукавицы адского клинка, что зажимают клинок до хруста."),
-  set_hellblade_feet: gearItem("set_hellblade_feet", "Сапоги адского клинка", "feet", "🥾", 740, 4, { def: 16, hp: 125, dodge: -3, crit: 2, armorType: "plate" }, "Сапоги адского клинка, оставляющие в камне трещины."),
+  set_hellblade_head: gearItem("set_hellblade_head", "Шлем адского клинка", "head", "👹", 700, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate" }, "Шлем адского клинка, увенчанный рогами."),
+  set_hellblade_chest: gearItem("set_hellblade_chest", "Кираса адского клинка", "chest", "🛡️", 950, 5, { def: 20, hp: 160, dodge: -4, crit: 4, armorType: "plate", rarity: "legendary", unique: "lifesteal" }, "Кираса адского клинка, что пьёт кровь врагов, даря силу."),
+  set_hellblade_legs: gearItem("set_hellblade_legs", "Поножи адского клинка", "legs", "👖", 820, 5, { def: 18, hp: 145, dodge: -3, crit: 3, armorType: "plate" }, "Поножи адского клинка, тяжёлые, как грехи их владельца."),
+  set_hellblade_hands: gearItem("set_hellblade_hands", "Рукавицы адского клинка", "hands", "🧤", 720, 5, { def: 16, hp: 120, dodge: -2, crit: 2, armorType: "plate" }, "Рукавицы адского клинка, что зажимают клинок до хруста."),
+  set_hellblade_feet: gearItem("set_hellblade_feet", "Сапоги адского клинка", "feet", "🥾", 740, 5, { def: 16, hp: 125, dodge: -3, crit: 2, armorType: "plate" }, "Сапоги адского клинка, оставляющие в камне трещины."),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // БРОНЯ: 4 типа × 5 тиров × 8 слотов (20 сетов × 8 = 160 предметов)
+  // iconFallback по слоту: 🪖 🛡️ 🧥 🧤 🧤 🎗️ 👖 🥾
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // — Тир 1. «Грубая кольчуга» (chain, этаж 1): 7 недостающих слотов к iron_chainmail —
+  set_rough_chain_head: gearItem("set_rough_chain_head", "Шлем грубой кольчуги", "head", "assets/icons/set_rough_chain_head.webp", 110, 1, { def: 3, hp: 22, armorType: "chain", iconFallback: "🪖" }, "Кольца нашиты на стёганую шапку. От стрелы убережёт, от топора — нет."),
+  set_rough_chain_shoulder: gearItem("set_rough_chain_shoulder", "Наплечники грубой кольчуги", "shoulder", "assets/icons/set_rough_chain_shoulder.webp", 105, 1, { def: 3, hp: 20, armorType: "chain", iconFallback: "🛡️" }, "Плечи в мелких кольцах, скрипящих при каждом взмахе."),
+  set_rough_chain_wrist: gearItem("set_rough_chain_wrist", "Наручи грубой кольчуги", "wrist", "assets/icons/set_rough_chain_wrist.webp", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Обрывок кольчужного рукава, стянутый ремешком."),
+  set_rough_chain_hands: gearItem("set_rough_chain_hands", "Рукавицы грубой кольчуги", "hands", "assets/icons/set_rough_chain_hands.webp", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Пальцы в кольцах гнутся плохо, зато держат удар."),
+  set_rough_chain_waist: gearItem("set_rough_chain_waist", "Пояс грубой кольчуги", "waist", "assets/icons/set_rough_chain_waist.webp", 80, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка на ремне — прикрывает бёдра."),
+  set_rough_chain_legs: gearItem("set_rough_chain_legs", "Поножи грубой кольчуги", "legs", "assets/icons/set_rough_chain_legs.webp", 120, 1, { def: 3, hp: 26, armorType: "chain", iconFallback: "👖" }, "Кольчужные чулки, тяжёлые и звонкие."),
+  set_rough_chain_feet: gearItem("set_rough_chain_feet", "Сапоги грубой кольчуги", "feet", "assets/icons/set_rough_chain_feet.webp", 105, 1, { def: 3, hp: 24, armorType: "chain", iconFallback: "🥾" }, "Кольчужные чулки вшиты в подошву — шаг гулкий."),
+
+  // — Тир 2. «Сталь» (plate, этаж 2): 4 недостающих слота к steel_head/chest/legs/feet —
+  steel_shoulder: gearItem("steel_shoulder", "Стальные наплечники", "shoulder", "assets/icons/steel_shoulder.webp", 170, 2, { def: 7, hp: 45, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Стальные пластины на плечах — весомый довод в споре."),
+  steel_wrist: gearItem("steel_wrist", "Стальные наручи", "wrist", "assets/icons/steel_wrist.webp", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Кованые наручи с ремнями из сыромятной кожи."),
+  steel_hands: gearItem("steel_hands", "Стальные рукавицы", "hands", "assets/icons/steel_hands.webp", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Сталь на пальцах делает кулак кузнечным молотом."),
+  steel_waist: gearItem("steel_waist", "Стальной пояс", "waist", "assets/icons/steel_waist.webp", 125, 2, { def: 6, hp: 42, dodge: -1, armorType: "plate", iconFallback: "🎗️" }, "Пластинчатый пояс, что держит спину прямой."),
+
+  // — Тир 2. «Стальная кольчуга» (chain, этаж 2): 7 недостающих слотов к steel_chainmail —
+  set_steel_chain_head: gearItem("set_steel_chain_head", "Шлем стальной кольчуги", "head", "assets/icons/set_steel_chain_head.webp", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🪖" }, "Плотный кольчужный капюшон под стальным обручем."),
+  set_steel_chain_shoulder: gearItem("set_steel_chain_shoulder", "Наплечники стальной кольчуги", "shoulder", "assets/icons/set_steel_chain_shoulder.webp", 185, 2, { def: 7, hp: 42, armorType: "chain", iconFallback: "🛡️" }, "Кольца ровного плетения — работа не спешная, но честная."),
+  set_steel_chain_wrist: gearItem("set_steel_chain_wrist", "Наручи стальной кольчуги", "wrist", "assets/icons/set_steel_chain_wrist.webp", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Стальные наручи с двойным плетением на предплечье."),
+  set_steel_chain_hands: gearItem("set_steel_chain_hands", "Рукавицы стальной кольчуги", "hands", "assets/icons/set_steel_chain_hands.webp", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Кольчужные рукавицы, обшитые кожей по швам."),
+  set_steel_chain_waist: gearItem("set_steel_chain_waist", "Пояс стальной кольчуги", "waist", "assets/icons/set_steel_chain_waist.webp", 135, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка до колен, тяжёлая и надёжная."),
+  set_steel_chain_legs: gearItem("set_steel_chain_legs", "Поножи стальной кольчуги", "legs", "assets/icons/set_steel_chain_legs.webp", 230, 2, { def: 8, hp: 50, armorType: "chain", iconFallback: "👖" }, "Стальные кольчужные штаны — походка становится тяжёлой."),
+  set_steel_chain_feet: gearItem("set_steel_chain_feet", "Сапоги стальной кольчуги", "feet", "assets/icons/set_steel_chain_feet.webp", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🥾" }, "Кольчуга до щиколоток, подошва — двойная кожа."),
+
+  // — Тир 2. «Тёмная кожа» (leather, этаж 2): 3 недостающих слота к set_miner_* —
+  set_miner_shoulder: gearItem("set_miner_shoulder", "Наплечники рудокопа", "shoulder", "assets/icons/set_miner_shoulder.webp", 130, 2, { def: 6, hp: 45, dodge: 3, armorType: "leather", iconFallback: "🛡️" }, "Плечи рудокопа усилены кожей — туннель узкий, стены не уступают."),
+  set_miner_wrist: gearItem("set_miner_wrist", "Наручи рудокопа", "wrist", "assets/icons/set_miner_wrist.webp", 105, 2, { def: 5, hp: 35, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Мягкие наручи, чтобы кирка не натирала запястье."),
+  set_miner_waist: gearItem("set_miner_waist", "Пояс рудокопа", "waist", "assets/icons/set_miner_waist.webp", 110, 2, { def: 5, hp: 40, dodge: 3, armorType: "leather", iconFallback: "🎗️" }, "Ремень с карабинами для мешочков с рудой."),
+
+  // — Тир 2. «Подмастерье» (cloth, этаж 2): 6 недостающих слотов к hood_mage/dense_cloth —
+  set_apprentice_cloth_shoulder: gearItem("set_apprentice_cloth_shoulder", "Накидки подмастерья", "shoulder", "assets/icons/set_apprentice_cloth_shoulder.webp", 90, 2, { def: 2, hp: 30, mana: 12, armorType: "cloth", iconFallback: "🛡️" }, "Ткань, пропитанная травяным отваром, держит слабую магию."),
+  set_apprentice_cloth_wrist: gearItem("set_apprentice_cloth_wrist", "Обмотки подмастерья", "wrist", "assets/icons/set_apprentice_cloth_wrist.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с вышитыми знаками — пальцы не мёрзнут над колбой."),
+  set_apprentice_cloth_hands: gearItem("set_apprentice_cloth_hands", "Перчатки подмастерья", "hands", "assets/icons/set_apprentice_cloth_hands.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, чтобы не оставить следов в зелье."),
+  set_apprentice_cloth_waist: gearItem("set_apprentice_cloth_waist", "Пояс подмастерья", "waist", "assets/icons/set_apprentice_cloth_waist.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с карманами для реагентов и мела."),
+  set_apprentice_cloth_legs: gearItem("set_apprentice_cloth_legs", "Штаны подмастерья", "legs", "assets/icons/set_apprentice_cloth_legs.webp", 100, 2, { def: 3, hp: 35, mana: 15, armorType: "cloth", iconFallback: "👖" }, "Плотные штаны, хранящие запах дыма и пыли."),
+  set_apprentice_cloth_feet: gearItem("set_apprentice_cloth_feet", "Тапочки подмастерья", "feet", "assets/icons/set_apprentice_cloth_feet.webp", 80, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🥾" }, "Мягкие тапочки — по библиотеке ходить тихо."),
+
+  // — Тир 3. «Руническая сталь» (plate, этаж 3): 3 недостающих слота к set_guard_* —
+  set_guard_shoulder: gearItem("set_guard_shoulder", "Наплечники стража склепа", "shoulder", "assets/icons/set_guard_shoulder.webp", 260, 3, { def: 12, hp: 80, block: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Руны на стали тускнеют, но не гаснут."),
+  set_guard_wrist: gearItem("set_guard_wrist", "Наручи стража склепа", "wrist", "assets/icons/set_guard_wrist.webp", 220, 3, { def: 10, hp: 78, block: 1, armorType: "plate", iconFallback: "🧤" }, "Наручи, что держали клинок крепче, чем память."),
+  set_guard_waist: gearItem("set_guard_waist", "Пояс стража склепа", "waist", "assets/icons/set_guard_waist.webp", 240, 3, { def: 10, hp: 79, block: 1, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса помнят каждый удар, что приняли."),
+
+  // — Тир 3. «Руническая кольчуга» (chain, этаж 3) —
+  set_runic_chain_head: gearItem("set_runic_chain_head", "Рунический кольчужный шлем", "head", "assets/icons/set_runic_chain_head.webp", 260, 3, { def: 11, hp: 75, armorType: "chain", iconFallback: "🪖" }, "Кольца переплетены в знак, что отводит взгляд нежити."),
+  set_runic_chain_shoulder: gearItem("set_runic_chain_shoulder", "Рунические кольчужные наплечники", "shoulder", "assets/icons/set_runic_chain_shoulder.webp", 250, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🛡️" }, "Рунные кольца нашиты поверх обычного плетения."),
+  set_runic_chain_chest: gearItem("set_runic_chain_chest", "Руническая кольчуга", "chest", "assets/icons/set_runic_chain_chest.webp", 380, 3, { def: 13, hp: 80, armorType: "chain", iconFallback: "🧥" }, "Плотная кольчуга с рунными вставками на груди."),
+  set_runic_chain_wrist: gearItem("set_runic_chain_wrist", "Рунические кольчужные наручи", "wrist", "assets/icons/set_runic_chain_wrist.webp", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Мелкие руны на каждом третьем кольце."),
+  set_runic_chain_hands: gearItem("set_runic_chain_hands", "Рунические кольчужные рукавицы", "hands", "assets/icons/set_runic_chain_hands.webp", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Кольчуга на пальцах не мешает держать клинок."),
+  set_runic_chain_waist: gearItem("set_runic_chain_waist", "Рунический кольчужный пояс", "waist", "assets/icons/set_runic_chain_waist.webp", 195, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка с рунным подолом."),
+  set_runic_chain_legs: gearItem("set_runic_chain_legs", "Рунические кольчужные поножи", "legs", "assets/icons/set_runic_chain_legs.webp", 320, 3, { def: 12, hp: 80, armorType: "chain", iconFallback: "👖" }, "Тяжёлые кольчужные штаны, звенящие на ходу."),
+  set_runic_chain_feet: gearItem("set_runic_chain_feet", "Рунические кольчужные сапоги", "feet", "assets/icons/set_runic_chain_feet.webp", 260, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🥾" }, "Кольца до щиколоток, руны на подошве."),
+
+  // — Тир 3. «Руническая кожа» (leather, этаж 3) —
+  set_runic_leather_head: gearItem("set_runic_leather_head", "Рунический кожаный капюшон", "head", "assets/icons/set_runic_leather_head.webp", 240, 3, { def: 8, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Кожа, тиснённая рунами, глушит чужие шёпоты."),
+  set_runic_leather_shoulder: gearItem("set_runic_leather_shoulder", "Рунические кожаные наплечники", "shoulder", "assets/icons/set_runic_leather_shoulder.webp", 230, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Мягкая кожа с костяными вставками на плечах."),
+  set_runic_leather_chest: gearItem("set_runic_leather_chest", "Рунический кожаный доспех", "chest", "assets/icons/set_runic_leather_chest.webp", 350, 3, { def: 12, hp: 70, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кожаный доспех, сшитый по рунным линиям."),
+  set_runic_leather_wrist: gearItem("set_runic_leather_wrist", "Рунические кожаные наручи", "wrist", "assets/icons/set_runic_leather_wrist.webp", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Тонкая кожа, не стесняющая запястье."),
+  set_runic_leather_hands: gearItem("set_runic_leather_hands", "Рунические кожаные перчатки", "hands", "assets/icons/set_runic_leather_hands.webp", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Перчатки с рунной строчкой по костяшкам."),
+  set_runic_leather_waist: gearItem("set_runic_leather_waist", "Рунический кожаный ремень", "waist", "assets/icons/set_runic_leather_waist.webp", 175, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень с пряжкой, на которой стёрлась руна."),
+  set_runic_leather_legs: gearItem("set_runic_leather_legs", "Рунические кожаные штаны", "legs", "assets/icons/set_runic_leather_legs.webp", 300, 3, { def: 11, hp: 65, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с вставками на коленях."),
+  set_runic_leather_feet: gearItem("set_runic_leather_feet", "Рунические кожаные сапоги", "feet", "assets/icons/set_runic_leather_feet.webp", 235, 3, { def: 9, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Мягкие сапоги — шаг тише, чем у страха."),
+
+  // — Тир 3. «Адепт» (cloth, этаж 3) —
+  set_adept_cloth_head: gearItem("set_adept_cloth_head", "Капюшон адепта", "head", "assets/icons/set_adept_cloth_head.webp", 235, 3, { def: 4, hp: 60, mana: 22, armorType: "cloth", iconFallback: "🪖" }, "Капюшон с вышитой печатью — мысли становятся тише."),
+  set_adept_cloth_shoulder: gearItem("set_adept_cloth_shoulder", "Накидки адепта", "shoulder", "assets/icons/set_adept_cloth_shoulder.webp", 220, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🛡️" }, "Слои ткани, держащие форму заклинания."),
+  set_adept_cloth_chest: gearItem("set_adept_cloth_chest", "Роба адепта", "chest", "assets/icons/set_adept_cloth_chest.webp", 340, 3, { def: 6, hp: 65, mana: 30, armorType: "cloth", iconFallback: "🧥" }, "Роба, в подкладку которой вшиты серебряные нити."),
+  set_adept_cloth_wrist: gearItem("set_adept_cloth_wrist", "Обмотки адепта", "wrist", "assets/icons/set_adept_cloth_wrist.webp", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с узлом на каждом витке — так учили."),
+  set_adept_cloth_hands: gearItem("set_adept_cloth_hands", "Перчатки адепта", "hands", "assets/icons/set_adept_cloth_hands.webp", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, в которых жест читается без слов."),
+  set_adept_cloth_waist: gearItem("set_adept_cloth_waist", "Пояс адепта", "waist", "assets/icons/set_adept_cloth_waist.webp", 170, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с гнёздами для кристаллов."),
+  set_adept_cloth_legs: gearItem("set_adept_cloth_legs", "Штаны адепта", "legs", "assets/icons/set_adept_cloth_legs.webp", 290, 3, { def: 6, hp: 60, mana: 25, armorType: "cloth", iconFallback: "👖" }, "Плотная ткань, не мешающая шагу и жесту."),
+  set_adept_cloth_feet: gearItem("set_adept_cloth_feet", "Сапоги адепта", "feet", "assets/icons/set_adept_cloth_feet.webp", 225, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с войлочной подкладкой — в склепе не холодно."),
+
+  // — Тир 4. «Мифрил» (plate, этаж 4): 4 недостающих слота к mithril_head/chest/hands/legs —
+  mithril_shoulder: gearItem("mithril_shoulder", "Мифриловые наплечники", "shoulder", "assets/icons/mithril_shoulder.webp", 300, 4, { def: 14, hp: 105, crit: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Мифрил почти невесом — плечи не устают до вечера."),
+  mithril_wrist: gearItem("mithril_wrist", "Мифриловые наручи", "wrist", "assets/icons/mithril_wrist.webp", 260, 4, { def: 12, hp: 95, crit: 1, armorType: "plate", iconFallback: "🧤" }, "Мифриловые наручи гнутся там, где сталь бы лопнула."),
+  mithril_waist: gearItem("mithril_waist", "Мифриловый пояс", "waist", "assets/icons/mithril_waist.webp", 270, 4, { def: 12, hp: 100, crit: 1, armorType: "plate", iconFallback: "🎗️" }, "Пояс, отлитый из одного куска мифрила."),
+  mithril_feet: gearItem("mithril_feet", "Мифриловые сапоги", "feet", "assets/icons/mithril_feet.webp", 310, 4, { def: 14, hp: 110, crit: 1, armorType: "plate", iconFallback: "🥾" }, "Мифриловые сапоги: тихий шаг, гулкий удар."),
+
+  // — Тир 4. «Мифриловая кольчуга» (chain, этаж 4) —
+  set_mithril_chain_head: gearItem("set_mithril_chain_head", "Мифриловый кольчужный шлем", "head", "assets/icons/set_mithril_chain_head.webp", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🪖" }, "Мифриловая сетка под стальным обручем — легче шёпота."),
+  set_mithril_chain_shoulder: gearItem("set_mithril_chain_shoulder", "Мифриловые кольчужные наплечники", "shoulder", "assets/icons/set_mithril_chain_shoulder.webp", 360, 4, { def: 12, hp: 95, crit: 1, armorType: "chain", iconFallback: "🛡️" }, "Кольца мифрила блестят даже в темноте склепа."),
+  set_mithril_chain_chest: gearItem("set_mithril_chain_chest", "Мифриловая кольчуга", "chest", "assets/icons/set_mithril_chain_chest.webp", 620, 4, { def: 16, hp: 120, crit: 3, armorType: "chain", iconFallback: "🧥" }, "Мифриловая кольчуга, что поёт под ударом."),
+  set_mithril_chain_wrist: gearItem("set_mithril_chain_wrist", "Мифриловые кольчужные наручи", "wrist", "assets/icons/set_mithril_chain_wrist.webp", 270, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🧤" }, "Плетение такой плотности, что вода не проходит."),
+  set_mithril_chain_hands: gearItem("set_mithril_chain_hands", "Мифриловые кольчужные рукавицы", "hands", "assets/icons/set_mithril_chain_hands.webp", 300, 4, { def: 12, hp: 90, crit: 2, armorType: "chain", iconFallback: "🧤" }, "Пальцы в мифриле чувствуют биение чужой крови."),
+  set_mithril_chain_waist: gearItem("set_mithril_chain_waist", "Мифриловый кольчужный пояс", "waist", "assets/icons/set_mithril_chain_waist.webp", 275, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка из мифрила — звенит, но не тянет."),
+  set_mithril_chain_legs: gearItem("set_mithril_chain_legs", "Мифриловые кольчужные поножи", "legs", "assets/icons/set_mithril_chain_legs.webp", 480, 4, { def: 15, hp: 110, crit: 2, armorType: "chain", iconFallback: "👖" }, "Лёгкие поножи, в которых можно бежать по осыпи."),
+  set_mithril_chain_feet: gearItem("set_mithril_chain_feet", "Мифриловые кольчужные сапоги", "feet", "assets/icons/set_mithril_chain_feet.webp", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🥾" }, "Мифриловая сетка на подошве — шаг как у кошки."),
+
+  // — Тир 4. «Кожа с костяными пластинами» (leather, этаж 4) —
+  set_bone_leather_head: gearItem("set_bone_leather_head", "Шлем из костяной кожи", "head", "assets/icons/set_bone_leather_head.webp", 340, 4, { def: 12, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Костяные пластины вшиты в кожу, как рёбра в плоть."),
+  set_bone_leather_shoulder: gearItem("set_bone_leather_shoulder", "Костяные наплечники", "shoulder", "assets/icons/set_bone_leather_shoulder.webp", 320, 4, { def: 12, hp: 85, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Оркские клыки держат кожу на плечах."),
+  set_bone_leather_chest: gearItem("set_bone_leather_chest", "Костяная кираса", "chest", "assets/icons/set_bone_leather_chest.webp", 600, 4, { def: 16, hp: 105, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кираса из кожи и рёбер — гнётся там, где сталь звенит."),
+  set_bone_leather_wrist: gearItem("set_bone_leather_wrist", "Костяные наручи", "wrist", "assets/icons/set_bone_leather_wrist.webp", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Наручи с костяными шипами на внешней стороне."),
+  set_bone_leather_hands: gearItem("set_bone_leather_hands", "Костяные перчатки", "hands", "assets/icons/set_bone_leather_hands.webp", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Костяные пластины на костяшках — удар тяжелее."),
+  set_bone_leather_waist: gearItem("set_bone_leather_waist", "Костяной ремень", "waist", "assets/icons/set_bone_leather_waist.webp", 255, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень, увешанный костяными пластинами."),
+  set_bone_leather_legs: gearItem("set_bone_leather_legs", "Костяные штаны", "legs", "assets/icons/set_bone_leather_legs.webp", 450, 4, { def: 15, hp: 100, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с костяными наколенниками."),
+  set_bone_leather_feet: gearItem("set_bone_leather_feet", "Костяные сапоги", "feet", "assets/icons/set_bone_leather_feet.webp", 350, 4, { def: 13, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Сапоги с костяной стелькой — по камню идти легче."),
+
+  // — Тир 4. «Маг» (cloth, этаж 4) —
+  set_mage_cloth_head: gearItem("set_mage_cloth_head", "Капюшон мага", "head", "assets/icons/set_mage_cloth_head.webp", 330, 4, { def: 7, hp: 85, mana: 30, armorType: "cloth", iconFallback: "🪖" }, "Капюшон мага хранит чужие заклятия, как ткань — дым."),
+  set_mage_cloth_shoulder: gearItem("set_mage_cloth_shoulder", "Накидка мага", "shoulder", "assets/icons/set_mage_cloth_shoulder.webp", 305, 4, { def: 7, hp: 80, mana: 28, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, расшитая созвездиями чужого неба."),
+  set_mage_cloth_chest: gearItem("set_mage_cloth_chest", "Мантия мага", "chest", "assets/icons/set_mage_cloth_chest.webp", 580, 4, { def: 9, hp: 90, mana: 40, armorType: "cloth", iconFallback: "🧥" }, "Мантия мага: ткань легче, чем кажется, и тёплее, чем должна."),
+  set_mage_cloth_wrist: gearItem("set_mage_cloth_wrist", "Наручи мага", "wrist", "assets/icons/set_mage_cloth_wrist.webp", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Наручи с кристальной иглой, что не даёт жесту дрожать."),
+  set_mage_cloth_hands: gearItem("set_mage_cloth_hands", "Перчатки мага", "hands", "assets/icons/set_mage_cloth_hands.webp", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Ткань перчаток помнит тепло последнего заклинания."),
+  set_mage_cloth_waist: gearItem("set_mage_cloth_waist", "Пояс мага", "waist", "assets/icons/set_mage_cloth_waist.webp", 240, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с ячейками для свитков."),
+  set_mage_cloth_legs: gearItem("set_mage_cloth_legs", "Штаны мага", "legs", "assets/icons/set_mage_cloth_legs.webp", 440, 4, { def: 9, hp: 85, mana: 32, armorType: "cloth", iconFallback: "👖" }, "Штаны, подшитые нитью, что не рвётся от жара."),
+  set_mage_cloth_feet: gearItem("set_mage_cloth_feet", "Сапоги мага", "feet", "assets/icons/set_mage_cloth_feet.webp", 330, 4, { def: 7, hp: 85, mana: 28, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с пылью, что не оседает на подошве."),
+
+  // — Тир 5. «Бездна» (plate, этаж 5): 3 недостающих слота к set_hellblade_* —
+  set_hellblade_shoulder: gearItem("set_hellblade_shoulder", "Наплечники адского клинка", "shoulder", "assets/icons/set_hellblade_shoulder.webp", 780, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate", iconFallback: "🛡️" }, "Шипы наплечников тлеют даже под дождём."),
+  set_hellblade_wrist: gearItem("set_hellblade_wrist", "Наручи адского клинка", "wrist", "assets/icons/set_hellblade_wrist.webp", 700, 5, { def: 16, hp: 115, dodge: -2, crit: 2, armorType: "plate", iconFallback: "🧤" }, "Наручи, что жгут холодом, а не жаром."),
+  set_hellblade_waist: gearItem("set_hellblade_waist", "Пояс адского клинка", "waist", "assets/icons/set_hellblade_waist.webp", 720, 5, { def: 16, hp: 120, dodge: -3, crit: 2, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса скреплены цепью из Бездны."),
+
+  // — Тир 5. «Кольчуга Бездны» (chain, этаж 5) —
+  set_abyss_chain_head: gearItem("set_abyss_chain_head", "Кольчужный шлем Бездны", "head", "assets/icons/set_abyss_chain_head.webp", 700, 5, { def: 17, hp: 130, armorType: "chain", iconFallback: "🪖" }, "Кольца плавятся и снова твердеют — но не рвутся."),
+  set_abyss_chain_shoulder: gearItem("set_abyss_chain_shoulder", "Кольчужные наплечники Бездны", "shoulder", "assets/icons/set_abyss_chain_shoulder.webp", 670, 5, { def: 16, hp: 120, armorType: "chain", iconFallback: "🛡️" }, "Тёмные кольца, что не блестят даже в огне."),
+  set_abyss_chain_chest: gearItem("set_abyss_chain_chest", "Кольчуга Бездны", "chest", "assets/icons/set_abyss_chain_chest.webp", 900, 5, { def: 20, hp: 150, armorType: "chain", iconFallback: "🧥" }, "Кольчуга Бездны: холодная, тяжёлая, чужая."),
+  set_abyss_chain_wrist: gearItem("set_abyss_chain_wrist", "Кольчужные наручи Бездны", "wrist", "assets/icons/set_abyss_chain_wrist.webp", 560, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Кольца наручей шепчут чужими голосами."),
+  set_abyss_chain_hands: gearItem("set_abyss_chain_hands", "Кольчужные рукавицы Бездны", "hands", "assets/icons/set_abyss_chain_hands.webp", 570, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Рукавицы, в которых клинок держится сам."),
+  set_abyss_chain_waist: gearItem("set_abyss_chain_waist", "Кольчужный пояс Бездны", "waist", "assets/icons/set_abyss_chain_waist.webp", 580, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🎗️" }, "Пояс, к которому липнет пепел."),
+  set_abyss_chain_legs: gearItem("set_abyss_chain_legs", "Кольчужные поножи Бездны", "legs", "assets/icons/set_abyss_chain_legs.webp", 800, 5, { def: 18, hp: 140, armorType: "chain", iconFallback: "👖" }, "Поножи Бездны: каждый шаг — как по углям."),
+  set_abyss_chain_feet: gearItem("set_abyss_chain_feet", "Кольчужные сапоги Бездны", "feet", "assets/icons/set_abyss_chain_feet.webp", 680, 5, { def: 16, hp: 125, armorType: "chain", iconFallback: "🥾" }, "Сапоги, что не плавятся на раскалённом камне."),
+
+  // — Тир 5. «Кожа Бездны» (leather, этаж 5) —
+  set_abyss_leather_head: gearItem("set_abyss_leather_head", "Кожаный шлем Бездны", "head", "assets/icons/set_abyss_leather_head.webp", 640, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🪖" }, "Кожа, снятая с чего-то, что не имело имени."),
+  set_abyss_leather_shoulder: gearItem("set_abyss_leather_shoulder", "Кожаные наплечники Бездны", "shoulder", "assets/icons/set_abyss_leather_shoulder.webp", 610, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🛡️" }, "Наплечники, что двигаются вместе с тенью."),
+  set_abyss_leather_chest: gearItem("set_abyss_leather_chest", "Кожаный доспех Бездны", "chest", "assets/icons/set_abyss_leather_chest.webp", 850, 5, { def: 17, hp: 115, dodge: 4, armorType: "leather", iconFallback: "🧥" }, "Доспех Бездны: кожа теплее воздуха и тише шага."),
+  set_abyss_leather_wrist: gearItem("set_abyss_leather_wrist", "Кожаные наручи Бездны", "wrist", "assets/icons/set_abyss_leather_wrist.webp", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Наручи с прожилками, что светятся в темноте."),
+  set_abyss_leather_hands: gearItem("set_abyss_leather_hands", "Кожаные перчатки Бездны", "hands", "assets/icons/set_abyss_leather_hands.webp", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Перчатки, в которых пальцы не чувствуют жара."),
+  set_abyss_leather_waist: gearItem("set_abyss_leather_waist", "Кожаный ремень Бездны", "waist", "assets/icons/set_abyss_leather_waist.webp", 530, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🎗️" }, "Ремень, стянутый пряжкой из чёрного камня."),
+  set_abyss_leather_legs: gearItem("set_abyss_leather_legs", "Кожаные штаны Бездны", "legs", "assets/icons/set_abyss_leather_legs.webp", 750, 5, { def: 17, hp: 110, dodge: 4, armorType: "leather", iconFallback: "👖" }, "Штаны, что не пропускают ни жар, ни холод."),
+  set_abyss_leather_feet: gearItem("set_abyss_leather_feet", "Кожаные сапоги Бездны", "feet", "assets/icons/set_abyss_leather_feet.webp", 620, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🥾" }, "Сапоги, оставляющие следы, что остывают медленно."),
+
+  // — Тир 5. «Архимаг» (cloth, этаж 5) —
+  set_archmage_cloth_head: gearItem("set_archmage_cloth_head", "Капюшон архимага", "head", "assets/icons/set_archmage_cloth_head.webp", 610, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🪖" }, "Капюшон архимага: под тканью — звёздная пустота."),
+  set_archmage_cloth_shoulder: gearItem("set_archmage_cloth_shoulder", "Накидка архимага", "shoulder", "assets/icons/set_archmage_cloth_shoulder.webp", 570, 5, { def: 9, hp: 100, mana: 38, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, что гасит искры заклинаний."),
+  set_archmage_cloth_chest: gearItem("set_archmage_cloth_chest", "Мантия архимага", "chest", "assets/icons/set_archmage_cloth_chest.webp", 860, 5, { def: 11, hp: 110, mana: 50, armorType: "cloth", iconFallback: "🧥" }, "Мантия архимага помнит всех, кто её носил. И всех, кто нет."),
+  set_archmage_cloth_wrist: gearItem("set_archmage_cloth_wrist", "Наручи архимага", "wrist", "assets/icons/set_archmage_cloth_wrist.webp", 480, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Наручи с печатями, что нельзя прочесть дважды."),
+  set_archmage_cloth_hands: gearItem("set_archmage_cloth_hands", "Перчатки архимага", "hands", "assets/icons/set_archmage_cloth_hands.webp", 490, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Перчатки, в которых жест стоит дороже золота."),
+  set_archmage_cloth_waist: gearItem("set_archmage_cloth_waist", "Пояс архимага", "waist", "assets/icons/set_archmage_cloth_waist.webp", 500, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🎗️" }, "Пояс, к которому прикованы пустые ножны для свитков."),
+  set_archmage_cloth_legs: gearItem("set_archmage_cloth_legs", "Штаны архимага", "legs", "assets/icons/set_archmage_cloth_legs.webp", 760, 5, { def: 11, hp: 105, mana: 45, armorType: "cloth", iconFallback: "👖" }, "Штаны, подол которых не касается пола."),
+  set_archmage_cloth_feet: gearItem("set_archmage_cloth_feet", "Сапоги архимага", "feet", "assets/icons/set_archmage_cloth_feet.webp", 600, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🥾" }, "Сапоги архимага ступают бесшумно по любому камню."),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ПАРНЫЕ КОЛЬЦА И АКСЕССУАРЫ: 10 пар = 20 предметов (порог 2/2)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // — Тир 1: железные кольца и тотемы волка —
+  ring_iron_1: gearItem("ring_iron_1", "Железное кольцо «Заря»", "ring", "assets/icons/ring_iron_1.webp", 35, 1, { crit: 1, iconFallback: "💍" }, "Пара к кольцу «Закат»: вместе они точнее находят щель в броне."),
+  ring_iron_2: gearItem("ring_iron_2", "Железное кольцо «Закат»", "ring", "assets/icons/ring_iron_2.webp", 35, 1, { crit: 1, iconFallback: "💍" }, "Пара к кольцу «Заря»: холодный металл помнит чужой удар."),
+  trinket_wolf_1: gearItem("trinket_wolf_1", "Тотем волка «Клык»", "trinket", "assets/icons/trinket_wolf_1.webp", 32, 1, { dodge: 1, iconFallback: "🔮" }, "Волчий клык на жиле — шаг становится мягче."),
+  trinket_wolf_2: gearItem("trinket_wolf_2", "Тотем волка «Лапа»", "trinket", "assets/icons/trinket_wolf_2.webp", 32, 1, { dodge: 1, iconFallback: "🔮" }, "Лапа, высушенная в дыму: пара к тотему «Клык»."),
+
+  // — Тир 2: медные кольца и грибные амулеты —
+  ring_copper_1: gearItem("ring_copper_1", "Медное кольцо «Искра»", "ring", "assets/icons/ring_copper_1.webp", 70, 2, { crit: 1, iconFallback: "💍" }, "Медь под шахтным светом кажется золотом."),
+  ring_copper_2: gearItem("ring_copper_2", "Медное кольцо «Жар»", "ring", "assets/icons/ring_copper_2.webp", 85, 2, { crit: 2, iconFallback: "💍" }, "Пара к «Искре»: вместе они держат удар точнее."),
+  trinket_mushroom_1: gearItem("trinket_mushroom_1", "Грибной амулет «Бледный»", "trinket", "assets/icons/trinket_mushroom_1.webp", 68, 2, { hp: 10, iconFallback: "🔮" }, "Пещерный гриб в смоле: дышится легче."),
+  trinket_mushroom_2: gearItem("trinket_mushroom_2", "Грибной амулет «Тёмный»", "trinket", "assets/icons/trinket_mushroom_2.webp", 76, 2, { hp: 15, iconFallback: "🔮" }, "Пара к «Бледному»: вместе они греют изнутри."),
+
+  // — Тир 3: серебряные кольца и фиалы призрака —
+  ring_silver_1: gearItem("ring_silver_1", "Серебряное кольцо «Луна»", "ring", "assets/icons/ring_silver_1.webp", 130, 3, { dodge: 2, iconFallback: "💍" }, "Холодное серебро отводит чужой взгляд."),
+  ring_silver_2: gearItem("ring_silver_2", "Серебряное кольцо «Тень»", "ring", "assets/icons/ring_silver_2.webp", 130, 3, { dodge: 2, iconFallback: "💍" }, "Пара к «Луне»: вместе они делают шаг неслышным."),
+  trinket_ghost_1: gearItem("trinket_ghost_1", "Фиал призрака «Шёпот»", "trinket", "assets/icons/trinket_ghost_1.webp", 140, 3, { hp: 20, iconFallback: "🔮" }, "В фиале плещется чужое дыхание — оно держит тебя на ногах."),
+  trinket_ghost_2: gearItem("trinket_ghost_2", "Фиал призрака «Холод»", "trinket", "assets/icons/trinket_ghost_2.webp", 140, 3, { hp: 20, iconFallback: "🔮" }, "Пара к «Шёпоту»: вместе они выстуживают чужой удар."),
+
+  // — Тир 4: мифриловые кольца и амулеты орка —
+  ring_mithril_1: gearItem("ring_mithril_1", "Мифриловое кольцо «Блеск»", "ring", "assets/icons/ring_mithril_1.webp", 330, 4, { crit: 3, iconFallback: "💍" }, "Мифрил ловит свет и подсказывает, куда бить."),
+  ring_mithril_2: gearItem("ring_mithril_2", "Мифриловое кольцо «Песнь»", "ring", "assets/icons/ring_mithril_2.webp", 330, 4, { crit: 3, iconFallback: "💍" }, "Пара к «Блеску»: вместе они поют перед ударом."),
+  trinket_orc_1: gearItem("trinket_orc_1", "Амулет орка «Череп»", "trinket", "assets/icons/trinket_orc_1.webp", 330, 4, { dodge: 2, iconFallback: "🔮" }, "Оркский череп, обвязанный цепью, — враг промахивается чаще."),
+  trinket_orc_2: gearItem("trinket_orc_2", "Амулет орка «Клык»", "trinket", "assets/icons/trinket_orc_2.webp", 330, 4, { dodge: 2, iconFallback: "🔮" }, "Пара к «Черепу»: вместе они пахнут войной."),
+
+  // — Тир 5: кольца из адского камня и печати демона —
+  ring_hell_1: gearItem("ring_hell_1", "Кольцо из адского камня «Уголёк»", "ring", "assets/icons/ring_hell_1.webp", 540, 5, { crit: 4, iconFallback: "💍" }, "Уголёк в оправе не гаснет — он ждёт удара."),
+  ring_hell_2: gearItem("ring_hell_2", "Кольцо из адского камня «Пламя»", "ring", "assets/icons/ring_hell_2.webp", 540, 5, { crit: 4, iconFallback: "💍" }, "Пара к «Угольку»: вместе они разжигают кровь."),
+  trinket_demon_1: gearItem("trinket_demon_1", "Печать демона «Зола»", "trinket", "assets/icons/trinket_demon_1.webp", 560, 5, { hp: 30, iconFallback: "🔮" }, "Печать, оттиснутая на пепле: тело помнит, что уже горело."),
+  trinket_demon_2: gearItem("trinket_demon_2", "Печать демона «Уголь»", "trinket", "assets/icons/trinket_demon_2.webp", 560, 5, { hp: 30, iconFallback: "🔮" }, "Пара к «Золе»: вместе они держат душу в теле."),
 };
 
 // armorType старой gearItem()-брони (голова/плечи/спина/руки/пояс/ноги/ступни).
 const ARMOR_TYPE_BY_ID = {
+  worn_hood: "cloth", patched_pants: "cloth", worn_boots: "cloth",
   head_cloth: "cloth", head_iron: "plate", head_crystal: "plate",
   shoulder_leather: "leather", shoulder_iron: "plate", shoulder_crystal: "plate",
   back_cloak: "cloth", back_guard: "cloth", back_crystal: "plate",
@@ -1320,6 +3095,7 @@ for (const [id, armorType] of Object.entries(ARMOR_TYPE_BY_ID)) {
 // iconHtml покажет его вместо пустого слота.
 for (const item of Object.values(ITEMS)) {
   if (item.shopTier !== 1) continue;
+  if (item.slot === "potion") continue; // зелья остаются на эмодзи
   if (typeof item.icon === "string" && item.icon.startsWith("assets/")) continue;
   if (!item.iconFallback) item.iconFallback = item.icon || "";
   item.icon = `assets/icons/${item.id}.webp`;
@@ -1331,6 +3107,7 @@ for (const item of Object.values(ITEMS)) {
 // файл для них уже есть, а путь ещё не был прописан.
 const ICON_ALIASES = {
   head_iron: "iron_helmet",
+  leather_armor: "leather",
   dented_plate: "iron_breastplate",
   feet_iron: "iron_boots",
   legs_iron: "iron_greaves",
@@ -1438,29 +3215,40 @@ function enemy(def) {
   return { prefers: ["chest"], armorType: "leather", gold: 10, xp: 10, ...def, maxHp: def.hp };
 }
 
+// ── Роли мобов: тактические повадки (Блок 1) ───────────────────────────────
+// blocksBonus меняет число закрываемых зон, atkMult — множитель урона.
+// healer лечится, если игрок промахнулся в прошлом ходу; rogue уворачивается.
+const MOB_ROLES = {
+  tank:      { name: "Танк",     icon: "🛡️", blocksBonus: 2,  atkMult: 0.8, desc: "Блокирует больше зон, но бьёт слабее." },
+  dps:       { name: "Боец",     icon: "⚔️", blocksBonus: 0,  atkMult: 1.2, desc: "Бьёт сильно в одну зону." },
+  healer:    { name: "Целитель", icon: "💚", blocksBonus: 0,  atkMult: 0.7, healPercent: 0.15, healThreshold: 0.5, desc: "Лечится, если его не бьют." },
+  berserker: { name: "Берсерк",  icon: "🔥", blocksBonus: -1, atkMult: 1.4, desc: "Бьёт в 2 зоны, но НЕ блокирует." },
+  rogue:     { name: "Плут",     icon: "🗡️", blocksBonus: 0,  atkMult: 1.0, dodgeBonus: 20, desc: "Не блокирует, но уворачивается." },
+};
+
 const FLOORS = [
   { id: 1, name: "Тёмный Лес", subtitle: "Гиблое место, облюбованное гоблинскими племенами", icon: "🕳️",
-    desc: "Тёмный Лес — это древняя чаща, куда даже опытные охотники заходят с опаской. Исполинские деревья здесь настолько стары, что их корни выворотили землю, создав естественные ловушки. Но главная угроза — гоблины. Эти твари не просто выживают здесь, они построили свои грязные логова в корнях и дуплах. Выследить их почти невозможно, пока гоблинская стрела не вонзится вам в спину. Говорят, в самой чаще прячется их вожак, чей тесак срубил не одну голову",
+    desc: "Лес, который не подчиняется законам природы. Деревья растут из камня, а звери не боятся огня. Гоблины здесь не живут — они прячутся. В корнях, что помнят другой мир.",
     cardImg: "assets/backgrounds/duskwood.webp",
     bg: "assets/backgrounds/duskwood.webp",
     mobs: [
-      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 126, atk: 24, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
+      enemy({ role: "rogue", id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 126, atk: 24, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
         drops: [
           { id: "rust", chance: 0.35, min: 1, max: 2 },
           { id: "cloth", chance: 0.25, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 189, atk: 31, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
+      enemy({ role: "dps", id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 189, atk: 31, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
         drops: [
           { id: "leather", chance: 0.30, min: 1, max: 2 },
           { id: "wood", chance: 0.20, min: 1, max: 2 },
         ] }),
-      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 279, atk: 41, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
+      enemy({ role: "berserker", id: "bugbear", name: "Багбир", icon: "bugbear", hp: 279, atk: 41, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "iron_ore", chance: 0.20, min: 1, max: 1 },
         ] }),
     ],
-    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1080, atk: 54, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
+    boss: enemy({ role: "berserker", id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1080, atk: 54, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
       drops: [
         { id: "gambeson", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "malachite", chance: 0.60, min: 2, max: 3 },
@@ -1468,18 +3256,18 @@ const FLOORS = [
   },
   // === FLOORS[1] — Кобольды (шахты) ===
   { id: 2, name: "Шахты Кобольдов", subtitle: "Под землёй стучат кирки, и стук всё ближе", icon: "⚙️",
-    desc: "Заброшенные рудники, где кобольды день и ночь вгрызаются в жилы холодного железа. Воздух тяжёл от рудной пыли, а из тёмных штолен доносится скрежет тележек и лязг цепей.",
+    desc: "Шахты, вырубленные в теле мира. Кобольды добывают руду, которой нет в нашем мире. Стук кирок не смолкает — он просто становится ближе.",
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ id: "kobold_servant", name: "Кобольд-слуга", icon: "kobold_servant", hp: 320, atk: 42, def: 8, gold: 55, xp: 75, armorType: "cloth", weapons: ["rusty_knife", "wood_club", "short_sword"], prefers: ["waist", "legs"],
+      enemy({ role: "dps", id: "kobold_servant", name: "Кобольд-слуга", icon: "kobold_servant", hp: 320, atk: 42, def: 8, gold: 55, xp: 75, armorType: "cloth", weapons: ["rusty_knife", "wood_club", "short_sword"], prefers: ["waist", "legs"],
         desc: "Тощий кобольд в грязном тряпье, вечно таскающий инструменты за старшими. В драку лезет неохотно, но бьёт низко — в пояс и ноги, норовя подрезать сухожилия.",
         drops: [
           { id: "copper_ore", chance: 0.35, min: 1, max: 2 },
           { id: "cave_mushroom", chance: 0.3, min: 1, max: 2 },
           { id: "kobold_gear", chance: 0.25, min: 1, max: 1 },
         ] }),
-      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 400, atk: 48, def: 12, gold: 68, xp: 90, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+      enemy({ role: "tank", id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 400, atk: 48, def: 12, gold: 68, xp: 90, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
         desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
           { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
@@ -1487,7 +3275,7 @@ const FLOORS = [
           { id: "cold_iron_ingot", chance: 0.2, min: 1, max: 1 },
           { id: "kobold_gear", chance: 0.2, min: 1, max: 1 },
         ] }),
-      enemy({ id: "kobold_overseer", name: "Кобольд-надсмотрщик", icon: "kobold_overseer", hp: 500, atk: 56, def: 18, gold: 82, xp: 110, armorType: "chain", weapons: ["mace", "short_sword", "battle_axe"], prefers: ["belly", "chest"], blocks: 2,
+      enemy({ role: "tank", id: "kobold_overseer", name: "Кобольд-надсмотрщик", icon: "kobold_overseer", hp: 500, atk: 56, def: 18, gold: 82, xp: 110, armorType: "chain", weapons: ["mace", "short_sword", "battle_axe"], prefers: ["belly", "chest"], blocks: 2,
         desc: "Широкоплечий кобольд в кольчуге, с плетью на поясе и тяжёлой булавой в лапе. Гоняет сородичей в забой и бьёт в живот и грудь, не давая опомниться.",
         drops: [
           { id: "cold_iron_ingot", chance: 0.3, min: 1, max: 2 },
@@ -1495,7 +3283,7 @@ const FLOORS = [
           { id: "kobold_gear", chance: 0.3, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "dragonborn", name: "Драконид", icon: "dragonborn", hp: 1728, atk: 92, def: 26, gold: 660, xp: 880, armorType: "plate", weapons: ["steel_great_sword"], prefers: ["chest", "head"], blocks: 3, boss: true, enrage: true,
+    boss: enemy({ role: "tank", id: "dragonborn", name: "Драконид", icon: "dragonborn", hp: 1728, atk: 92, def: 26, gold: 660, xp: 880, armorType: "plate", weapons: ["steel_great_sword"], prefers: ["chest", "head"], blocks: 3, boss: true, enrage: true,
       desc: "Чешуйчатый гигант в тяжёлых латах, поднявшийся из глубин вместе с кобольдами. Двуручный клинок в его лапах описывает широкую дугу, доставая сразу две зоны.",
       drops: [
         { id: "cold_iron_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1505,25 +3293,25 @@ const FLOORS = [
   },
   // === FLOORS[2] — Нежить (склеп) ===
   { id: 3, name: "Древний Склеп", subtitle: "Лишённые покоя не ведают жалости", icon: "💀",
-    desc: "Даже свет факела кажется маленькой искрой и выхватывает из темноты лишь сырые каменные стены. Здесь не спят те, кто давно должен был рассыпаться в прах.",
+    desc: "Склеп, где время течёт вспять. Мертвые не спят, а ждут. Свет факела здесь стареет быстрее, чем ты успеваешь моргнуть.",
     cardImg: "assets/backgrounds/crypt.webp",
     bg: "assets/backgrounds/crypt.webp",
     mobs: [
-      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 504, atk: 62, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
+      enemy({ role: "dps", id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 504, atk: 62, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
         desc: "Восставший из старой могилы скелет, стиснувший ржавый клинок. Бьёт по корпусу и ногам, не зная ни боли, ни усталости.",
         drops: [
           { id: "bone", chance: 0.4, min: 1, max: 2 },
           { id: "grave_iron", chance: 0.25, min: 1, max: 2 },
           { id: "copper_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 567, atk: 66, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+      enemy({ role: "rogue", id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 567, atk: 66, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
         desc: "Полупрозрачный силуэт, что тянет к вам ледяные пальцы. Его шёпот ввинчивается в голову, а удары проходят сквозь броню.",
         drops: [
           { id: "rune_dust", chance: 0.35, min: 1, max: 2 },
           { id: "cursed_cloth", chance: 0.25, min: 1, max: 2 },
           { id: "tin_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 630, atk: 72, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], unarmedStyle: "piercing", prefers: ["waist", "chest"],
+      enemy({ role: "berserker", id: "crypt_ghoul", name: "Упырь", icon: "crypt_ghoul", hp: 630, atk: 72, def: 24, gold: 120, xp: 160, armorType: "cloth", weapons: ["claws"], unarmedStyle: "piercing", prefers: ["waist", "chest"],
         desc: "Сгорбленный пожиратель падали с длинными когтями. Рвётся к животу и поясу, чтобы добраться до плоти.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 2 },
@@ -1531,7 +3319,7 @@ const FLOORS = [
           { id: "kobold_gear", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2520, atk: 115, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ role: "tank", id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2520, atk: 115, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Павший паладин, чьи латы покрыты пеплом и копотью. В ярости его клинок крошит камень и кости.",
       drops: [
         { id: "steel_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1541,25 +3329,25 @@ const FLOORS = [
   },
   // === FLOORS[3] — Орки и огры ===
   { id: 4, name: "Лагерь Орков", subtitle: "Пахнет костром, дёгтем и свежей кровью", icon: "🐗",
-    desc: "Военный лагерь, где орки готовят осаду, а огры выворачивают из земли валуны. Дым костров застилает небо, и в этом дыму движутся могучие тени.",
+    desc: "Лагерь орков, пришедших из другого плана. Здесь нет места жалости. Костры горят без дров, а тени падают не в ту сторону.",
     cardImg: "assets/backgrounds/orc_camp.webp",
     bg: "assets/backgrounds/orc_camp.webp",
     mobs: [
-      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
+      enemy({ role: "dps", id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
         desc: "Свирепый налётчик, чья секира помнит десятки черепов. Рубит сверху, целясь в голову и грудь.",
         drops: [
           { id: "iron_chain", chance: 0.35, min: 1, max: 2 },
           { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
           { id: "bone", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
+      enemy({ role: "healer", id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
         desc: "Шаман, обвешанный костями и амулетами. Его проклятия бьют в живот и пояс, пока он бормочет боевые молитвы.",
         drops: [
           { id: "blood_herb", chance: 0.35, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.25, min: 1, max: 2 },
           { id: "rune_dust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
+      enemy({ role: "berserker", id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
         desc: "Гора мяса и шрамов, вооружённая вырванным из земли валуном. Бьёт по груди и ногам — медленно, но смертельно.",
         drops: [
           { id: "mithril_ore", chance: 0.35, min: 1, max: 2 },
@@ -1567,7 +3355,7 @@ const FLOORS = [
           { id: "silver", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 3960, atk: 163, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ role: "berserker", id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 3960, atk: 163, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Вождь, чьи латы кованы из обломков осадных машин. В ярости он сминает строй одним ударом.",
       drops: [
         { id: "mithril_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -1577,25 +3365,25 @@ const FLOORS = [
   },
 // === FLOORS[4] — Демонический план ===
   { id: 5, name: "Демонический План", subtitle: "Разрыв в реальности, и из него течёт сера", icon: "🔥",
-    desc: "Здесь реальность рвётся, как гнилая ткань, обнажая пылающий план. Сера хрустит под ногами, а воздух плавится от жара — где-то впереди ждёт Владыка Бездны.",
+    desc: "Демонический план, где реальность плавится. Это не место. Это состояние. Сера хрустит под ногами, а воздух помнит чужие имена.",
     cardImg: "assets/backgrounds/hell_plane.webp",
     bg: "assets/backgrounds/hell_plane.webp",
     mobs: [
-      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
+      enemy({ role: "rogue", id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
         desc: "Мелкий бес, объятый пламенем, что хихикает из дыма. Жалит в живот и пояс, пока вы ищете его в огне.",
         drops: [
           { id: "brimstone", chance: 0.35, min: 1, max: 2 },
           { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], unarmedStyle: "piercing", prefers: ["head", "chest"],
+      enemy({ role: "dps", id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], unarmedStyle: "piercing", prefers: ["head", "chest"],
         desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
         drops: [
           { id: "hellstone", chance: 0.35, min: 1, max: 2 },
           { id: "demon_horn", chance: 0.25, min: 1, max: 2 },
           { id: "iron_chain", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
+      enemy({ role: "tank", id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
         desc: "Рогатый дьявол в багровых латах, вооружённый чёрным клинком. Бьёт в грудь и голову, наслаждаясь чужой болью.",
         drops: [
           { id: "demon_horn", chance: 0.35, min: 1, max: 2 },
@@ -1603,10 +3391,10 @@ const FLOORS = [
           { id: "mithril_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4320, atk: 221, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ role: "dps", id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4320, atk: 221, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Владыка Бездны, чей трон выкован из проклятых душ. В ярости его удары рвут саму реальность.",
       drops: [
-        { id: "hell_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
+        { id: "set_hellblade_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "void_crystal", chance: 0.6, min: 2, max: 3 },
         { id: "hellstone", chance: 0.5, min: 1, max: 2 },
       ] }),
@@ -1698,6 +3486,9 @@ const FLOOR_RESOURCES = {
     { id: "cave_mushroom", name: "Пещерный гриб", icon: "🍄", minAmount: 1, maxAmount: 3, sellPrice: 20, npc: "elain" },
     { id: "cold_iron_ingot", name: "Слиток холодного железа", icon: "🟫", minAmount: 1, maxAmount: 3, sellPrice: 25, npc: "ron" },
     { id: "steel", name: "Стальной слиток", icon: "steel", minAmount: 1, maxAmount: 2, sellPrice: 25, npc: "ron" },
+    { id: "cloth", name: "Обрывок ткани", icon: "cloth", minAmount: 1, maxAmount: 3, sellPrice: 5, npc: "elain" }, // базовый ресурс
+    { id: "leather", name: "Кусок кожи", icon: "leather", minAmount: 1, maxAmount: 2, sellPrice: 6, npc: "ron" }, // базовый ресурс
+    { id: "wood", name: "Кривая доска", icon: "wood", minAmount: 1, maxAmount: 3, sellPrice: 4, npc: "ron" }, // базовый ресурс
   ],
   3: [
     { id: "bone", name: "Кости", icon: "🦴", minAmount: 1, maxAmount: 3, sellPrice: 12, npc: "ron" },
@@ -1754,6 +3545,38 @@ const FLOOR_SCENES = {
       ],
       group: [0, 1],
     },
+    {
+      id: "goblin_deserter",
+      title: "Гоблин-дезертир",
+      text: "За копной листы прячется гоблин — без доспехов, с перевязанной лапой. Он узнаёт вас и, вздрогнув, тянет лапу к горлу. Не атакует: дезертир из дозора, и опасается своих больше, чем вас.",
+      actions: [
+        { id: "talk", label: "💬 Заговорить по-доброму" },
+        { id: "fight", label: "⚔ Напасть" },
+        { id: "leave", label: "🚶 Уйти" },
+      ],
+      talkOutcome: {
+        text: "Дезертир хрипло объясняет: с холма вниз гонят их «дай-дай», высокие и голодные. За обещание не выдавать он тянется к кожаному схрону и отдаёт монеты.",
+        gold: [30, 45],
+        rumor: "«Пятеро теперь ходят в дозоре. Пятеро! Не ходи вдоль реки — там их логово.»",
+      },
+      group: [1],
+    },
+    {
+      id: "snares_row",
+      title: "Ряд силков",
+      text: "Между двумя деревьями натянута бечёвка, и на ней висят силки — чьи-то кроличьи глазницы блестят в петлях. Кто-то подробно ставил ловушки прямо у тропы.",
+      actions: [
+        { id: "loot", label: "🧰 Осмотреть и обобрать" },
+        { id: "leave", label: "🚶 Обойти" },
+      ],
+      lootOutcome: {
+        resource: ["leather", 1, 2],
+        gold: [10, 25],
+        risk: 0.35,
+        failText: "Силок защёлкнулся у вас на запястье — вы едва вырвались.",
+      },
+      group: [1],
+    },
   ],
   2: [
     {
@@ -1776,6 +3599,38 @@ const FLOOR_SCENES = {
       ],
       group: [0, 1],
     },
+    {
+      id: "collapsed_kart",
+      title: "Опрокинутая вагонетка",
+      text: "У штрека стоит рудная вагонетка — недавний обвал завалил повозку, и она так и осталась наполовину засыпанной. Из-под камней торчит лямка и блестит медью.",
+      actions: [
+        { id: "loot", label: "🧰 Разгрести завал" },
+        { id: "leave", label: "🚶 Обойти" },
+      ],
+      lootOutcome: {
+        resource: ["copper_ore", 1, 3],
+        gold: [20, 40],
+        risk: 0.3,
+        failText: "Вы потянули за лямку — свод крякнул, и камень достал вас по плечу.",
+      },
+      group: [1, 2],
+    },
+    {
+      id: "kobold_accountant",
+      title: "Кобольд-счётовод",
+      text: "Кобольд с костяной грифельной доской сидит на перевёрнутой тачке и с усердием ведёт счёт: «доля-доля-жила-жила». Он так увлечён, что не сразу замечает вас.",
+      actions: [
+        { id: "talk", label: "💬 Заговорить" },
+        { id: "fight", label: "⚔ Напасть" },
+        { id: "leave", label: "🚶 Уйти" },
+      ],
+      talkOutcome: {
+        text: "Счётовод гордится своим учётом и, поразмыслив, продаёт вам мешочек руды, выкраденный из надсмотрщиковой доли.",
+        resource: ["copper_ore", 2, 3],
+        rumor: "«Надсмотрщик скрывает долю от большого Коб-холда. Его палата — за наклонными штреками, охрана слаба.»",
+      },
+      group: [2],
+    },
   ],
   3: [
     {
@@ -1796,6 +3651,39 @@ const FLOOR_SCENES = {
         { id: "fight", label: "⚔ Развеять тени" },
         { id: "leave", label: "🚶 Пройти не оборачиваясь" },
       ],
+      group: [1, 2],
+    },
+    {
+      id: "mourning_knight",
+      title: "Скорбящий рыцарь",
+      text: "На краю склепа стоит рыцарь в тусклых латах — не мёртвый, но отлитый в камень скорбью. Он держит шлем как урну с прахом и молчит, глядя в одну точку.",
+      actions: [
+        { id: "talk", label: "💬 Сказать слово утешения" },
+        { id: "fight", label: "⚔ Узнать, кто он" },
+        { id: "leave", label: "🚶 Оставить его" },
+      ],
+      talkOutcome: {
+        text: "Рыцарь пришёл сюда искать брата и не нашёл. Он отдаёт вам горсть монет из ниши — «мёртвым они ни к чему» — и оставляет то, что слышал сам.",
+        gold: [40, 60],
+        rumor: "«Саркофаги здесь ставят не к стене, а по кругу. В центре — тот, кого до сих пор питают молитвы.»",
+      },
+      group: [1],
+    },
+    {
+      id: "bone_garden",
+      title: "Сад из костей",
+      text: "Между плит растут кости, будто пшеница: рёбра — стебли, черепа — соцветья. Кто-то заботливо окучивал их руками без ногтей.",
+      actions: [
+        { id: "loot", label: "🧰 Собрать кости" },
+        { id: "leave", label: "🚶 Не трогать" },
+      ],
+      lootOutcome: {
+        resource: ["bone", 2, 3],
+        gold: [15, 30],
+        risk: 0.4,
+        skirmish: [2],
+        failText: "Кости хрустнули и сложились в лапы — сад смотрит в ответ.",
+      },
       group: [1, 2],
     },
   ],
@@ -1820,6 +3708,39 @@ const FLOOR_SCENES = {
       ],
       group: [1, 2],
     },
+    {
+      id: "orc_prisoner",
+      title: "Пленный у столба",
+      text: "К столбу привязан бродяга-человек — то ли обносят его перед казнью, то ли забыли. Орочьи следы вокруг свежие: дозор ушёл, но вернётся.",
+      actions: [
+        { id: "talk", label: "🗡 Перерезать верёвки" },
+        { id: "fight", label: "⚔ Встретить дозор" },
+        { id: "leave", label: "🚶 Уйти" },
+      ],
+      talkOutcome: {
+        text: "Пленный шёпотом благодарит: он проводник Гильдии, раненый у орочьего стана. Живым его не сдержать — он уводит вас тропой мимо дозоров.",
+        rep: ["hunters", 2],
+        rumor: "«Шаманы красят барабаны кровью первую неделю дороги. Пока краска свежа — они бьют сильнее.»",
+      },
+      group: [0, 2],
+    },
+    {
+      id: "broken_drums",
+      title: "Разбитый барабан",
+      text: "Главная вышка лагеря опрокинута, а под ней — барабан с проломленным боком. Клыки орков покрывают кожу, кровь на них ещё не обсохла: голос у лагеря один, и он кричит.",
+      actions: [
+        { id: "loot", label: "🧰 Ободрать кожу и клыки" },
+        { id: "fight", label: "⚔ Проверить, кто рядом" },
+        { id: "leave", label: "🚶 Уйти" },
+      ],
+      lootOutcome: {
+        resource: ["orc_tusk", 1, 2],
+        gold: [25, 45],
+        risk: 0.4,
+        failText: "Пронзительный лай в стороне: вы уронили барабан и убежали налегке.",
+      },
+      group: [0],
+    },
   ],
   5: [
     {
@@ -1842,20 +3763,563 @@ const FLOOR_SCENES = {
       ],
       group: [1, 2],
     },
+    {
+      id: "wounded_ritualist",
+      title: "Раненый ритуалист",
+      text: "У догорающих углей скорчился человек в алых рясах: рука его обескровлена, на поясе мел и всякие кости. Он выцарапал на камне круг незаконченный — его ритуал сорвали.",
+      actions: [
+        { id: "talk", label: "💬 Подойти и выслушать" },
+        { id: "fight", label: "⚔ Сомкнуть руки на нём" },
+        { id: "leave", label: "🚶 Оставить" },
+      ],
+      talkOutcome: {
+        text: "Ритуалист хрипит, что убивал себя ради «нужного слуха» — и одаривает уже вас: «Слушай ниже, воин».",
+        rep: ["hunters", 2],
+        rumor: "«Броня Владыки не имеет прорех — но в самом сердце уязвим. Дробящий удар точно в грудь, и пехота подступит к нему.»",
+      },
+      group: [0, 2],
+    },
+    {
+      id: "ash_stash",
+      title: "Схрон с пеплом",
+      text: "Между обломками цепи спрятан узкий ящик, окованный чёрным железом. Крышка на одной петле, содержимое нетронуто: внутри — горка адского пепла.",
+      actions: [
+        { id: "loot", label: "🧰 Забрать пепел" },
+        { id: "leave", label: "🚶 Оставить бесам" },
+      ],
+      lootOutcome: {
+        resource: ["infernal_ash", 1, 2],
+        gold: [35, 55],
+        risk: 0.45,
+        failText: "Пепел ещё тёплый и ростёт жалящим облаком — вам пришлось отпрыгивать.",
+      },
+      group: [0, 2],
+    },
   ],
 };
+
+// ── Дневники по этажам ──────────────────────────────────────────────────────
+// Выпадают из событий «труп», «сундук» и убийства охотников. Новый персонаж
+// сбрасывает (сейв-совместимость: ключ не сохраняется, а дневники — да).
+const FLOOR_DIARY = { 1: "diary_goblin", 2: "diary_goblin", 3: "diary_crypt", 4: "diary_crypt", 5: "diary_hell" };
+
+// ── NPC-охотники (встречи Гильдии на этажах) ────────────────────────────────
+// helpNeed: null — помощь по совести (без предмета); { potion: true } — требуется
+// любое лечащее зелье; { resource, amount } — требуется ресурс в state.resources.
+// killHpMult: у охотника половина HP и опыта моба этажа — дерзко, но честно.
+const HUNTER_ENCOUNTERS = [
+  {
+    id: "novice", name: "Раненый охотник", floors: [1, 2], icon: "🏹",
+    text: "Молодой охотник сидит, привалившись к пню, и зажимает порез на боку. Гильдейский капюшон мят, колчан почти пуст: две стрелы и процарапанный клинок.",
+    helpNeed: { potion: true },
+    helpText: "«Зелье… и я на ногах. Гильдия процентов не забывает.»",
+    helpReward: {
+      gold: [50, 50],
+      rep: ["hunters", 1],
+      rumor: "«Гоблинам помогают сверху. Не сверху, а изнутри — их гонит кто-то с пятого яруса.»",
+    },
+    killHpMult: 0.5,
+    killDrop: "diary_goblin",
+    killText: "Глаза юнца вспыхивают: «Гильдии… не забуду…»",
+  },
+  {
+    id: "veteran", name: "Странник с картой", floors: [3, 4], icon: "🗺️",
+    text: "Старик с картой в кожаном чехле перебинтовывает руку верёвкой, зажав конец зубами. На карте — засечки этажей: он ходит по склепу, как по собственному огороду.",
+    helpNeed: { resource: "rune_dust", amount: 1 },
+    helpText: "«Рунная пыль — единственное, что держит призраков от моей спины. Поделись, и я расщедрюсь.»",
+    helpReward: {
+      gold: [80, 80],
+      rep: ["hunters", 2],
+      rumor: "«Тёмный Рыцарь ещё не мёртв. Его саркофаг полон пустоты — и он точит клинок, когда в склепе темно.»",
+    },
+    killHpMult: 0.5,
+    killDrop: "diary_crypt",
+    killText: "Ветеран роняет карту и достаёт копьё. «Эх. Менялись времена…»",
+  },
+  {
+    id: "madman", name: "Безумный отшельник", floors: [5], icon: "🕯️",
+    text: "Отшельник сидит в круге свечей и открывает глаза то на один, то на второй огонёк. Он слышит башню насквозь — как колокол.",
+    helpNeed: null,
+    helpText: "«Сядь, слушай. Я тебе расскажу, где Башня царапает сама себя.»",
+    helpReward: {
+      gold: [120, 120],
+      rep: ["hunters", 3],
+      rumor: "«Владыка не броню носит — он носит сердце снаружи. Дробящий удар в грудь сверху — и сердце треснет.»",
+    },
+    killHpMult: 0.5,
+    killDrop: "diary_hell",
+    killText: "Отшельник смеётся — не злобно. «Уже кто-то идёт. Уже кто-то идёт.»",
+  },
+];
+
+// ── Спонтанные события на этажах (FLOOR_EVENTS) ─────────────────────────────
+// Не сцены, а случайные встречи при exploreFloor. Разбирает
+// resolveFloorEventAction (actions.js); рендерит renderFloorEventModal (ui.js).
+// Формат outcome: { chance, effects, text } — chance суммируются от 0 до 1.
+// Эффекты: gold([min,max]|n), resource([id,min,max]), potion(id), rep[фракция, n],
+// rumor(строка), diary( bool → дневник этажа, если он уже есть — золото),
+// skirmish([индексы мобов]), hp([min,max] — урон), xp(n).
+const FLOOR_EVENTS = {
+  // === Этаж 1: Гоблинские чащи ===
+  corpse_f1: {
+    id: "corpse_f1", floor: 1, type: "corpse", title: "Тело охотника", icon: "🕯️",
+    text: "Вы нашли тело охотника. Рядом — сумка с записями.",
+    actions: [
+      { id: "search", label: "🖐 Обыскать", outcomes: [
+        { chance: 0.30, text: "В сумке — кошель, переживший хозяина.", effects: { gold: [20, 50] } },
+        { chance: 0.20, text: "Между стрелами — дневник с набросками первых дней в Башне.", effects: { diary: true } },
+        { chance: 0.20, text: "Из карманов — кусок кожи, только что с ловушки.", effects: { resource: ["leather", 1, 2] } },
+        { chance: 0.30, text: "Сумка пуста, и лишь сырость говорит за неё.", effects: {} },
+      ] },
+      { id: "bury", label: "⚰ Похоронить", outcomes: [
+        { chance: 1, text: "Вы складываете тело под корни и наваливаете камень. Гильдия таких не забывает.", effects: { rep: ["hunters", 1], potion: "hp_small" } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы идёте дальше.", effects: {} } ] },
+    ],
+  },
+  hunter_f1: {
+    id: "hunter_f1", floor: 1, type: "hunter", title: "Фигура в плаще", icon: "🏹",
+    text: "Впереди фигура в плаще Гильдии. Ранен, но жив.",
+    actions: [
+      { id: "approach", label: "👋 Подойти" },
+      { id: "pass", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы обходите стороной — не всем охотникам нужно ваше участие.", effects: {} } ] },
+    ],
+  },
+  chest_f1: {
+    id: "chest_f1", floor: 1, type: "chest", title: "Сундук с письмом", icon: "✉️",
+    text: "Сундук с письмом, приколотым к крышке. Бумага пожелтела, но читается.",
+    actions: [
+      { id: "open", label: "🔓 Открыть", outcomes: [
+        { chance: 0.50, text: "Монеты и связка дневника — «когда кто-то дойдёт». Недельный срок уже вышел.", effects: { gold: [30, 60], diary: true } },
+        { chance: 0.50, text: "Монеты. Письмо — лишь про то, что «лес стал подозрительным».", effects: { gold: [30, 60] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Пусть весточка лежит дальше.", effects: {} } ] },
+    ],
+  },
+  goblin_totem: {
+    id: "goblin_totem", floor: 1, type: "creative", title: "Гоблинский тотем", icon: "🗿",
+    text: "На поляне стоит тотем из черепов и пёстрых лент: гоблины оставляют ему добычу и приметы. У подножия — свежие приношения.",
+    actions: [
+      { id: "desecrate", label: "🧨 Обрушить тотем", outcomes: [
+        { chance: 0.30, text: "Тотем рушится, и с него сыпятся приношения — монеты и кости.", effects: { gold: [25, 45] } },
+        { chance: 0.35, text: "Тотем трещит, и на шум сбегается дозор.", effects: { skirmish: [0, 1] } },
+        { chance: 0.35, text: "Тотем устоял — на свой страх вы сняли лишь пару приношений.", effects: { resource: ["cloth", 1, 2], gold: [5, 15] } },
+      ] },
+      { id: "steal", label: "🖐 Стянуть приношения", outcomes: [
+        { chance: 0.60, text: "Тихо. Вы собираете приношения быстрее, чем их успели запомнить.", effects: { gold: [15, 30], resource: ["leather", 1, 1] } },
+        { chance: 0.40, text: "Ветки хрустят, дозор отзывается на звук.", effects: { skirmish: [1] } },
+      ] },
+      { id: "leave", label: "🚶 Оставить в покое", outcomes: [ { chance: 1, text: "С богами шутить не стоит.", effects: {} } ] },
+    ],
+  },
+  poison_mushroom: {
+    id: "poison_mushroom", floor: 1, type: "creative", title: "Сладкий гриб", icon: "🍄",
+    text: "У коряги гриб в розовую крапину — пахнет так аппетитно, что это само по себе подозрительно. Шляпка мягкая и подозрительно пружинистая.",
+    actions: [
+      { id: "eat", label: "🍽 Откусить", outcomes: [
+        { chance: 0.40, text: "Волна тепла: голова проясняется и дышится легче.", effects: {} },
+        { chance: 0.60, text: "Горечь ударяет в голову и подкашивает.", effects: { hp: [10, 20] } },
+      ] },
+      { id: "pick", label: "🧺 Срезать для алхимика", outcomes: [
+        { chance: 0.80, text: "Гриб аккуратно уложен — Элэйн скажет спасибо.", effects: { potion: "hp_small" } },
+        { chance: 0.20, text: "Гриб при срезе брызнул кислотой.", effects: { hp: [5, 10] } },
+      ] },
+      { id: "leave", label: "🚶 Обойти", outcomes: [ { chance: 1, text: "Лучше смотреть, чем жалеть.", effects: {} } ] },
+    ],
+  },
+  wolf_bait: {
+    id: "wolf_bait", floor: 1, type: "creative", title: "Волчья приманка", icon: "🥩",
+    text: "На бечёвке между деревьями подвешена приманка — кусок чего-то, обмазанного кровью. Кто-то устроил ловушку на волков: ловит не волков.",
+    actions: [
+      { id: "take", label: "🖐 Снять приманку", outcomes: [
+        { chance: 0.55, text: "Приманка добротная: кожа и жир — со свежего.", effects: { resource: ["leather", 1, 2], gold: [10, 20] } },
+        { chance: 0.45, text: "Бечёвка дёргается: с кустов смотрит не волк.", effects: { skirmish: [0] } },
+      ] },
+      { id: "search", label: "🔍 Осмотреть ловушку", outcomes: [
+        { chance: 0.70, text: "Рядом в траве — горсть монет, потерянная ставившим.", effects: { gold: [15, 30] } },
+        { chance: 0.30, text: "Лишь следы. Ставивший ушёл — и быстро.", effects: {} },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "На чужие ловушки лучше смотреть со стороны.", effects: {} } ] },
+    ],
+  },
+  // === Этаж 2: Кобольдские низы ===
+  corpse_f2: {
+    id: "corpse_f2", floor: 2, type: "corpse", title: "Тело охотника", icon: "🕯️",
+    text: "Вы нашли тело охотника. Рядом — сумка с записями.",
+    actions: [
+      { id: "search", label: "🖐 Обыскать", outcomes: [
+        { chance: 0.30, text: "Кошель и чеканка на стрелах — он был из ближнего круга.", effects: { gold: [20, 50] } },
+        { chance: 0.20, text: "Дневник новичка — записи путаются: «второй этаж звенит», «низ звенит».", effects: { diary: true } },
+        { chance: 0.20, text: "В развёрнутых карманах — рудная горсть.", effects: { resource: ["copper_ore", 1, 2] } },
+        { chance: 0.30, text: "Сумка вывернута: кто-то успел раньше.", effects: {} },
+      ] },
+      { id: "bury", label: "⚰ Похоронить", outcomes: [
+        { chance: 1, text: "Вы заваливаете тело плитой, чтобы кобольды не растащили. Гильдия отвечает малым зельем.", effects: { rep: ["hunters", 1], potion: "hp_small" } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Тайна — не ваша обязанность.", effects: {} } ] },
+    ],
+  },
+  hunter_f2: {
+    id: "hunter_f2", floor: 2, type: "hunter", title: "Фигура в плаще", icon: "🏹",
+    text: "Впереди фигура в плаще Гильдии. Ранен, но жив.",
+    actions: [
+      { id: "approach", label: "👋 Подойти" },
+      { id: "pass", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы уходите — Гильдия справится сама.", effects: {} } ] },
+    ],
+  },
+  chest_f2: {
+    id: "chest_f2", floor: 2, type: "chest", title: "Сундук с письмом", icon: "✉️",
+    text: "Сундук с письмом, приколотым к крышке. Бумага пожелтела, но читается.",
+    actions: [
+      { id: "open", label: "🔓 Открыть", outcomes: [
+        { chance: 0.50, text: "Монеты, и сверху — дневник, брошенный читателем на середине.", effects: { gold: [30, 60], diary: true } },
+        { chance: 0.50, text: "Монеты. Письмо — всего пара строк: «второй этаж звенит ночью».", effects: { gold: [30, 60] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Не ваше — не тронете.", effects: {} } ] },
+    ],
+  },
+  rusty_drill: {
+    id: "rusty_drill", floor: 2, type: "creative", title: "Кобольдская дрель", icon: "⚙️",
+    text: "Механизм на ручной тяге: кобольды сверлят им жилу, а не копают. Привод скрипит, но ход жив.",
+    actions: [
+      { id: "tinker", label: "🔧 Покрутить привод", outcomes: [
+        { chance: 0.70, text: "Сверло ходит, и жила подаёт руду.", effects: { resource: ["copper_ore", 1, 3] } },
+        { chance: 0.30, text: "Сверло чёркает по пустоте и бьёт искрой в лицо.", effects: { hp: [5, 12] } },
+      ] },
+      { id: "dismantle", label: "🧰 Разобрать на части", outcomes: [
+        { chance: 0.60, text: "Шестерёнки и крепёж желанного вида.", effects: { resource: ["kobold_gear", 1, 2], gold: [10, 25] } },
+        { chance: 0.40, text: "Механизм припадает и лязгает зубьями на вашу руку.", effects: { hp: [8, 16] } },
+      ] },
+      { id: "leave", label: "🚶 Оставить", outcomes: [ { chance: 1, text: "Чужое хозяйство — чужая забота.", effects: {} } ] },
+    ],
+  },
+  rune_door: {
+    id: "rune_door", floor: 2, type: "creative", title: "Запертая дверь с рунами", icon: "🚪",
+    text: "В нише штрека — дубовая дверь с рунами, вросшая в скалу. Кобольды обходят её суетливо, будто дверь помнит их по именам.",
+    actions: [
+      { id: "pick", label: "🗝 Вскрыть отмычкой", outcomes: [
+        { chance: 0.50, text: "Дверь поддаётся: за ней кобольдский тайник.", effects: { gold: [40, 70], resource: ["tin_ore", 1, 2] } },
+        { chance: 0.50, text: "Руны гаснут, и из-за двери тянет холодом.", effects: {} },
+      ] },
+      { id: "rummage", label: "🔍 Прочесть надписи", outcomes: [
+        { chance: 0.80, text: "Руны — старая кобольдская бухгалтерия: имена и доли. Ничего ценного, но занятно.", effects: { rumor: "«Коб-холд держит палату не в глубине — этажом выше. Слушайте счёт.»" } },
+        { chance: 0.20, text: "Одна руна кричит в вашей голове — и вы отшатываетесь.", effects: { hp: [4, 10] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Дверь имела силы не впускать.", effects: {} } ] },
+    ],
+  },
+  // === Этаж 3: Склеп ===
+  corpse_f3: {
+    id: "corpse_f3", floor: 3, type: "corpse", title: "Тело охотника", icon: "🕯️",
+    text: "Вы нашли тело охотника. Рядом — сумка с записями.",
+    actions: [
+      { id: "search", label: "🖐 Обыскать", outcomes: [
+        { chance: 0.30, text: "Кошель, спрятанный в сапогах — дальновидный был.", effects: { gold: [20, 50] } },
+        { chance: 0.20, text: "Дневник ветерана: почерк аккуратный — до самого конца.", effects: { diary: true } },
+        { chance: 0.20, text: "Из подсумка — кости и свиток.", effects: { resource: ["bone", 1, 2] } },
+        { chance: 0.30, text: "Сумка пуста и мокра, как весь этот склеп.", effects: {} },
+      ] },
+      { id: "bury", label: "⚰ Похоронить", outcomes: [
+        { chance: 1, text: "Вы накрываете тело плащом. Гильдия отвечает малым зельем.", effects: { rep: ["hunters", 1], potion: "hp_small" } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Склеп не ждёт нежностей.", effects: {} } ] },
+    ],
+  },
+  hunter_f3: {
+    id: "hunter_f3", floor: 3, type: "hunter", title: "Фигура в плаще", icon: "🏹",
+    text: "Впереди фигура в плаще Гильдии. Ранен, но жив.",
+    actions: [
+      { id: "approach", label: "👋 Подойти" },
+      { id: "pass", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы решаете не мешать охотнику выздоравливать.", effects: {} } ] },
+    ],
+  },
+  chest_f3: {
+    id: "chest_f3", floor: 3, type: "chest", title: "Сундук с письмом", icon: "✉️",
+    text: "Сундук с письмом, приколотым к крышке. Бумага пожелтела, но читается.",
+    actions: [
+      { id: "open", label: "🔓 Открыть", outcomes: [
+        { chance: 0.50, text: "Монеты и дневник, прикопанный вместе с ними.", effects: { gold: [30, 60], diary: true } },
+        { chance: 0.50, text: "Монеты. Письмо умоляет «не верить шёпоту у саркофагов».", effects: { gold: [30, 60] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Сундук остаётся при своём.", effects: {} } ] },
+    ],
+  },
+  gravestone_sign: {
+    id: "gravestone_sign", floor: 3, type: "creative", title: "Надгробие с надписью", icon: "🪦",
+    text: "Гранитное надгробие стоит не к стене, а лицом в проход. «Сначала — мысли. Потом — стена».",
+    actions: [
+      { id: "read", label: "📜 Прочесть вслух", outcomes: [
+        { chance: 0.80, text: "Слова гремят в голове эхом, и тяжёлые мысли отпускают.", effects: { rumor: "«Саркофаги стоят кругом не случайно. В центре — тот, кого ещё питают молитвами.»" } },
+        { chance: 0.20, text: "Надгробие отвечает прорезью холода в спину.", effects: { hp: [6, 14] } },
+      ] },
+      { id: "scrape", label: "🖐 Соскоблить гранит", outcomes: [
+        { chance: 0.60, text: "От кромки откалываются куски — гранит и старое железо.", effects: { resource: ["grave_iron", 1, 2] } },
+        { chance: 0.40, text: "Рука напарывается на скрытый обломок саркофага.", effects: { hp: [5, 12] } },
+      ] },
+      { id: "leave", label: "🚶 Обойти", outcomes: [ { chance: 1, text: "Читанное лучше не трогать.", effects: {} } ] },
+    ],
+  },
+  empty_sarcophagus: {
+    id: "empty_sarcophagus", floor: 3, type: "creative", title: "Пустой саркофаг", icon: "⚰️",
+    text: "Саркофаг открыт и пуст — крышка содрана изнутри, если верить царапинам. Внутри чисто, будто здесь недавно прибирались.",
+    actions: [
+      { id: "sleep", label: "🌙 Прилечь отдохнуть", outcomes: [
+        { chance: 0.45, text: "На удивление — самый спокойный отдых за неделю.", effects: {} },
+        { chance: 0.55, text: "Тень накрывает сверху, и вы вскакиваете с холодом в костях.", effects: { hp: [8, 18] } },
+      ] },
+      { id: "search", label: "🔍 Простукивать дно", outcomes: [
+        { chance: 0.65, text: "Под насыпью — кости и запавший кошель.", effects: { resource: ["bone", 2, 3], gold: [15, 30] } },
+        { chance: 0.35, text: "Простук отзывается камнем за ним: не саркофаг, а ниша.", effects: { rumor: "«Пустые саркофаги не для мёртвых. Их ставят — для приходящих.»" } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Спать в чужом ложе — не ваш удел.", effects: {} } ] },
+    ],
+  },
+  // === Этаж 4: Лагерь Орков ===
+  corpse_f4: {
+    id: "corpse_f4", floor: 4, type: "corpse", title: "Тело охотника", icon: "🕯️",
+    text: "Вы нашли тело охотника. Рядом — сумка с записями.",
+    actions: [
+      { id: "search", label: "🖐 Обыскать", outcomes: [
+        { chance: 0.30, text: "Кошель и жетон гильдейский — всё возместят последней шишкой.", effects: { gold: [20, 50] } },
+        { chance: 0.20, text: "Дневник ветерана: последняя запись про «барабаны, что бьются сами».", effects: { diary: true } },
+        { chance: 0.20, text: "Из сумки — клык орка, не вырванный, а честно добытый.", effects: { resource: ["orc_tusk", 1, 2] } },
+        { chance: 0.30, text: "Ограблено подчистую — и быстро.", effects: {} },
+      ] },
+      { id: "bury", label: "⚰ Похоронить", outcomes: [
+        { chance: 1, text: "Вы наваливаете камни — Гильдия отвечает малым зельем.", effects: { rep: ["hunters", 1], potion: "hp_small" } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "В лагере не мешкают.", effects: {} } ] },
+    ],
+  },
+  hunter_f4: {
+    id: "hunter_f4", floor: 4, type: "hunter", title: "Фигура в плаще", icon: "🏹",
+    text: "Впереди фигура в плаще Гильдии. Ранен, но жив.",
+    actions: [
+      { id: "approach", label: "👋 Подойти" },
+      { id: "pass", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы проходите — лагерь слишком слышен.", effects: {} } ] },
+    ],
+  },
+  chest_f4: {
+    id: "chest_f4", floor: 4, type: "chest", title: "Сундук с письмом", icon: "✉️",
+    text: "Сундук с письмом, приколотым к крышке. Бумага пожелтела, но читается.",
+    actions: [
+      { id: "open", label: "🔓 Открыть", outcomes: [
+        { chance: 0.50, text: "Монеты и дневник, выдержавший орочий лагерь.", effects: { gold: [30, 60], diary: true } },
+        { chance: 0.50, text: "Монеты. Письмо — дважды перечёркнутый план «дойти до пятого».", effects: { gold: [30, 60] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Пусть лежит.", effects: {} } ] },
+    ],
+  },
+  sleeping_warband: {
+    id: "sleeping_warband", floor: 4, type: "creative", title: "Спящий дозор", icon: "😴",
+    text: "Трое орков спят у углей, обняв секиры. Один во сне тявкает и поправляет «подушку» из костей.",
+    actions: [
+      { id: "sneak", label: "🤫 Пройти мимо на цыпочках", outcomes: [
+        { chance: 0.60, text: "Вы проходите и прихватываете лежащее у костра.", effects: { resource: ["iron_ore", 1, 2], gold: [20, 40] } },
+        { chance: 0.40, text: "Один храпит в такт вашему шагу — дозор просыпается.", effects: { skirmish: [0, 1] } },
+      ] },
+      { id: "wake", label: "💬 Разбудить их сознательно", outcomes: [
+        { chance: 1, text: "Вы топаете по ведру. Слышно, как орки вскакивают.", effects: { skirmish: [0, 1] } },
+      ] },
+      { id: "leave", label: "🚶 Обойти", outcomes: [ { chance: 1, text: "Не спят те, кому надо.", effects: {} } ] },
+    ],
+  },
+  training_effigy: {
+    id: "training_effigy", floor: 4, type: "creative", title: "Орочье чучело", icon: "🎯",
+    text: "Деревянное чучело истыкано клинками: орки учат удар. Плиты на нём — трофейные, из чужих доспехов.",
+    actions: [
+      { id: "loot", label: "🧰 Снять трофейные пластины", outcomes: [
+        { chance: 0.60, text: "Пластины сняты и годны как материал.", effects: { resource: ["iron_chain", 1, 2], gold: [15, 30] } },
+        { chance: 0.30, text: "Веревка лопается, и чучело валится вам на плечи.", effects: { hp: [5, 12] } },
+      ] },
+      { id: "smash", label: "⚔ Тренироваться о чучело", outcomes: [
+        { chance: 0.80, text: "Хороший замах: рука помнит движение.", effects: { xp: 40 } },
+        { chance: 0.20, text: "Клинок с него вылетает и бьёт вас по ноге.", effects: { hp: [8, 15] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Тренировка — не сегодня.", effects: {} } ] },
+    ],
+  },
+  // === Этаж 5: Бездна ===
+  corpse_f5: {
+    id: "corpse_f5", floor: 5, type: "corpse", title: "Тело охотника", icon: "🕯️",
+    text: "Вы нашли тело охотника. Рядом — сумка с записями.",
+    actions: [
+      { id: "search", label: "🖐 Обыскать", outcomes: [
+        { chance: 0.30, text: "Кошель — монеты здесь что-то значат.", effects: { gold: [20, 50] } },
+        { chance: 0.20, text: "Дневник безумца: страницы обожжены, письма дрожат.", effects: { diary: true } },
+        { chance: 0.20, text: "Из сумки — адский пепел.", effects: { resource: ["infernal_ash", 1, 2] } },
+        { chance: 0.30, text: "Сумка продавлена и пуста.", effects: {} },
+      ] },
+      { id: "bury", label: "⚰ Похоронить", outcomes: [
+        { chance: 1, text: "Даже здесь вы наваливаете камень. Гильдия отблагодарит по-гильдейски.", effects: { rep: ["hunters", 1], potion: "hp_small" } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Бездна не для медленных.", effects: {} } ] },
+    ],
+  },
+  hunter_f5: {
+    id: "hunter_f5", floor: 5, type: "hunter", title: "Фигура в плаще", icon: "🏹",
+    text: "Впереди фигура в плаще Гильдии. Ранен, но жив.",
+    actions: [
+      { id: "approach", label: "👋 Подойти" },
+      { id: "pass", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Вы идёте дальше — здесь выживают по-своему.", effects: {} } ] },
+    ],
+  },
+  chest_f5: {
+    id: "chest_f5", floor: 5, type: "chest", title: "Сундук с письмом", icon: "✉️",
+    text: "Сундук с письмом, приколотым к крышке. Бумага пожелтела, но читается.",
+    actions: [
+      { id: "open", label: "🔓 Открыть", outcomes: [
+        { chance: 0.50, text: "Монеты и дневник, перевязанный восковой ниткой.", effects: { gold: [30, 60], diary: true } },
+        { chance: 0.50, text: "Монеты. Письмо — одна строчка: «сердце. дробящий. помни.»", effects: { gold: [30, 60] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Здесь всё оставляют как есть.", effects: {} } ] },
+    ],
+  },
+  hell_kennel: {
+    id: "hell_kennel", floor: 5, type: "creative", title: "Псарня Бездны", icon: "🔥",
+    text: "Уходящая в камень низкая арка, из которой дышит жар: у гончих свой двор. Цепи у входа дрожат на ветру.",
+    actions: [
+      { id: "feed", label: "🥩 Бросить им еды", outcomes: [
+        { chance: 0.50, text: "Гончие глотают и отходят — проход открыт.", effects: { gold: [20, 40] } },
+        { chance: 0.50, text: "Еда им не по нраву — из арки рвётся рёв.", effects: { skirmish: [0] } },
+      ] },
+      { id: "strike", label: "⚔ Пробиваться силой", outcomes: [
+        { chance: 1, text: "Вы идёте в арку с клинком наперевес.", effects: { skirmish: [0] } },
+      ] },
+      { id: "leave", label: "🚶 Обойти арку", outcomes: [ { chance: 1, text: "У псарни не стоят.", effects: {} } ] },
+    ],
+  },
+  blood_brazier: {
+    id: "blood_brazier", floor: 5, type: "creative", title: "Кровавая жаровня", icon: "🔥",
+    text: "Жаровня с углями, что не гаснут: их поливают капли, стекающие с потолка Бездны. Рядом — нечеловеческие кости.",
+    actions: [
+      { id: "warm", label: "♨️ Погреть руки", outcomes: [
+        { chance: 0.70, text: "Тепло опасно-хорошее: вы чувствуете прилив сил.", effects: { xp: 50 } },
+        { chance: 0.30, text: "Жар кусается и оставляет отметины.", effects: { hp: [8, 16] } },
+      ] },
+      { id: "snuff", label: "🧯 Засыпать угли", outcomes: [
+        { chance: 0.60, text: "Угли поддаются, и на дне остаются монеты и пепел.", effects: { gold: [25, 45], resource: ["infernal_ash", 1, 1] } },
+        { chance: 0.40, text: "Жаровня разгорается в ответ, и вспышка хлещет.", effects: { hp: [10, 20] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Пусть жарится.", effects: {} } ] },
+    ],
+  },
+};
+
+// ── Уникальные события компаньонов (Блок 3) ────────────────────────────────
+// Формат совместим с FLOOR_EVENTS, но floor: null — обычный rollFloorEvent их
+// не выбирает. Раз в exploreFloor есть отдельный бросок COMPANION_EVENT_CHANCE.
+const COMPANION_EVENTS = [
+  {
+    id: "mira_herb_altar", companion: "mira", floor: null, type: "altar",
+    title: "Забытый алтарь", icon: "🌿",
+    text: "Мира останавливается у замшелого алтаря: между камнями проросли бледные травы, которых не должно быть в этой тьме.",
+    actions: [
+      { id: "gather", label: "🌿 Собрать травы", outcomes: [
+        { chance: 0.60, text: "Мира срезает стебли и заворачивает их в платок.", effects: { potion: "hp_small", rep: ["alchemists", 1] } },
+        { chance: 0.40, text: "Травы оказались пустышками, зато под камнем блеснула монета.", effects: { gold: [10, 25] } },
+      ] },
+      { id: "pray", label: "🕯 Постоять в тишине", outcomes: [
+        { chance: 1, text: "Мира шепчет короткую молитву. На душе становится легче.", effects: { xp: 20 } },
+      ] },
+      { id: "leave", label: "🚶 Пройти мимо", outcomes: [ { chance: 1, text: "Мира недовольно качает головой, но идёт дальше.", effects: {} } ] },
+    ],
+  },
+  {
+    id: "alva_singing_hall", companion: "alva", floor: null, type: "altar",
+    title: "Поющий зал", icon: "🎼",
+    text: "Альва замирает: под сводами проносится едва слышная нота. Камень отзывается, будто помнит чей-то голос.",
+    actions: [
+      { id: "listen", label: "🎼 Вслушаться", outcomes: [
+        { chance: 0.65, text: "Альва подхватывает мелодию, и в голове проясняется.", effects: { xp: 35 } },
+        { chance: 0.35, text: "Звук обрывается, оставив после себя холодную тишину.", effects: { hp: [4, 10] } },
+      ] },
+      { id: "answer", label: "🎶 Ответить песней", outcomes: [
+        { chance: 1, text: "Альва улыбается — впервые за весь день.", effects: { rep: ["jewelers", 1] } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [ { chance: 1, text: "Альва идёт дальше, но ещё долго оглядывается.", effects: {} } ] },
+    ],
+  },
+  {
+    id: "solveig_wolf_trail", companion: "solveig", floor: null, type: "beast",
+    title: "Волчья тропа", icon: "🐺",
+    text: "Сольвейг приседает и касается следов на камне: свежие, глубокие. Впереди кто-то большой и голодный.",
+    actions: [
+      { id: "track", label: "🐺 Пойти по следу", outcomes: [
+        { chance: 0.55, text: "Вы находите обглоданную тушу и кошель при ней.", effects: { gold: [25, 50] } },
+        { chance: 0.45, text: "След обрывается, а из темноты доносится рычание.", effects: { skirmish: [0] } },
+      ] },
+      { id: "howl", label: "🌕 Ответить воем", outcomes: [
+        { chance: 1, text: "Сольвейг хохочет. Дальше идёте тише — но веселее.", effects: { xp: 25 } },
+      ] },
+      { id: "leave", label: "🚶 Обойти тропу", outcomes: [ { chance: 1, text: "Сольвейг пожимает плечами: «В другой раз».", effects: {} } ] },
+    ],
+  },
+  {
+    id: "mira_food", companion: "mira", floor: null, type: "food",
+    title: "Походная похлёбка", icon: "🍲",
+    text: "Мира разводит маленький костёр прямо на каменном полу. «Сядь. Ты не ел нормально уже давно. Я вижу по глазам.»",
+    actions: [
+      { id: "eat", label: "🍲 Съесть всё", outcomes: [
+        { chance: 1, text: "Похлёбка обжигает и оживляет. Мира довольно кивает: «Вот. Уже похож на человека.»", effects: { buff: "mira_food", affinity: 2, xp: 15 } },
+      ] },
+      { id: "share", label: "🥄 Поделиться с ней", outcomes: [
+        { chance: 1, text: "Мира сначала отказывается, потом берёт ложку. Ест молча, но как-то теплее.", effects: { buff: "mira_food", affinity: 2, xp: 10 } },
+      ] },
+      { id: "leave", label: "🚶 Отказаться", outcomes: [
+        { chance: 1, text: "«Как хочешь. Голод — тоже учитель. Только злой.»", effects: { affinity: -1 } },
+      ] },
+    ],
+  },
+  {
+    id: "alva_song", companion: "alva", floor: null, type: "song",
+    title: "Песня под сводами", icon: "🎼",
+    text: "Альва останавливается и тихо начинает петь. Камень вокруг будто дышит в такт. «Не подпевай. Просто слушай.»",
+    actions: [
+      { id: "listen", label: "🎼 Слушать", outcomes: [
+        { chance: 1, text: "Песня проходит через тело, как холодная вода. Боль уходит. Мысли — тоже.", effects: { buff: "alva_song", affinity: 2, xp: 15 } },
+      ] },
+      { id: "join", label: "🎶 Подпеть", outcomes: [
+        { chance: 1, text: "Альва вздрагивает, но не останавливается. Когда песня смолкает, она смотрит на тебя иначе.", effects: { buff: "alva_song", affinity: 2, xp: 10 } },
+      ] },
+      { id: "leave", label: "🚶 Уйти", outcomes: [
+        { chance: 1, text: "«Иди. Некоторые песни не для чужих ушей.»", effects: { affinity: -1 } },
+      ] },
+    ],
+  },
+  {
+    id: "solveig_gear", companion: "solveig", floor: null, type: "gear",
+    title: "Осмотр снаряжения", icon: "🛠️",
+    text: "Сольвейг без предупреждения пинает тебя в бок. «Стой ровно. Если я вижу дыру в защите — её увидит и тварь.»",
+    actions: [
+      { id: "accept", label: "🛠️ Дать осмотреть снаряжение", outcomes: [
+        { chance: 1, text: "Она дёргает ремни, подтягивает пряжки и хлопает по плечу. «Теперь не развалишься. Наверное.»", effects: { buff: "solveig_gear", affinity: 2, xp: 10 } },
+      ] },
+      { id: "train", label: "⚔️ Попросить научить", outcomes: [
+        { chance: 1, text: "Сольвейг ухмыляется и ставит тебя в стойку. «Дыши. Бей. Не жди. Ещё раз.»", effects: { buff: "solveig_gear", affinity: 2, xp: 20 } },
+      ] },
+      { id: "leave", label: "🚶 Отмахнуться", outcomes: [
+        { chance: 1, text: "«Твоя броня. Твои дырки. Твои похороны.»", effects: { affinity: -1 } },
+      ] },
+    ],
+  },
+];
+const COMPANION_EVENT_MAP = Object.fromEntries(COMPANION_EVENTS.map((e) => [e.id, e]));
+const COMPANION_EVENT_CHANCE = 0.10;
+// События компаньонов должен видеть общий резолвер floor-событий.
+for (const ev of COMPANION_EVENTS) FLOOR_EVENTS[ev.id] = ev;
 
 // ── Улучшение предметов (Этап 2) ───────────────────────────────────────────
 // Каждая ветка улучшений привязана к фракции (UPGRADE_FACTION) и требует
 // её тир «Уважаемый» (репутация 10+, см. FACTION_TIERS[2]).
-// Материалы — только ресурсы нижних этажей (FLOOR_RESOURCES 2..5).
+// Материалы уровня N — только ресурсы FLOOR_RESOURCES[N] (уровень 1 — этаж 1).
 const UPGRADE_MAX_LEVEL = 5;
 const UPGRADE_GOLD_COST = [50, 150, 400, 900, 2000];
 const UPGRADE_PATHS = {
   weapon: {
     id: "weapon", name: "Оружие", icon: "⚒️",
     materials: [
-      { copper_ore: 3, tin_ore: 2 },
+      { iron_ore: 3, rust: 2 },
       { cold_iron_ingot: 3, kobold_gear: 2 },
       { grave_iron: 3, rune_dust: 2 },
       { mithril_ore: 3, war_crystal: 1 },
@@ -1865,7 +4329,7 @@ const UPGRADE_PATHS = {
   armor: {
     id: "armor", name: "Броня", icon: "🛡️",
     materials: [
-      { copper_ore: 3, tin_ore: 3 },
+      { iron_ore: 3, rust: 3 },
       { cold_iron_ingot: 2, kobold_gear: 3 },
       { grave_iron: 4, rune_dust: 2 },
       { mithril_ore: 3, iron_chain: 2 },
@@ -1877,11 +4341,11 @@ const UPGRADE_PATHS = {
     // В ювелирной ветке игрок выбирает, что расти: крит или уворот.
     altStat: "dodge",
     materials: [
-      { silver: 3, tin_ore: 2 },
-      { silver: 4, kobold_gear: 1 },
+      { malachite: 3, rust: 2 },
+      { tin_ore: 4, kobold_gear: 1 },
       { silver: 5, rune_dust: 2, cursed_cloth: 1 },
-      { silver: 6, war_crystal: 2 },
-      { silver: 8, void_crystal: 2 },
+      { war_crystal: 6, orc_tusk: 2 },
+      { demon_horn: 8, void_crystal: 2 },
     ],
   },
 };
@@ -1944,38 +4408,35 @@ const RECIPES = [
   { id: "recipe_iron_mace", station: "forge", result: "iron_mace", desc: "Железная булава", floor: 2, dropChance: 0.05, materials: { iron_ore: 5, wood: 2 } },
   { id: "recipe_iron_maul", station: "forge", result: "iron_maul", desc: "Железный молот", floor: 2, dropChance: 0.05, materials: { iron_ore: 8, wood: 4 } },
   { id: "recipe_iron_spear", station: "forge", result: "iron_spear", desc: "Железное копьё", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 5 } },
-  { id: "recipe_parrying_dagger", station: "forge", result: "parrying_dagger", desc: "Кинжал парирования", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, leather: 2, steel: 1 } },
+  { id: "recipe_parrying_dagger", station: "forge", result: "parrying_dagger", desc: "Кинжал парирования", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, leather: 2, steel: 1 } },
   
-  { id: "recipe_leather", station: "forge", result: "leather", desc: "Кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 6, cloth: 3, bone: 1 } },
-  { id: "recipe_wanderer_coat", station: "forge", result: "wanderer_coat", desc: "Плащ странника", floor: 2, dropChance: 0.05, materials: { cloth: 5, leather: 2, bone: 1 } },
-  { id: "recipe_rough_leather", station: "forge", result: "rough_leather", desc: "Грубый кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 8, iron_ore: 2 } },
-  { id: "recipe_head_iron", station: "forge", result: "head_iron", desc: "Железный шлем", floor: 2, dropChance: 0.05, materials: { iron_ore: 5, leather: 2 } },
+  { id: "recipe_leather", station: "forge", result: "leather_armor", desc: "Кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 6, cloth: 3, iron_ore: 1 } },
+  { id: "recipe_wanderer_coat", station: "forge", result: "wanderer_coat", desc: "Плащ странника", floor: 2, dropChance: 0.05, materials: { cloth: 5, leather: 2, wood: 1 } },
+  { id: "recipe_head_iron", station: "forge", result: "head_iron", desc: "Железный шлем", floor: 2, dropChance: 0.05, materials: { copper_ore: 5, leather: 2 } },
   { id: "recipe_shoulder_leather", station: "forge", result: "shoulder_leather", desc: "Кожаные наплечники", floor: 2, dropChance: 0.05, materials: { leather: 4, iron_ore: 1 } },
   { id: "recipe_wrist_leather", station: "forge", result: "wrist_leather", desc: "Кожаные наручи", floor: 2, dropChance: 0.05, materials: { leather: 3, cloth: 1 } },
   { id: "recipe_legs_leather", station: "forge", result: "legs_leather", desc: "Кожаные штаны", floor: 2, dropChance: 0.05, materials: { leather: 5, cloth: 2 } },
   { id: "recipe_feet_leather", station: "forge", result: "feet_leather", desc: "Кожаные сапоги", floor: 2, dropChance: 0.05, materials: { leather: 4, cloth: 2 } },
   
   // Сталь (Тир 2)
-  { id: "recipe_dense_cloth", station: "forge", result: "dense_cloth", desc: "Плотная ткань", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 5, bone: 2 } },
-  { id: "recipe_shadow_leather", station: "forge", result: "shadow_leather", desc: "Кожа ловца дорожек", floor: 2, dropChance: 0.05, materials: { steel: 2, leather: 6, bone: 2 } },
-  { id: "recipe_steel_chain", station: "forge", result: "steel_chain", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 4, leather: 2 } },
-  { id: "recipe_steel_chainmail", station: "forge", result: "steel_chainmail", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 4, leather: 2 } },
-  { id: "recipe_steel_plate", station: "forge", result: "steel_plate", desc: "Стальные латы", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 5, leather: 2 } },
-  { id: "recipe_steel_short_sword", station: "forge", result: "steel_short_sword", desc: "Стальной короткий меч", floor: 2, dropChance: 0.05, materials: { steel: 4, iron_ore: 2, leather: 1 } },
-  { id: "recipe_steel_great_sword", station: "forge", result: "steel_great_sword", desc: "Стальной двуручный меч", floor: 2, dropChance: 0.05, materials: { steel: 8, iron_ore: 4, leather: 2 } },
+  { id: "recipe_dense_cloth", station: "forge", result: "dense_cloth", desc: "Плотная ткань", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 5, tin_ore: 2 } },
+  { id: "recipe_steel_chainmail", station: "forge", result: "steel_chainmail", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, copper_ore: 4, leather: 2 } },
+  { id: "recipe_steel_plate", station: "forge", result: "steel_plate", desc: "Стальные латы", floor: 2, dropChance: 0.05, materials: { steel: 8, copper_ore: 5, leather: 2 } },
+  { id: "recipe_steel_short_sword", station: "forge", result: "steel_short_sword", desc: "Стальной короткий меч", floor: 2, dropChance: 0.05, materials: { steel: 4, copper_ore: 2, leather: 1 } },
+  { id: "recipe_steel_great_sword", station: "forge", result: "steel_great_sword", desc: "Стальной двуручный меч", floor: 2, dropChance: 0.05, materials: { steel: 8, copper_ore: 4, leather: 2 } },
   { id: "recipe_steel_rapier", station: "forge", result: "steel_rapier", desc: "Стальная рапира", floor: 2, dropChance: 0.05, materials: { steel: 5, cold_iron_ingot: 2, leather: 1 } },
-  { id: "recipe_steel_axe", station: "forge", result: "steel_axe", desc: "Стальной топор", floor: 2, dropChance: 0.05, materials: { steel: 5, iron_ore: 3 } },
-  { id: "recipe_steel_mace", station: "forge", result: "steel_mace", desc: "Стальная булава", floor: 2, dropChance: 0.05, materials: { steel: 6, iron_ore: 3 } },
+  { id: "recipe_steel_axe", station: "forge", result: "steel_axe", desc: "Стальной топор", floor: 2, dropChance: 0.05, materials: { steel: 5, copper_ore: 3 } },
+  { id: "recipe_steel_mace", station: "forge", result: "steel_mace", desc: "Стальная булава", floor: 2, dropChance: 0.05, materials: { steel: 6, copper_ore: 3 } },
   { id: "recipe_steel_maul", station: "forge", result: "steel_maul", desc: "Стальной молот", floor: 2, dropChance: 0.05, materials: { steel: 10, wood: 2 } },
   { id: "recipe_steel_spear", station: "forge", result: "steel_spear", desc: "Стальное копьё", floor: 2, dropChance: 0.05, materials: { steel: 6, wood: 5 } },
-  { id: "recipe_tower_shield", station: "forge", result: "tower_shield", desc: "Укрепленный башенный щит", floor: 2, dropChance: 0.05, materials: { steel: 6, iron_ore: 4, leather: 2 } },
-  { id: "recipe_hood_mage", station: "forge", result: "hood_mage", desc: "Капюшон чародея", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 4, bone: 2 } },
-  { id: "recipe_scout_gloves", station: "forge", result: "scout_gloves", desc: "Разведческие перчатки", floor: 2, dropChance: 0.05, materials: { steel: 2, leather: 5 } },
-  { id: "recipe_scout_boots", station: "forge", result: "scout_boots", desc: "Сапоги разведчика", floor: 2, dropChance: 0.05, materials: { steel: 3, leather: 6 } },
+  { id: "recipe_tower_shield", station: "forge", result: "tower_shield", desc: "Укрепленный башенный щит", floor: 2, dropChance: 0.05, materials: { steel: 6, copper_ore: 4, leather: 2 } },
+  { id: "recipe_hood_mage", station: "forge", result: "hood_mage", desc: "Капюшон чародея", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 4, tin_ore: 2 } },
+  { id: "recipe_scout_gloves", station: "forge", result: "scout_gloves", desc: "Разведческие перчатки", floor: 2, dropChance: 0.05, materials: { iron_ore: 2, leather: 5 } },
+  { id: "recipe_scout_boots", station: "forge", result: "scout_boots", desc: "Сапоги разведчика", floor: 2, dropChance: 0.05, materials: { iron_ore: 3, leather: 6 } },
   
   // Ювелирка 2-го этажа
-  { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Кольцо из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, malachite: 2 } },
-  { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 5, bone: 3 } },
+  { id: "recipe_ring_silver", station: "jewelry", result: "ring_silver", desc: "Кольцо из холодного серебра", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, kobold_gear: 2 } },
+  { id: "recipe_neck_guard", station: "jewelry", result: "neck_guard", desc: "Медальон караульного", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 5, tin_ore: 3 } },
   { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, steel: 4, leather: 2 } },
 
   // ── 2-Й ЭТАЖ (Холодное железо/сет «Рудокоп») ──
@@ -2031,10 +4492,6 @@ const RECIPES = [
   { id: "recipe_hell_halberd", station: "forge", result: "hell_halberd", desc: "Алебарда из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 6, demon_horn: 3, brimstone: 2 } },
   { id: "recipe_hell_maul", station: "forge", result: "hell_maul", desc: "Молот из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 7, brimstone: 3, demon_horn: 2 } },
   { id: "recipe_hell_shield", station: "forge", result: "hell_shield", desc: "Щит из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, void_crystal: 1 } },
-  { id: "recipe_hell_head", station: "forge", result: "hell_head", desc: "Шлем из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2 } },
-  { id: "recipe_hell_chest", station: "forge", result: "hell_chest", desc: "Кираса из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 6, brimstone: 3, void_crystal: 1 } },
-  { id: "recipe_hell_legs", station: "forge", result: "hell_legs", desc: "Поножи из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, demon_horn: 2, brimstone: 1 } },
-  { id: "recipe_hell_feet", station: "forge", result: "hell_feet", desc: "Сапоги из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 4, brimstone: 2, void_crystal: 1 } },
   { id: "recipe_hell_ring", station: "jewelry", result: "hell_ring", desc: "Кольцо из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 3, demon_horn: 1, void_crystal: 2 } },
   { id: "recipe_hell_trinket", station: "jewelry", result: "hell_trinket", desc: "Амулет из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 2, brimstone: 2, void_crystal: 2 } },
   // Сет «Адский клинок» (адский камень, этаж 5)
@@ -2043,12 +4500,369 @@ const RECIPES = [
   { id: "recipe_set_hellblade_legs", station: "forge", result: "set_hellblade_legs", desc: "Поножи адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, demon_horn: 2 } },
   { id: "recipe_set_hellblade_hands", station: "forge", result: "set_hellblade_hands", desc: "Рукавицы адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2, brimstone: 1 } },
   { id: "recipe_set_hellblade_feet", station: "forge", result: "set_hellblade_feet", desc: "Сапоги адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, brimstone: 2, demon_horn: 2 } },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // РЕЦЕПТЫ СЕТОВ БРОНИ: 8 на сет (160 предметов). Только ресурсы своего этажа.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Тир 1: «Грубая кольчуга» (7 новых слотов; iron_chainmail — выше) ──
+  { id: "recipe_set_rough_chain_head", station: "forge", result: "set_rough_chain_head", desc: "Шлем грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, rust: 2 } },
+  { id: "recipe_set_rough_chain_shoulder", station: "forge", result: "set_rough_chain_shoulder", desc: "Наплечники грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, rust: 2 } },
+  { id: "recipe_set_rough_chain_wrist", station: "forge", result: "set_rough_chain_wrist", desc: "Наручи грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 3, rust: 1 } },
+  { id: "recipe_set_rough_chain_hands", station: "forge", result: "set_rough_chain_hands", desc: "Рукавицы грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 3, rust: 1 } },
+  { id: "recipe_set_rough_chain_waist", station: "forge", result: "set_rough_chain_waist", desc: "Пояс грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 3, rust: 1 } },
+  { id: "recipe_set_rough_chain_legs", station: "forge", result: "set_rough_chain_legs", desc: "Поножи грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 5, rust: 3 } },
+  { id: "recipe_set_rough_chain_feet", station: "forge", result: "set_rough_chain_feet", desc: "Сапоги грубой кольчуги", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, rust: 2 } },
+
+  // ── Тир 1: «Грубое железо» (7 недостающих: без head_iron) ──
+  { id: "recipe_dented_plate", station: "forge", result: "dented_plate", desc: "Мятые латы", floor: 1, dropChance: 0.05, materials: { iron_ore: 8, wood: 2, leather: 2 } },
+  { id: "recipe_shoulder_iron", station: "forge", result: "shoulder_iron", desc: "Железные наплечники", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, leather: 2 } },
+  { id: "recipe_wrist_iron", station: "forge", result: "wrist_iron", desc: "Железные наручи", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, leather: 1 } },
+  { id: "recipe_hands_iron", station: "forge", result: "hands_iron", desc: "Железные рукавицы", floor: 2, dropChance: 0.05, materials: { copper_ore: 3, tin_ore: 1, leather: 1 } },
+  { id: "recipe_waist_plate", station: "forge", result: "waist_plate", desc: "Пояс из пластин", floor: 2, dropChance: 0.05, materials: { copper_ore: 3, leather: 2 } },
+  { id: "recipe_legs_iron", station: "forge", result: "legs_iron", desc: "Железные поножи", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, leather: 2 } },
+  { id: "recipe_feet_iron", station: "forge", result: "feet_iron", desc: "Железные сапоги", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, leather: 2 } },
+
+  // ── Тир 1: «Из грубой кожи» (2 недостающих) ──
+  { id: "recipe_head_leather", station: "forge", result: "head_leather", desc: "Кожаный капюшон", floor: 1, dropChance: 0.05, materials: { leather: 4, cloth: 2 } },
+  { id: "recipe_waist_leather", station: "forge", result: "waist_leather", desc: "Кожаный ремень", floor: 1, dropChance: 0.05, materials: { leather: 3, cloth: 1, wood: 1 } },
+
+  // ── Тир 1: «Послушник» (5 недостающих) ──
+  { id: "recipe_shoulder_cloth", station: "forge", result: "shoulder_cloth", desc: "Тканевые накидки", floor: 1, dropChance: 0.05, materials: { cloth: 3, rust: 1 } },
+  { id: "recipe_wrist_cloth", station: "forge", result: "wrist_cloth", desc: "Тканевые обмотки", floor: 1, dropChance: 0.05, materials: { cloth: 2, rust: 1 } },
+  { id: "recipe_hands_cloth", station: "forge", result: "hands_cloth", desc: "Тканевые перчатки", floor: 1, dropChance: 0.05, materials: { cloth: 2, malachite: 1 } },
+  { id: "recipe_legs_cloth", station: "forge", result: "legs_cloth", desc: "Тканевые штаны", floor: 1, dropChance: 0.05, materials: { cloth: 4, wood: 1 } },
+  { id: "recipe_feet_cloth", station: "forge", result: "feet_cloth", desc: "Тканевые тапочки", floor: 1, dropChance: 0.05, materials: { cloth: 3, rust: 1 } },
+
+  // ── Тир 2: «Сталь» (4 новых слота) ──
+  { id: "recipe_steel_shoulder", station: "forge", result: "steel_shoulder", desc: "Стальные наплечники", floor: 2, dropChance: 0.05, materials: { steel: 3, copper_ore: 2 } },
+  { id: "recipe_steel_wrist", station: "forge", result: "steel_wrist", desc: "Стальные наручи", floor: 2, dropChance: 0.05, materials: { steel: 2, tin_ore: 2 } },
+  { id: "recipe_steel_hands", station: "forge", result: "steel_hands", desc: "Стальные рукавицы", floor: 2, dropChance: 0.05, materials: { steel: 2, copper_ore: 2 } },
+  { id: "recipe_steel_waist", station: "forge", result: "steel_waist", desc: "Стальной пояс", floor: 2, dropChance: 0.05, materials: { steel: 2, tin_ore: 2 } },
+
+  // ── Тир 2: «Стальная кольчуга» (7 новых слотов; steel_chainmail — выше) ──
+  { id: "recipe_set_steel_chain_head", station: "forge", result: "set_steel_chain_head", desc: "Шлем стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 4, copper_ore: 2 } },
+  { id: "recipe_set_steel_chain_shoulder", station: "forge", result: "set_steel_chain_shoulder", desc: "Наплечники стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 3, copper_ore: 2 } },
+  { id: "recipe_set_steel_chain_wrist", station: "forge", result: "set_steel_chain_wrist", desc: "Наручи стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 2, cold_iron_ingot: 1 } },
+  { id: "recipe_set_steel_chain_hands", station: "forge", result: "set_steel_chain_hands", desc: "Рукавицы стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 2, cold_iron_ingot: 1 } },
+  { id: "recipe_set_steel_chain_waist", station: "forge", result: "set_steel_chain_waist", desc: "Пояс стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 2, cold_iron_ingot: 1 } },
+  { id: "recipe_set_steel_chain_legs", station: "forge", result: "set_steel_chain_legs", desc: "Поножи стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 4, tin_ore: 2, kobold_gear: 1 } },
+  { id: "recipe_set_steel_chain_feet", station: "forge", result: "set_steel_chain_feet", desc: "Сапоги стальной кольчуги", floor: 2, dropChance: 0.05, materials: { steel: 3, copper_ore: 2 } },
+
+  // ── Тир 2: «Тёмная кожа» (3 недостающих) ──
+  { id: "recipe_set_miner_shoulder", station: "forge", result: "set_miner_shoulder", desc: "Наплечники рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, kobold_gear: 1, copper_ore: 2 } },
+  { id: "recipe_set_miner_wrist", station: "forge", result: "set_miner_wrist", desc: "Наручи рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, kobold_gear: 1, tin_ore: 2 } },
+  { id: "recipe_set_miner_waist", station: "forge", result: "set_miner_waist", desc: "Пояс рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, kobold_gear: 1, tin_ore: 2 } },
+
+  // ── Тир 2: «Подмастерье» (6 недостающих) ──
+  { id: "recipe_set_apprentice_cloth_shoulder", station: "forge", result: "set_apprentice_cloth_shoulder", desc: "Накидки подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, tin_ore: 2, cave_mushroom: 1 } },
+  { id: "recipe_set_apprentice_cloth_wrist", station: "forge", result: "set_apprentice_cloth_wrist", desc: "Обмотки подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, tin_ore: 1, cave_mushroom: 2 } },
+  { id: "recipe_set_apprentice_cloth_hands", station: "forge", result: "set_apprentice_cloth_hands", desc: "Перчатки подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, tin_ore: 1, cave_mushroom: 2 } },
+  { id: "recipe_set_apprentice_cloth_waist", station: "forge", result: "set_apprentice_cloth_waist", desc: "Пояс подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, tin_ore: 1, cave_mushroom: 2 } },
+  { id: "recipe_set_apprentice_cloth_legs", station: "forge", result: "set_apprentice_cloth_legs", desc: "Штаны подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, tin_ore: 2, cave_mushroom: 1 } },
+  { id: "recipe_set_apprentice_cloth_feet", station: "forge", result: "set_apprentice_cloth_feet", desc: "Тапочки подмастерья", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, copper_ore: 2, cave_mushroom: 2 } },
+
+  // ── Тир 3: «Руническая сталь» (3 недостающих) ──
+  { id: "recipe_set_guard_shoulder", station: "forge", result: "set_guard_shoulder", desc: "Наплечники стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2, silver: 1 } },
+  { id: "recipe_set_guard_wrist", station: "forge", result: "set_guard_wrist", desc: "Наручи стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, silver: 1 } },
+  { id: "recipe_set_guard_waist", station: "forge", result: "set_guard_waist", desc: "Пояс стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, cursed_cloth: 1 } },
+
+  // ── Тир 3: «Руническая кольчуга» ──
+  { id: "recipe_set_runic_chain_head", station: "forge", result: "set_runic_chain_head", desc: "Рунический кольчужный шлем", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, rune_dust: 2 } },
+  { id: "recipe_set_runic_chain_shoulder", station: "forge", result: "set_runic_chain_shoulder", desc: "Рунические кольчужные наплечники", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, rune_dust: 2 } },
+  { id: "recipe_set_runic_chain_chest", station: "forge", result: "set_runic_chain_chest", desc: "Руническая кольчуга", floor: 3, dropChance: 0.05, materials: { grave_iron: 6, rune_dust: 3, bone: 2 } },
+  { id: "recipe_set_runic_chain_wrist", station: "forge", result: "set_runic_chain_wrist", desc: "Рунические кольчужные наручи", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, rune_dust: 1 } },
+  { id: "recipe_set_runic_chain_hands", station: "forge", result: "set_runic_chain_hands", desc: "Рунические кольчужные рукавицы", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, rune_dust: 1 } },
+  { id: "recipe_set_runic_chain_waist", station: "forge", result: "set_runic_chain_waist", desc: "Рунический кольчужный пояс", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, rune_dust: 1 } },
+  { id: "recipe_set_runic_chain_legs", station: "forge", result: "set_runic_chain_legs", desc: "Рунические кольчужные поножи", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, rune_dust: 2, silver: 1 } },
+  { id: "recipe_set_runic_chain_feet", station: "forge", result: "set_runic_chain_feet", desc: "Рунические кольчужные сапоги", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, rune_dust: 2 } },
+
+  // ── Тир 3: «Руническая кожа» ──
+  { id: "recipe_set_runic_leather_head", station: "forge", result: "set_runic_leather_head", desc: "Рунический кожаный капюшон", floor: 3, dropChance: 0.05, materials: { bone: 4, rune_dust: 1 } },
+  { id: "recipe_set_runic_leather_shoulder", station: "forge", result: "set_runic_leather_shoulder", desc: "Рунические кожаные наплечники", floor: 3, dropChance: 0.05, materials: { bone: 4, rune_dust: 1 } },
+  { id: "recipe_set_runic_leather_chest", station: "forge", result: "set_runic_leather_chest", desc: "Рунический кожаный доспех", floor: 3, dropChance: 0.05, materials: { bone: 6, rune_dust: 2, cursed_cloth: 1 } },
+  { id: "recipe_set_runic_leather_wrist", station: "forge", result: "set_runic_leather_wrist", desc: "Рунические кожаные наручи", floor: 3, dropChance: 0.05, materials: { bone: 2, rune_dust: 1 } },
+  { id: "recipe_set_runic_leather_hands", station: "forge", result: "set_runic_leather_hands", desc: "Рунические кожаные перчатки", floor: 3, dropChance: 0.05, materials: { bone: 2, rune_dust: 1 } },
+  { id: "recipe_set_runic_leather_waist", station: "forge", result: "set_runic_leather_waist", desc: "Рунический кожаный ремень", floor: 3, dropChance: 0.05, materials: { bone: 2, rune_dust: 1 } },
+  { id: "recipe_set_runic_leather_legs", station: "forge", result: "set_runic_leather_legs", desc: "Рунические кожаные штаны", floor: 3, dropChance: 0.05, materials: { bone: 5, rune_dust: 2, silver: 1 } },
+  { id: "recipe_set_runic_leather_feet", station: "forge", result: "set_runic_leather_feet", desc: "Рунические кожаные сапоги", floor: 3, dropChance: 0.05, materials: { bone: 3, rune_dust: 1 } },
+
+  // ── Тир 3: «Адепт» ──
+  { id: "recipe_set_adept_cloth_head", station: "forge", result: "set_adept_cloth_head", desc: "Капюшон адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 3, rune_dust: 2 } },
+  { id: "recipe_set_adept_cloth_shoulder", station: "forge", result: "set_adept_cloth_shoulder", desc: "Накидки адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 3, rune_dust: 1 } },
+  { id: "recipe_set_adept_cloth_chest", station: "forge", result: "set_adept_cloth_chest", desc: "Роба адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 5, rune_dust: 3 } },
+  { id: "recipe_set_adept_cloth_wrist", station: "forge", result: "set_adept_cloth_wrist", desc: "Обмотки адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 2, rune_dust: 1 } },
+  { id: "recipe_set_adept_cloth_hands", station: "forge", result: "set_adept_cloth_hands", desc: "Перчатки адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 2, rune_dust: 1 } },
+  { id: "recipe_set_adept_cloth_waist", station: "forge", result: "set_adept_cloth_waist", desc: "Пояс адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 2, rune_dust: 1 } },
+  { id: "recipe_set_adept_cloth_legs", station: "forge", result: "set_adept_cloth_legs", desc: "Штаны адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 4, rune_dust: 2, silver: 1 } },
+  { id: "recipe_set_adept_cloth_feet", station: "forge", result: "set_adept_cloth_feet", desc: "Сапоги адепта", floor: 3, dropChance: 0.05, materials: { cursed_cloth: 3, rune_dust: 1 } },
+
+  // ── Тир 4: «Мифрил» (4 новых слота) ──
+  { id: "recipe_mithril_shoulder", station: "forge", result: "mithril_shoulder", desc: "Мифриловые наплечники", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, orc_tusk: 2 } },
+  { id: "recipe_mithril_wrist", station: "forge", result: "mithril_wrist", desc: "Мифриловые наручи", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, orc_tusk: 2 } },
+  { id: "recipe_mithril_waist", station: "forge", result: "mithril_waist", desc: "Мифриловый пояс", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, war_crystal: 1 } },
+  { id: "recipe_mithril_feet", station: "forge", result: "mithril_feet", desc: "Мифриловые сапоги", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, orc_tusk: 1, war_crystal: 1 } },
+
+  // ── Тир 4: «Мифриловая кольчуга» ──
+  { id: "recipe_set_mithril_chain_head", station: "forge", result: "set_mithril_chain_head", desc: "Мифриловый кольчужный шлем", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, iron_chain: 2 } },
+  { id: "recipe_set_mithril_chain_shoulder", station: "forge", result: "set_mithril_chain_shoulder", desc: "Мифриловые кольчужные наплечники", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, iron_chain: 2 } },
+  { id: "recipe_set_mithril_chain_chest", station: "forge", result: "set_mithril_chain_chest", desc: "Мифриловая кольчуга", floor: 4, dropChance: 0.05, materials: { mithril_ore: 6, iron_chain: 3, war_crystal: 1 } },
+  { id: "recipe_set_mithril_chain_wrist", station: "forge", result: "set_mithril_chain_wrist", desc: "Мифриловые кольчужные наручи", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, iron_chain: 1 } },
+  { id: "recipe_set_mithril_chain_hands", station: "forge", result: "set_mithril_chain_hands", desc: "Мифриловые кольчужные рукавицы", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, iron_chain: 1 } },
+  { id: "recipe_set_mithril_chain_waist", station: "forge", result: "set_mithril_chain_waist", desc: "Мифриловый кольчужный пояс", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, iron_chain: 1 } },
+  { id: "recipe_set_mithril_chain_legs", station: "forge", result: "set_mithril_chain_legs", desc: "Мифриловые кольчужные поножи", floor: 4, dropChance: 0.05, materials: { mithril_ore: 5, iron_chain: 2, war_crystal: 1 } },
+  { id: "recipe_set_mithril_chain_feet", station: "forge", result: "set_mithril_chain_feet", desc: "Мифриловые кольчужные сапоги", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, iron_chain: 2 } },
+
+  // ── Тир 4: «Кожа с костяными пластинами» ──
+  { id: "recipe_set_bone_leather_head", station: "forge", result: "set_bone_leather_head", desc: "Шлем из костяной кожи", floor: 4, dropChance: 0.05, materials: { orc_tusk: 3, blood_herb: 2 } },
+  { id: "recipe_set_bone_leather_shoulder", station: "forge", result: "set_bone_leather_shoulder", desc: "Костяные наплечники", floor: 4, dropChance: 0.05, materials: { orc_tusk: 3, blood_herb: 2 } },
+  { id: "recipe_set_bone_leather_chest", station: "forge", result: "set_bone_leather_chest", desc: "Костяная кираса", floor: 4, dropChance: 0.05, materials: { orc_tusk: 5, blood_herb: 3, iron_chain: 2 } },
+  { id: "recipe_set_bone_leather_wrist", station: "forge", result: "set_bone_leather_wrist", desc: "Костяные наручи", floor: 4, dropChance: 0.05, materials: { orc_tusk: 2, blood_herb: 1 } },
+  { id: "recipe_set_bone_leather_hands", station: "forge", result: "set_bone_leather_hands", desc: "Костяные перчатки", floor: 4, dropChance: 0.05, materials: { orc_tusk: 2, blood_herb: 1 } },
+  { id: "recipe_set_bone_leather_waist", station: "forge", result: "set_bone_leather_waist", desc: "Костяной ремень", floor: 4, dropChance: 0.05, materials: { orc_tusk: 2, blood_herb: 1 } },
+  { id: "recipe_set_bone_leather_legs", station: "forge", result: "set_bone_leather_legs", desc: "Костяные штаны", floor: 4, dropChance: 0.05, materials: { orc_tusk: 4, blood_herb: 2, war_crystal: 1 } },
+  { id: "recipe_set_bone_leather_feet", station: "forge", result: "set_bone_leather_feet", desc: "Костяные сапоги", floor: 4, dropChance: 0.05, materials: { orc_tusk: 3, blood_herb: 2 } },
+
+  // ── Тир 4: «Маг» ──
+  { id: "recipe_set_mage_cloth_head", station: "forge", result: "set_mage_cloth_head", desc: "Капюшон мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 2, blood_herb: 3 } },
+  { id: "recipe_set_mage_cloth_shoulder", station: "forge", result: "set_mage_cloth_shoulder", desc: "Накидка мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 2, blood_herb: 2 } },
+  { id: "recipe_set_mage_cloth_chest", station: "forge", result: "set_mage_cloth_chest", desc: "Мантия мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 3, blood_herb: 4 } },
+  { id: "recipe_set_mage_cloth_wrist", station: "forge", result: "set_mage_cloth_wrist", desc: "Наручи мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 1, blood_herb: 2 } },
+  { id: "recipe_set_mage_cloth_hands", station: "forge", result: "set_mage_cloth_hands", desc: "Перчатки мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 1, blood_herb: 2 } },
+  { id: "recipe_set_mage_cloth_waist", station: "forge", result: "set_mage_cloth_waist", desc: "Пояс мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 1, blood_herb: 2 } },
+  { id: "recipe_set_mage_cloth_legs", station: "forge", result: "set_mage_cloth_legs", desc: "Штаны мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 2, blood_herb: 3 } },
+  { id: "recipe_set_mage_cloth_feet", station: "forge", result: "set_mage_cloth_feet", desc: "Сапоги мага", floor: 4, dropChance: 0.05, materials: { war_crystal: 2, blood_herb: 2 } },
+
+  // ── Тир 5: «Бездна» (3 недостающих слота) ──
+  { id: "recipe_set_hellblade_shoulder", station: "forge", result: "set_hellblade_shoulder", desc: "Наплечники адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 4, demon_horn: 2, brimstone: 1 } },
+  { id: "recipe_set_hellblade_wrist", station: "forge", result: "set_hellblade_wrist", desc: "Наручи адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 3, brimstone: 2, infernal_ash: 1 } },
+  { id: "recipe_set_hellblade_waist", station: "forge", result: "set_hellblade_waist", desc: "Пояс адского клинка", floor: 5, dropChance: 0.05, materials: { hellstone: 3, demon_horn: 1, infernal_ash: 2 } },
+
+  // ── Тир 5: «Кольчуга Бездны» ──
+  { id: "recipe_set_abyss_chain_head", station: "forge", result: "set_abyss_chain_head", desc: "Кольчужный шлем Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 4, infernal_ash: 2 } },
+  { id: "recipe_set_abyss_chain_shoulder", station: "forge", result: "set_abyss_chain_shoulder", desc: "Кольчужные наплечники Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 4, infernal_ash: 2 } },
+  { id: "recipe_set_abyss_chain_chest", station: "forge", result: "set_abyss_chain_chest", desc: "Кольчуга Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 6, brimstone: 3, void_crystal: 1 } },
+  { id: "recipe_set_abyss_chain_wrist", station: "forge", result: "set_abyss_chain_wrist", desc: "Кольчужные наручи Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 3, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_chain_hands", station: "forge", result: "set_abyss_chain_hands", desc: "Кольчужные рукавицы Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 3, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_chain_waist", station: "forge", result: "set_abyss_chain_waist", desc: "Кольчужный пояс Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 3, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_chain_legs", station: "forge", result: "set_abyss_chain_legs", desc: "Кольчужные поножи Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_chain_feet", station: "forge", result: "set_abyss_chain_feet", desc: "Кольчужные сапоги Бездны", floor: 5, dropChance: 0.05, materials: { hellstone: 4, infernal_ash: 2 } },
+
+  // ── Тир 5: «Кожа Бездны» ──
+  { id: "recipe_set_abyss_leather_head", station: "forge", result: "set_abyss_leather_head", desc: "Кожаный шлем Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 3, infernal_ash: 2 } },
+  { id: "recipe_set_abyss_leather_shoulder", station: "forge", result: "set_abyss_leather_shoulder", desc: "Кожаные наплечники Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 3, infernal_ash: 2 } },
+  { id: "recipe_set_abyss_leather_chest", station: "forge", result: "set_abyss_leather_chest", desc: "Кожаный доспех Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 5, brimstone: 2, infernal_ash: 2 } },
+  { id: "recipe_set_abyss_leather_wrist", station: "forge", result: "set_abyss_leather_wrist", desc: "Кожаные наручи Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 2, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_leather_hands", station: "forge", result: "set_abyss_leather_hands", desc: "Кожаные перчатки Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 2, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_leather_waist", station: "forge", result: "set_abyss_leather_waist", desc: "Кожаный ремень Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 2, infernal_ash: 1 } },
+  { id: "recipe_set_abyss_leather_legs", station: "forge", result: "set_abyss_leather_legs", desc: "Кожаные штаны Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 4, infernal_ash: 3 } },
+  { id: "recipe_set_abyss_leather_feet", station: "forge", result: "set_abyss_leather_feet", desc: "Кожаные сапоги Бездны", floor: 5, dropChance: 0.05, materials: { demon_horn: 3, infernal_ash: 2 } },
+
+  // ── Тир 5: «Архимаг» ──
+  { id: "recipe_set_archmage_cloth_head", station: "forge", result: "set_archmage_cloth_head", desc: "Капюшон архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 2, infernal_ash: 3 } },
+  { id: "recipe_set_archmage_cloth_shoulder", station: "forge", result: "set_archmage_cloth_shoulder", desc: "Накидка архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 1, infernal_ash: 3 } },
+  { id: "recipe_set_archmage_cloth_chest", station: "forge", result: "set_archmage_cloth_chest", desc: "Мантия архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 3, infernal_ash: 4, brimstone: 2 } },
+  { id: "recipe_set_archmage_cloth_wrist", station: "forge", result: "set_archmage_cloth_wrist", desc: "Наручи архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 1, infernal_ash: 2 } },
+  { id: "recipe_set_archmage_cloth_hands", station: "forge", result: "set_archmage_cloth_hands", desc: "Перчатки архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 1, infernal_ash: 2 } },
+  { id: "recipe_set_archmage_cloth_waist", station: "forge", result: "set_archmage_cloth_waist", desc: "Пояс архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 1, infernal_ash: 2 } },
+  { id: "recipe_set_archmage_cloth_legs", station: "forge", result: "set_archmage_cloth_legs", desc: "Штаны архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 2, infernal_ash: 3 } },
+  { id: "recipe_set_archmage_cloth_feet", station: "forge", result: "set_archmage_cloth_feet", desc: "Сапоги архимага", floor: 5, dropChance: 0.05, materials: { void_crystal: 2, infernal_ash: 2 } },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // РЕЦЕПТЫ ПАР: 20 предметов (только ресурсы своего этажа)
+  // ══════════════════════════════════════════════════════════════════════════
+  { id: "recipe_ring_iron_1", station: "jewelry", result: "ring_iron_1", desc: "Железное кольцо «Заря»", floor: 1, dropChance: 0.05, materials: { iron_ore: 2, malachite: 1 } },
+  { id: "recipe_ring_iron_2", station: "jewelry", result: "ring_iron_2", desc: "Железное кольцо «Закат»", floor: 1, dropChance: 0.05, materials: { iron_ore: 3, rust: 1 } },
+  { id: "recipe_trinket_wolf_1", station: "jewelry", result: "trinket_wolf_1", desc: "Тотем волка «Клык»", floor: 1, dropChance: 0.05, materials: { wood: 2, leather: 2 } },
+  { id: "recipe_trinket_wolf_2", station: "jewelry", result: "trinket_wolf_2", desc: "Тотем волка «Лапа»", floor: 1, dropChance: 0.05, materials: { wood: 2, cloth: 2 } },
+  { id: "recipe_ring_copper_1", station: "jewelry", result: "ring_copper_1", desc: "Медное кольцо «Искра»", floor: 2, dropChance: 0.05, materials: { copper_ore: 3, kobold_gear: 1 } },
+  { id: "recipe_ring_copper_2", station: "jewelry", result: "ring_copper_2", desc: "Медное кольцо «Жар»", floor: 2, dropChance: 0.05, materials: { copper_ore: 1, tin_ore: 2, kobold_gear: 1 } },
+  { id: "recipe_trinket_mushroom_1", station: "jewelry", result: "trinket_mushroom_1", desc: "Грибной амулет «Бледный»", floor: 2, dropChance: 0.05, materials: { cave_mushroom: 3, tin_ore: 1 } },
+  { id: "recipe_trinket_mushroom_2", station: "jewelry", result: "trinket_mushroom_2", desc: "Грибной амулет «Тёмный»", floor: 2, dropChance: 0.05, materials: { cave_mushroom: 3, cold_iron_ingot: 1 } },
+  { id: "recipe_ring_silver_1", station: "jewelry", result: "ring_silver_1", desc: "Серебряное кольцо «Луна»", floor: 3, dropChance: 0.05, materials: { silver: 2, bone: 1 } },
+  { id: "recipe_ring_silver_2", station: "jewelry", result: "ring_silver_2", desc: "Серебряное кольцо «Тень»", floor: 3, dropChance: 0.05, materials: { silver: 3, bone: 1, rune_dust: 1 } },
+  { id: "recipe_trinket_ghost_1", station: "jewelry", result: "trinket_ghost_1", desc: "Фиал призрака «Шёпот»", floor: 3, dropChance: 0.05, materials: { rune_dust: 3, silver: 1 } },
+  { id: "recipe_trinket_ghost_2", station: "jewelry", result: "trinket_ghost_2", desc: "Фиал призрака «Холод»", floor: 3, dropChance: 0.05, materials: { rune_dust: 3, cursed_cloth: 1, silver: 1 } },
+  { id: "recipe_ring_mithril_1", station: "jewelry", result: "ring_mithril_1", desc: "Мифриловое кольцо «Блеск»", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, war_crystal: 1 } },
+  { id: "recipe_ring_mithril_2", station: "jewelry", result: "ring_mithril_2", desc: "Мифриловое кольцо «Песнь»", floor: 4, dropChance: 0.05, materials: { mithril_ore: 3, orc_tusk: 1, war_crystal: 1 } },
+  { id: "recipe_trinket_orc_1", station: "jewelry", result: "trinket_orc_1", desc: "Амулет орка «Череп»", floor: 4, dropChance: 0.05, materials: { orc_tusk: 3, iron_chain: 2 } },
+  { id: "recipe_trinket_orc_2", station: "jewelry", result: "trinket_orc_2", desc: "Амулет орка «Клык»", floor: 4, dropChance: 0.05, materials: { orc_tusk: 3, blood_herb: 2 } },
+  { id: "recipe_ring_hell_1", station: "jewelry", result: "ring_hell_1", desc: "Кольцо из адского камня «Уголёк»", floor: 5, dropChance: 0.05, materials: { hellstone: 3, demon_horn: 1 } },
+  { id: "recipe_ring_hell_2", station: "jewelry", result: "ring_hell_2", desc: "Кольцо из адского камня «Пламя»", floor: 5, dropChance: 0.05, materials: { hellstone: 3, void_crystal: 1 } },
+  { id: "recipe_trinket_demon_1", station: "jewelry", result: "trinket_demon_1", desc: "Печать демона «Зола»", floor: 5, dropChance: 0.05, materials: { demon_horn: 3, brimstone: 2 } },
+  { id: "recipe_trinket_demon_2", station: "jewelry", result: "trinket_demon_2", desc: "Печать демона «Уголь»", floor: 5, dropChance: 0.05, materials: { demon_horn: 3, void_crystal: 1, infernal_ash: 2 } },
 ];
 
 const RECIPE_MAP = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
 
 function getRecipeById(id) { return RECIPE_MAP[id] || null; }
 function getRecipes(station) { return RECIPES.filter((r) => r.station === station); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// СЕТЫ И ПАРЫ. Пороги брони — 2/4/6/8 (8 слотов), пар — 2/2.
+// Бонусы по типу брони (складываются по достигнутым порогам):
+//   кожа    — уворот, крит, шанс дропа, скорость (контратака);
+//   ткань   — мана, HP-реген, максимум HP;
+//   кольчуга— HP, защита, зоны блока;
+//   латы    — защита, снижение урона, зоны блока.
+// Ключи бонусов: dodge, crit, lootChance, counterBonus, manaBonus, hpRegen,
+// maxHpFlat, maxHpMult, def, blockZones, damageReduction, atkMult, lifesteal,
+// goldBonus.
+// ══════════════════════════════════════════════════════════════════════════
+const SET_BONUS_TEMPLATES = {
+  leather: { 2: { dodge: 3 }, 4: { crit: 2 }, 6: { lootChance: 5 }, 8: { dodge: 5, counterBonus: 5 } },
+  cloth:   { 2: { manaBonus: 20 }, 4: { hpRegen: 2 }, 6: { maxHpFlat: 40 }, 8: { manaBonus: 25, hpRegen: 3 } },
+  chain:   { 2: { maxHpFlat: 30 }, 4: { def: 4 }, 6: { blockZones: 1 }, 8: { def: 6, maxHpFlat: 60 } },
+  plate:   { 2: { def: 3 }, 4: { damageReduction: 6 }, 6: { blockZones: 1 }, 8: { def: 5, damageReduction: 10 } },
+};
+
+const SETS = {
+  // ── 20 сетов брони (4 типа × 5 тиров × 8 слотов) ──
+  set_rough_iron: {
+    name: "Грубое железо", type: "plate", tier: 1,
+    items: ["head_iron", "shoulder_iron", "dented_plate", "wrist_iron", "hands_iron", "waist_plate", "legs_iron", "feet_iron"],
+    bonuses: SET_BONUS_TEMPLATES.plate,
+  },
+  set_coarse_leather: {
+    name: "Из грубой кожи", type: "leather", tier: 1,
+    items: ["head_leather", "shoulder_leather", "wanderer_coat", "wrist_leather", "hands_gloves", "waist_leather", "legs_leather", "feet_leather"],
+    bonuses: SET_BONUS_TEMPLATES.leather,
+  },
+  set_novice_cloth: {
+    name: "Послушник", type: "cloth", tier: 1,
+    items: ["head_cloth", "shoulder_cloth", "student_robe", "wrist_cloth", "hands_cloth", "waist_rope", "legs_cloth", "feet_cloth"],
+    bonuses: SET_BONUS_TEMPLATES.cloth,
+  },
+  set_rough_chain: {
+    name: "Грубая кольчуга", type: "chain", tier: 1,
+    items: ["set_rough_chain_head", "set_rough_chain_shoulder", "iron_chainmail", "set_rough_chain_wrist", "set_rough_chain_hands", "set_rough_chain_waist", "set_rough_chain_legs", "set_rough_chain_feet"],
+    bonuses: SET_BONUS_TEMPLATES.chain,
+  },
+  set_steel_plate: {
+    name: "Сталь", type: "plate", tier: 2,
+    items: ["steel_head", "steel_shoulder", "steel_chest", "steel_wrist", "steel_hands", "steel_waist", "steel_legs", "steel_feet"],
+    bonuses: SET_BONUS_TEMPLATES.plate,
+  },
+  set_steel_chain: {
+    name: "Стальная кольчуга", type: "chain", tier: 2,
+    items: ["set_steel_chain_head", "set_steel_chain_shoulder", "steel_chainmail", "set_steel_chain_wrist", "set_steel_chain_hands", "set_steel_chain_waist", "set_steel_chain_legs", "set_steel_chain_feet"],
+    bonuses: SET_BONUS_TEMPLATES.chain,
+  },
+  set_miner: {
+    name: "Тёмная кожа", type: "leather", tier: 2,
+    items: ["set_miner_head", "set_miner_shoulder", "set_miner_chest", "set_miner_wrist", "set_miner_hands", "set_miner_waist", "set_miner_legs", "set_miner_feet"],
+    bonuses: SET_BONUS_TEMPLATES.leather,
+  },
+  set_apprentice_cloth: {
+    name: "Подмастерье", type: "cloth", tier: 2,
+    items: ["hood_mage", "set_apprentice_cloth_shoulder", "dense_cloth", "set_apprentice_cloth_wrist", "set_apprentice_cloth_hands", "set_apprentice_cloth_waist", "set_apprentice_cloth_legs", "set_apprentice_cloth_feet"],
+    bonuses: SET_BONUS_TEMPLATES.cloth,
+  },
+  set_guard: {
+    name: "Руническая сталь", type: "plate", tier: 3,
+    items: ["set_guard_head", "set_guard_shoulder", "set_guard_chest", "set_guard_wrist", "set_guard_hands", "set_guard_waist", "set_guard_legs", "set_guard_feet"],
+    bonuses: SET_BONUS_TEMPLATES.plate,
+  },
+  set_runic_chain: {
+    name: "Руническая кольчуга", type: "chain", tier: 3,
+    items: ["set_runic_chain_head", "set_runic_chain_shoulder", "set_runic_chain_chest", "set_runic_chain_wrist", "set_runic_chain_hands", "set_runic_chain_waist", "set_runic_chain_legs", "set_runic_chain_feet"],
+    bonuses: SET_BONUS_TEMPLATES.chain,
+  },
+  set_runic_leather: {
+    name: "Руническая кожа", type: "leather", tier: 3,
+    items: ["set_runic_leather_head", "set_runic_leather_shoulder", "set_runic_leather_chest", "set_runic_leather_wrist", "set_runic_leather_hands", "set_runic_leather_waist", "set_runic_leather_legs", "set_runic_leather_feet"],
+    bonuses: SET_BONUS_TEMPLATES.leather,
+  },
+  set_adept_cloth: {
+    name: "Адепт", type: "cloth", tier: 3,
+    items: ["set_adept_cloth_head", "set_adept_cloth_shoulder", "set_adept_cloth_chest", "set_adept_cloth_wrist", "set_adept_cloth_hands", "set_adept_cloth_waist", "set_adept_cloth_legs", "set_adept_cloth_feet"],
+    bonuses: SET_BONUS_TEMPLATES.cloth,
+  },
+  set_mithril: {
+    name: "Мифрил", type: "plate", tier: 4,
+    items: ["mithril_head", "mithril_shoulder", "mithril_chest", "mithril_wrist", "mithril_hands", "mithril_waist", "mithril_legs", "mithril_feet"],
+    bonuses: SET_BONUS_TEMPLATES.plate,
+  },
+  set_mithril_chain: {
+    name: "Мифриловая кольчуга", type: "chain", tier: 4,
+    items: ["set_mithril_chain_head", "set_mithril_chain_shoulder", "set_mithril_chain_chest", "set_mithril_chain_wrist", "set_mithril_chain_hands", "set_mithril_chain_waist", "set_mithril_chain_legs", "set_mithril_chain_feet"],
+    bonuses: SET_BONUS_TEMPLATES.chain,
+  },
+  set_bone_leather: {
+    name: "Кожа с костяными пластинами", type: "leather", tier: 4,
+    items: ["set_bone_leather_head", "set_bone_leather_shoulder", "set_bone_leather_chest", "set_bone_leather_wrist", "set_bone_leather_hands", "set_bone_leather_waist", "set_bone_leather_legs", "set_bone_leather_feet"],
+    bonuses: SET_BONUS_TEMPLATES.leather,
+  },
+  set_mage_cloth: {
+    name: "Маг", type: "cloth", tier: 4,
+    items: ["set_mage_cloth_head", "set_mage_cloth_shoulder", "set_mage_cloth_chest", "set_mage_cloth_wrist", "set_mage_cloth_hands", "set_mage_cloth_waist", "set_mage_cloth_legs", "set_mage_cloth_feet"],
+    bonuses: SET_BONUS_TEMPLATES.cloth,
+  },
+  set_hellblade: {
+    name: "Бездна", type: "plate", tier: 5,
+    items: ["set_hellblade_head", "set_hellblade_shoulder", "set_hellblade_chest", "set_hellblade_wrist", "set_hellblade_hands", "set_hellblade_waist", "set_hellblade_legs", "set_hellblade_feet"],
+    bonuses: SET_BONUS_TEMPLATES.plate,
+  },
+  set_abyss_chain: {
+    name: "Кольчуга Бездны", type: "chain", tier: 5,
+    items: ["set_abyss_chain_head", "set_abyss_chain_shoulder", "set_abyss_chain_chest", "set_abyss_chain_wrist", "set_abyss_chain_hands", "set_abyss_chain_waist", "set_abyss_chain_legs", "set_abyss_chain_feet"],
+    bonuses: SET_BONUS_TEMPLATES.chain,
+  },
+  set_abyss_leather: {
+    name: "Кожа Бездны", type: "leather", tier: 5,
+    items: ["set_abyss_leather_head", "set_abyss_leather_shoulder", "set_abyss_leather_chest", "set_abyss_leather_wrist", "set_abyss_leather_hands", "set_abyss_leather_waist", "set_abyss_leather_legs", "set_abyss_leather_feet"],
+    bonuses: SET_BONUS_TEMPLATES.leather,
+  },
+  set_archmage_cloth: {
+    name: "Архимаг", type: "cloth", tier: 5,
+    items: ["set_archmage_cloth_head", "set_archmage_cloth_shoulder", "set_archmage_cloth_chest", "set_archmage_cloth_wrist", "set_archmage_cloth_hands", "set_archmage_cloth_waist", "set_archmage_cloth_legs", "set_archmage_cloth_feet"],
+    bonuses: SET_BONUS_TEMPLATES.cloth,
+  },
+
+  // ── 10 пар (порог 2/2): кольца и аксессуары ──
+  pair_iron_rings: {
+    name: "Железные кольца", pair: true, tier: 1,
+    items: ["ring_iron_1", "ring_iron_2"], bonuses: { 2: { crit: 2 } },
+  },
+  pair_copper_rings: {
+    name: "Медные кольца", pair: true, tier: 2,
+    items: ["ring_copper_1", "ring_copper_2"], bonuses: { 2: { crit: 3 } },
+  },
+  pair_silver_rings: {
+    name: "Серебряные кольца", pair: true, tier: 3,
+    items: ["ring_silver_1", "ring_silver_2"], bonuses: { 2: { dodge: 4 } },
+  },
+  pair_mithril_rings: {
+    name: "Мифриловые кольца", pair: true, tier: 4,
+    items: ["ring_mithril_1", "ring_mithril_2"], bonuses: { 2: { crit: 6 } },
+  },
+  pair_hell_rings: {
+    name: "Кольца Бездны", pair: true, tier: 5,
+    items: ["ring_hell_1", "ring_hell_2"], bonuses: { 2: { crit: 8 } },
+  },
+  pair_wolf_trinkets: {
+    name: "Тотемы волка", pair: true, tier: 1,
+    items: ["trinket_wolf_1", "trinket_wolf_2"], bonuses: { 2: { dodge: 2 } },
+  },
+  pair_mushroom_trinkets: {
+    name: "Грибные амулеты", pair: true, tier: 2,
+    items: ["trinket_mushroom_1", "trinket_mushroom_2"], bonuses: { 2: { maxHpFlat: 25 } },
+  },
+  pair_ghost_trinkets: {
+    name: "Фиалы призрака", pair: true, tier: 3,
+    items: ["trinket_ghost_1", "trinket_ghost_2"], bonuses: { 2: { maxHpFlat: 40 } },
+  },
+  pair_orc_trinkets: {
+    name: "Амулеты орка", pair: true, tier: 4,
+    items: ["trinket_orc_1", "trinket_orc_2"], bonuses: { 2: { dodge: 4 } },
+  },
+  pair_demon_trinkets: {
+    name: "Печати демона", pair: true, tier: 5,
+    items: ["trinket_demon_1", "trinket_demon_2"], bonuses: { 2: { maxHpFlat: 60 } },
+  },
+};
+
+const SET_MAP = Object.fromEntries(Object.entries(SETS).map(([id, set]) => [id, { id, ...set }]));
 
 // Каждому мобу и боссу проставляем этаж — по нему считаются рецепты и дроп.
 for (const floor of FLOORS) {
@@ -2073,16 +4887,761 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     ZONES, ZONE_NAME, ZONE_MAP, SLOTS, SLOT_NAME, SLOT_ICON,
     FORGE_TABS, JEWELRY_TABS, PORTRAITS, PORTRAIT_MAP, NPC_PORTRAITS, DIALOGS,
-    ATTR_INFO, RARITY_TIERS, AFFIXES, UNIQUE_EFFECTS, BACKGROUND_STEPS,
+    ATTR_INFO, RARITY_TIERS, AFFIXES, UNIQUE_EFFECTS, BACKGROUND_STEPS, DIALOG_TREES,
+    MOB_ROLES, COMPANION_REACTIONS, COMPANION_EVENTS, COMPANION_EVENT_MAP, COMPANION_EVENT_CHANCE,
+    CRAFT_RARITY_BONUS_PER_LEVEL, CRAFT_BASE_BONUS, CRAFT_MATERIALS_BONUS, CRAFT_MATERIALS_BONUS_MAX, CRAFT_FACTION_BONUS,
     ARCHETYPES, ARCHETYPE_MAP, STYLE_ORDER, STYLE_NAMES, STYLE_ICONS,
     ARMOR_TYPE_NAMES, ARMOR_STYLE_MULT, UNARMED_DAMAGE, MONK_STANCES,
     TALENTS, TALENT_MAP, RARITY_INFO, MOB_ABILITY_INFO, MOB_MODIFIERS,
-    TIME_PHASES, COMPANIONS, COMPANION_MAP, MONTHS, WEEKDAYS, WEEKLY_EVENTS,
+    TIME_PHASES, COMPANIONS, COMPANION_MAP, COMPANION_AFFINITY_LEVELS, MONTHS, WEEKDAYS, WEEKLY_EVENTS,
     TRAININGS, TRAINING_MAP, HUNT_CONTRACTS, HUNTER_TIPS, ITEMS, ARMOR_TYPE_BY_ID, MOB_ICONS,
     RESOURCE_ICONS, FLOORS, FLOOR_RESOURCES, ALL_RESOURCES, FLOOR_SCENES,
-    NPCS, RECIPES, RECIPE_MAP,
+    FLOOR_DIARY, HUNTER_ENCOUNTERS, FLOOR_EVENTS,
+    NPCS, RECIPES, RECIPE_MAP, SETS, SET_MAP, SET_BONUS_TEMPLATES,
     getRecipeById, getRecipes, todaysEvent, forgeDiscountToday,
     alchemyDiscountToday, companionDiscountToday, xpMultToday, goldMultToday,
     weaponDamageFor, weaponStyleValue, weaponStyleMult, weaponBestStyle,
   };
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── АУДИТ ДАННЫХ (только чтение) ──────────────────────────────────────────
+// validateData()      — структурная и семантическая проверка ссылок.
+// auditBalance()      — таблицы баланса мобов, боссов, предметов и рецептов.
+// auditReachability() — проверка достижимости материалов к нужному этажу.
+// Все функции ниже только читают данные и ничего не мутируют.
+// ══════════════════════════════════════════════════════════════════════════
+
+const _AUDIT_HERO_ATK = 50;
+const _AUDIT_HERO_DEF = 20;
+
+const _AUDIT_ARMOR_SLOTS = ["head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"];
+const _AUDIT_NUMERIC_FIELDS = ["price", "atk", "def", "hp", "mana", "crit", "dodge", "block"];
+const _AUDIT_STAT_FIELDS = ["atk", "def", "hp", "mana", "crit", "dodge", "block"];
+const _AUDIT_POTION_TYPES = ["potion", "combat"];
+const _AUDIT_WEAPON_TYPES = ["sword", "axe", "mace", "spear", "claw"];
+const _AUDIT_HANDED = ["1h", "2h"];
+const _AUDIT_ARMOR_TYPES = ["cloth", "leather", "chain", "plate"];
+
+function _auditFinite(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function _auditEnemies(floor) {
+  return [...floor.mobs, floor.boss];
+}
+
+function _auditResourceIds() {
+  return new Set(ALL_RESOURCES.map((resource) => resource.id));
+}
+
+function _auditMobIds() {
+  const ids = new Set();
+  for (const floor of FLOORS) {
+    for (const enemy of _auditEnemies(floor)) ids.add(enemy.id);
+  }
+  return ids;
+}
+
+// Сумма всех статов предмета (для поиска «пустых» дорогих вещей).
+function _auditStatSum(item) {
+  let sum = 0;
+  for (const stat of _AUDIT_STAT_FIELDS) {
+    if (_auditFinite(item[stat])) sum += Math.abs(item[stat]);
+  }
+  if (item.damage && typeof item.damage === "object") {
+    for (const style of STYLE_ORDER) {
+      if (_auditFinite(item.damage[style])) sum += Math.abs(item.damage[style]);
+    }
+  }
+  return sum;
+}
+
+function _auditAvg(values) {
+  const list = values.filter(_auditFinite);
+  if (!list.length) return 0;
+  const sum = list.reduce((total, value) => total + value, 0);
+  return +(sum / list.length).toFixed(1);
+}
+
+// ── Валидация: предметы ────────────────────────────────────────────────────
+function _validateItems(add) {
+  const validSlots = new Set(["potion"]);
+  for (const slot of SLOTS) {
+    for (const accept of slot.accepts) validSlots.add(accept);
+  }
+
+  const seenIds = new Set();
+  // id не должен пересекаться между ITEMS и ALL_RESOURCES.
+  const resourceIds = new Set(ALL_RESOURCES.map((r) => r.id));
+  for (const [key, item] of Object.entries(ITEMS)) {
+    if (!item || typeof item !== "object") {
+      add("structure", `ITEMS["${key}"] — не объект`);
+      continue;
+    }
+    if (resourceIds.has(key)) {
+      add("semantic", `ITEMS["${key}"]: id совпадает с ресурсом из ALL_RESOURCES — коллизия «предмет/ресурс»`);
+    }
+    if (item.id !== key) {
+      add("structure", `ITEMS["${key}"]: id "${item.id}" не совпадает с ключом`);
+    }
+    if (seenIds.has(item.id)) {
+      add("structure", `ITEMS: повторяющийся id "${item.id}" (ключ "${key}")`);
+    }
+    seenIds.add(item.id);
+
+    if (!validSlots.has(item.slot)) {
+      add("structure", `ITEMS["${key}"]: недопустимый slot "${item.slot}"`);
+    }
+
+    if (item.slot === "potion") {
+      if (!_AUDIT_POTION_TYPES.includes(item.type)) {
+        add("structure", `ITEMS["${key}"]: type "${item.type}" не из {potion, combat}`);
+      }
+      if (!item.effect) {
+        add("structure", `ITEMS["${key}"]: у зелья нет effect`);
+      }
+    }
+
+    if (item.slot === "mainhand") {
+      if (!_AUDIT_WEAPON_TYPES.includes(item.weaponType)) {
+        add("structure", `ITEMS["${key}"]: weaponType "${item.weaponType}" не из {sword, axe, mace, spear, claw}`);
+      }
+      if (!_AUDIT_HANDED.includes(item.handed)) {
+        add("structure", `ITEMS["${key}"]: handed "${item.handed}" не из {1h, 2h}`);
+      }
+      const damage = item.damage;
+      if (!damage || typeof damage !== "object") {
+        add("structure", `ITEMS["${key}"]: у оружия нет damage`);
+      } else if (!STYLE_ORDER.some((style) => _auditFinite(damage[style]) && damage[style] > 0)) {
+        add("structure", `ITEMS["${key}"]: damage — все три стиля не больше 0`);
+      }
+    }
+
+    if (item.slot === "offhand" && _auditFinite(item.block) && item.block > 0 && item.damage) {
+      add("structure", `ITEMS["${key}"]: щит с block > 0 не должен иметь damage`);
+    }
+
+    if (_AUDIT_ARMOR_SLOTS.includes(item.slot) && !item.armorType) {
+      add("structure", `ITEMS["${key}"]: для слота "${item.slot}" обязателен armorType`);
+    }
+
+    for (const field of _AUDIT_NUMERIC_FIELDS) {
+      if (item[field] === undefined) continue;
+      if (!_auditFinite(item[field])) {
+        add("structure", `ITEMS["${key}"]: ${field} = ${item[field]} — не конечное число`);
+      }
+    }
+
+    // dodge может быть отрицательным: тяжёлая броня даёт штраф к уклонению.
+    for (const field of ["crit", "dodge"]) {
+      const min = field === "dodge" ? -50 : 0;
+      if (_auditFinite(item[field]) && (item[field] < min || item[field] > 50)) {
+        add("structure", `ITEMS["${key}"]: ${field} = ${item[field]} вне диапазона [${min}, 50]`);
+      }
+    }
+
+    if (item.unique != null && item.rarity !== "legendary") {
+      add("structure", `ITEMS["${key}"]: unique задан, но rarity = "${item.rarity}"`);
+    }
+
+    if (item.slot !== "potion" && item.price > 0 && _auditStatSum(item) === 0) {
+      add("semantic", `ITEMS["${key}"]: price = ${item.price}, но все статы равны 0`);
+    }
+    if (item.shopTier > 0 && item.price === 0) {
+      add("semantic", `ITEMS["${key}"]: shopTier = ${item.shopTier}, но price = 0`);
+    }
+  }
+}
+
+// ── Валидация: рецепты ─────────────────────────────────────────────────────
+function _validateRecipes(add) {
+  const resourceIds = _auditResourceIds();
+  const byResult = new Map();
+
+  for (const recipe of RECIPES) {
+    if (!ITEMS[recipe.result]) {
+      add("structure", `RECIPES["${recipe.id}"]: result "${recipe.result}" не найден в ITEMS`);
+    }
+    if (!["forge", "jewelry", "alchemy"].includes(recipe.station)) {
+      add("structure", `RECIPES["${recipe.id}"]: station "${recipe.station}" не из {forge, jewelry, alchemy}`);
+    }
+    if (!Number.isInteger(recipe.floor) || recipe.floor < 1 || recipe.floor > FLOORS.length) {
+      add("structure", `RECIPES["${recipe.id}"]: floor = ${recipe.floor} вне [1..${FLOORS.length}]`);
+    }
+    const materials = recipe.materials;
+    if (!materials || typeof materials !== "object" || !Object.keys(materials).length) {
+      add("structure", `RECIPES["${recipe.id}"]: пустой materials`);
+    } else {
+      for (const resId of Object.keys(materials)) {
+        if (!resourceIds.has(resId)) {
+          add("structure", `RECIPES["${recipe.id}"]: материал "${resId}" отсутствует в ALL_RESOURCES`);
+        }
+      }
+    }
+    if (!byResult.has(recipe.result)) byResult.set(recipe.result, []);
+    byResult.get(recipe.result).push(recipe.id);
+  }
+
+  for (const [result, ids] of byResult) {
+    if (ids.length > 1) {
+      add("structure", `RECIPES: result "${result}" дублируется у рецептов ${ids.join(", ")}`);
+    }
+  }
+}
+
+// ── Валидация: этажи, мобы и боссы ─────────────────────────────────────────
+function _validateFloors(add) {
+  const resourceIds = _auditResourceIds();
+
+  for (const floor of FLOORS) {
+    for (const enemy of _auditEnemies(floor)) {
+      if (enemy.floorId !== floor.id) {
+        add("structure", `FLOORS[${floor.id}] ${enemy.id}: floorId = ${enemy.floorId}`);
+      }
+      for (const field of ["hp", "atk", "def", "gold", "xp"]) {
+        if (!_auditFinite(enemy[field]) || enemy[field] <= 0) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: ${field} = ${enemy[field]} (ожидалось > 0)`);
+        }
+      }
+      if (!_AUDIT_ARMOR_TYPES.includes(enemy.armorType)) {
+        add("structure", `FLOORS[${floor.id}] ${enemy.id}: armorType "${enemy.armorType}" не из {cloth, leather, chain, plate}`);
+      }
+      for (const style of enemy.weakTo || []) {
+        if (!STYLE_ORDER.includes(style)) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: weakTo "${style}" отсутствует в STYLE_ORDER`);
+        }
+      }
+      for (const weaponId of enemy.weapons || []) {
+        const weapon = ITEMS[weaponId];
+        if (!weapon) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: оружие "${weaponId}" не найдено в ITEMS`);
+        } else if (weapon.slot !== "mainhand") {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: оружие "${weaponId}" имеет slot "${weapon.slot}", а не mainhand`);
+        }
+      }
+      for (const drop of enemy.drops || []) {
+        if (!ITEMS[drop.id] && !resourceIds.has(drop.id)) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: drop "${drop.id}" не найден ни в ITEMS, ни в ALL_RESOURCES`);
+        }
+        if (!_auditFinite(drop.chance) || drop.chance <= 0 || drop.chance > 1) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: drop "${drop.id}" chance = ${drop.chance} вне (0, 1]`);
+        }
+        if (!Number.isInteger(drop.min) || drop.min < 1) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: drop "${drop.id}" min = ${drop.min} (ожидалось целое ≥ 1)`);
+        }
+        if (!_auditFinite(drop.max) || drop.max < 1) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: drop "${drop.id}" max = ${drop.max} (ожидалось ≥ 1)`);
+        }
+        if (Number.isInteger(drop.min) && _auditFinite(drop.max) && drop.min > drop.max) {
+          add("structure", `FLOORS[${floor.id}] ${enemy.id}: drop "${drop.id}" min ${drop.min} > max ${drop.max}`);
+        }
+      }
+    }
+
+    const first = floor.mobs[0];
+    const last = floor.mobs[floor.mobs.length - 1];
+    if (first && last && last.hp < first.hp) {
+      add("semantic", `FLOORS[${floor.id}]: hp последнего моба (${last.hp}) меньше hp первого (${first.hp})`);
+    }
+
+    const strongest = floor.mobs.reduce((best, mob) => (mob.hp > best.hp ? mob : best), floor.mobs[0]);
+    const strongestAtk = floor.mobs.reduce((best, mob) => Math.max(best, mob.atk), 0);
+    if (strongest && floor.boss) {
+      if (floor.boss.hp < 2.5 * strongest.hp) {
+        add("semantic", `FLOORS[${floor.id}]: hp босса ${floor.boss.hp} < 2.5 × hp сильнейшего моба ${strongest.hp}`);
+      }
+      if (floor.boss.atk < 1.3 * strongestAtk) {
+        add("semantic", `FLOORS[${floor.id}]: atk босса ${floor.boss.atk} < 1.3 × atk сильнейшего моба ${strongestAtk}`);
+      }
+    }
+  }
+}
+
+// ── Валидация: сюжетные квесты и контракты ─────────────────────────────────
+function _validateQuests(add) {
+  const resourceIds = _auditResourceIds();
+  const mobIds = _auditMobIds();
+
+  for (const quest of STORY_QUESTS) {
+    const reward = quest.reward || {};
+    if (reward.item != null && !ITEMS[reward.item]) {
+      add("structure", `STORY_QUESTS["${quest.id}"]: reward.item "${reward.item}" не найден в ITEMS`);
+    }
+    if (reward.recipe != null && !RECIPE_MAP[reward.recipe]) {
+      add("structure", `STORY_QUESTS["${quest.id}"]: reward.recipe "${reward.recipe}" не найден в RECIPE_MAP`);
+    }
+    const objectives = quest.objectives || {};
+    if (objectives.res != null && !resourceIds.has(objectives.res)) {
+      add("structure", `STORY_QUESTS["${quest.id}"]: objectives.res "${objectives.res}" отсутствует в ALL_RESOURCES`);
+    }
+    if (objectives.kill != null && !mobIds.has(objectives.kill)) {
+      add("structure", `STORY_QUESTS["${quest.id}"]: objectives.kill "${objectives.kill}" не найден на этажах`);
+    }
+  }
+
+  for (const contract of HUNT_CONTRACTS) {
+    if (!mobIds.has(contract.mobId)) {
+      add("structure", `HUNT_CONTRACTS["${contract.id}"]: mobId "${contract.mobId}" не найден на этажах`);
+    }
+    if (!Number.isInteger(contract.floorId) || contract.floorId < 1 || contract.floorId > FLOORS.length) {
+      add("structure", `HUNT_CONTRACTS["${contract.id}"]: floorId = ${contract.floorId} вне [1..${FLOORS.length}]`);
+    }
+  }
+}
+
+// ── Валидация: фракции и диалоги ───────────────────────────────────────────
+function _validateFactions(add) {
+  const knownNpcs = new Set([
+    ...Object.keys(DIALOGS),
+    ...Object.keys(NPCS),
+    ...Object.keys(NPC_PORTRAITS),
+  ]);
+  if (typeof NPC_NAMES !== "undefined") {
+    for (const npcId of Object.keys(NPC_NAMES)) knownNpcs.add(npcId);
+  }
+  if (typeof SHOP_NPCS !== "undefined") {
+    for (const npcId of Object.values(SHOP_NPCS)) knownNpcs.add(npcId);
+  }
+
+  for (const faction of FACTIONS) {
+    if (faction.npc === undefined) {
+      add("structure", `FACTIONS["${faction.id}"]: npc не задан (undefined)`);
+    } else if (faction.npc !== null && !knownNpcs.has(faction.npc)) {
+      add("structure", `FACTIONS["${faction.id}"]: npc "${faction.npc}" не найден среди NPC`);
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(FACTION_BY_NPC, "undefined")) {
+    add("structure", "FACTION_BY_NPC: есть ключ undefined");
+  }
+}
+
+function _validateDialogBranches(add) {
+  const tierMins = FACTION_TIERS.map((tier) => tier.min);
+
+  for (const [npcId, branches] of Object.entries(DIALOG_BRANCHES)) {
+    if (!Array.isArray(branches)) {
+      add("structure", `DIALOG_BRANCHES["${npcId}"] — не массив`);
+      continue;
+    }
+    for (const branch of branches) {
+      if (!tierMins.includes(branch.minRep)) {
+        add("structure", `DIALOG_BRANCHES["${npcId}"].${branch.id}: minRep ${branch.minRep} отсутствует в FACTION_TIERS`);
+      }
+      if (!Array.isArray(branch.replies) || !branch.replies.length || branch.replies.some((reply) => typeof reply !== "string")) {
+        add("structure", `DIALOG_BRANCHES["${npcId}"].${branch.id}: replies должен быть непустым массивом строк`);
+      }
+      if (!Number.isInteger(branch.minFloor) || branch.minFloor < 1 || branch.minFloor > FLOORS.length) {
+        add("structure", `DIALOG_BRANCHES["${npcId}"].${branch.id}: minFloor = ${branch.minFloor} вне [1..${FLOORS.length}]`);
+      }
+    }
+  }
+}
+
+// ── Валидация: иконки (не блокирует поток) ────────────────────────────────
+function _validateIcons() {
+  if (typeof Image === "undefined") return;
+  for (const [itemId, item] of Object.entries(ITEMS)) {
+    const icon = item.icon;
+    if (typeof icon !== "string" || !icon.startsWith("assets/")) continue;
+    const image = new Image();
+    image.onerror = () => console.error(`[data/icon] не найден файл: ${icon} (${itemId})`);
+    image.src = icon;
+  }
+}
+
+// ── validateData: структурная и семантическая проверка ─────────────────────
+function validateData() {
+  const problems = [];
+  const add = (type, message) => problems.push(`[data/${type}] ${message}`);
+
+  const sections = [
+    _validateItems,
+    _validateRecipes,
+    _validateFloors,
+    _validateQuests,
+    _validateFactions,
+    _validateDialogBranches,
+  ];
+  for (const section of sections) {
+    try {
+      section(add);
+    } catch (error) {
+      add("structure", `исключение в ${section.name}: ${error && error.message ? error.message : error}`);
+    }
+  }
+
+  try {
+    _validateIcons();
+  } catch (error) {
+    add("structure", `исключение при проверке иконок: ${error && error.message ? error.message : error}`);
+  }
+
+  let tierErrors = [];
+  try {
+    tierErrors = validateCraftTiers();
+  } catch (error) {
+    add("structure", `исключение в validateCraftTiers: ${error && error.message ? error.message : error}`);
+  }
+  if (tierErrors.length) {
+    add("tier", `tier-нарушений: ${tierErrors.length}, см. validateCraftTiers()`);
+  }
+
+  if (!problems.length) {
+    console.log("%c[data] OK — ссылочная целостность в порядке", "color:#7ac47a");
+  } else {
+    console.group(`%c[data] ${problems.length} проблем(ы)`, "color:#ff9800;font-weight:bold");
+    for (const problem of problems) console.warn(problem);
+    console.groupEnd();
+  }
+  return problems;
+}
+
+// ── auditBalance: таблицы баланса и подозрительные места ───────────────────
+function auditBalance() {
+  const mobRows = [];
+  const bossRows = [];
+  const suspicious = [];
+
+  for (const floor of FLOORS) {
+    const strongestHp = floor.mobs.reduce((best, mob) => Math.max(best, mob.hp), 0);
+    const strongestAtk = floor.mobs.reduce((best, mob) => Math.max(best, mob.atk), 0);
+
+    for (const mob of floor.mobs) {
+      const turns = mob.hp / _AUDIT_HERO_ATK;
+      const dmgThroughDef = Math.max(1, Math.round(mob.atk - _AUDIT_HERO_DEF * 0.6));
+      mobRows.push({
+        floor: floor.id,
+        mob: mob.name,
+        hp: mob.hp,
+        atk: mob.atk,
+        def: mob.def,
+        gold: mob.gold,
+        xp: mob.xp,
+        turns_to_kill: +turns.toFixed(2),
+        dmg_through_def: dmgThroughDef,
+      });
+
+      if (turns < 2 || turns > 30) {
+        suspicious.push(`Моб "${mob.name}" (этаж ${floor.id}): turns_to_kill = ${turns.toFixed(2)}`);
+      }
+      if (dmgThroughDef <= 1) {
+        suspicious.push(`Моб "${mob.name}" (этаж ${floor.id}): dmg_through_def = ${dmgThroughDef} — герой с def ${_AUDIT_HERO_DEF} не получает урона`);
+      }
+    }
+
+    const boss = floor.boss;
+    const hpRatio = strongestHp ? boss.hp / strongestHp : 0;
+    const atkRatio = strongestAtk ? boss.atk / strongestAtk : 0;
+    bossRows.push({
+      floor: floor.id,
+      boss: boss.name,
+      hp: boss.hp,
+      atk: boss.atk,
+      def: boss.def,
+      hp_ratio_to_strongest: +hpRatio.toFixed(2),
+      atk_ratio_to_strongest: +atkRatio.toFixed(2),
+    });
+    if (hpRatio < 2.5) {
+      suspicious.push(`Босс "${boss.name}" (этаж ${floor.id}): hp_ratio_to_strongest = ${hpRatio.toFixed(2)} < 2.5`);
+    }
+  }
+
+  const tierGroups = new Map();
+  for (const item of Object.values(ITEMS)) {
+    const tier = _auditFinite(item.shopTier) ? item.shopTier : 0;
+    if (!tierGroups.has(tier)) tierGroups.set(tier, []);
+    tierGroups.get(tier).push(item);
+  }
+  const itemRows = [...tierGroups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([tier, items]) => ({
+      shopTier: tier,
+      count: items.length,
+      avg_price: _auditAvg(items.map((item) => item.price)),
+      avg_atk: _auditAvg(items.filter((item) => item.slot === "mainhand").map((item) => item.atk)),
+      avg_def: _auditAvg(items.filter((item) => _AUDIT_ARMOR_SLOTS.includes(item.slot)).map((item) => item.def)),
+      avg_hp: _auditAvg(items.map((item) => item.hp)),
+    }));
+
+  const resourcePrice = new Map(ALL_RESOURCES.map((resource) => [
+    resource.id,
+    _auditFinite(resource.sellPrice) ? resource.sellPrice : 1,
+  ]));
+  const recipeRows = RECIPES.map((recipe) => {
+    let materialsValue = 0;
+    for (const [resId, quantity] of Object.entries(recipe.materials || {})) {
+      const unitPrice = resourcePrice.has(resId) ? resourcePrice.get(resId) : 1;
+      materialsValue += unitPrice * (_auditFinite(quantity) ? quantity : 0);
+    }
+    const result = ITEMS[recipe.result];
+    const resultPrice = result && _auditFinite(result.price) ? result.price : 0;
+    const ratio = materialsValue / Math.max(1, resultPrice);
+    if (ratio < 0.3) {
+      suspicious.push(`Рецепт "${recipe.id}" (этаж ${recipe.floor}): ratio = ${ratio.toFixed(2)} < 0.3 — материалы дешевле результата`);
+    }
+    if (ratio > 3.0) {
+      suspicious.push(`Рецепт "${recipe.id}" (этаж ${recipe.floor}): ratio = ${ratio.toFixed(2)} > 3.0 — материалы дороже результата`);
+    }
+    return {
+      station: recipe.station,
+      floor: recipe.floor,
+      result: recipe.result,
+      materials_value: materialsValue,
+      result_price: resultPrice,
+      ratio: +ratio.toFixed(2),
+    };
+  });
+
+  for (const item of Object.values(ITEMS)) {
+    if (item.price > 100 && _auditStatSum(item) === 0) {
+      suspicious.push(`Предмет "${item.name}" (${item.id}): price = ${item.price}, но все статы равны 0`);
+    }
+  }
+
+  console.log("%c[auditBalance] Мобы по этажам", "font-weight:bold");
+  console.table(mobRows);
+  console.log("%c[auditBalance] Боссы", "font-weight:bold");
+  console.table(bossRows);
+  console.log("%c[auditBalance] Предметы по тирам", "font-weight:bold");
+  console.table(itemRows);
+  console.log("%c[auditBalance] Рецепты", "font-weight:bold");
+  console.table(recipeRows);
+
+  console.groupCollapsed("Подозрительное");
+  if (!suspicious.length) {
+    console.log("— ничего не найдено");
+  } else {
+    for (const text of suspicious) console.warn(text);
+  }
+  console.groupEnd();
+
+  return { mobs: mobRows, bosses: bossRows, items: itemRows, recipes: recipeRows, suspicious };
+}
+
+// ── auditReachability: достижимость ресурсов по этажам ─────────────────────
+function _auditReachFloorMap() {
+  const resourceIds = _auditResourceIds();
+  const floors = new Map();
+  const mark = (resId, floor) => {
+    if (!resourceIds.has(resId)) return;
+    if (!floors.has(resId) || floor < floors.get(resId)) floors.set(resId, floor);
+  };
+
+  for (const [floorKey, resources] of Object.entries(FLOOR_RESOURCES)) {
+    const floor = Number(floorKey);
+    for (const resource of resources) mark(resource.id, floor);
+  }
+  for (const floor of FLOORS) {
+    for (const enemy of _auditEnemies(floor)) {
+      for (const drop of enemy.drops || []) mark(drop.id, floor.id);
+    }
+  }
+  for (const quest of STORY_QUESTS) {
+    const reward = quest.reward || {};
+    for (const resId of [reward.item, reward.recipe, reward.res]) mark(resId, quest.reqFloor);
+  }
+  return floors;
+}
+
+function _auditMobFloors() {
+  const floors = new Map();
+  for (const floor of FLOORS) {
+    for (const enemy of _auditEnemies(floor)) {
+      if (!floors.has(enemy.id) || floor.id < floors.get(enemy.id)) floors.set(enemy.id, floor.id);
+    }
+  }
+  return floors;
+}
+
+function auditReachability() {
+  const problems = [];
+  const resourceFloors = _auditReachFloorMap();
+  const mobFloors = _auditMobFloors();
+
+  const describe = (resId) => (resourceFloors.has(resId)
+    ? `мин. этаж ${resourceFloors.get(resId)}`
+    : "недостижим");
+  const reachable = (resId, floor) => resourceFloors.has(resId) && resourceFloors.get(resId) <= floor;
+
+  for (const recipe of RECIPES) {
+    for (const resId of Object.keys(recipe.materials || {})) {
+      if (!reachable(resId, recipe.floor)) {
+        problems.push(`Рецепт "${recipe.id}" (этаж ${recipe.floor}): материал "${resId}" — ${describe(resId)}`);
+      }
+    }
+  }
+
+  for (const [pathId, path] of Object.entries(UPGRADE_PATHS)) {
+    (path.materials || []).forEach((materials, index) => {
+      const floor = index + 1;
+      for (const resId of Object.keys(materials)) {
+        if (!reachable(resId, floor)) {
+          problems.push(`Улучшение "${pathId}" (уровень ${index + 1}, этаж ${floor}): материал "${resId}" — ${describe(resId)}`);
+        }
+      }
+    });
+  }
+
+  for (const quest of STORY_QUESTS) {
+    const objectives = quest.objectives || {};
+    if (objectives.res && !reachable(objectives.res, quest.reqFloor)) {
+      problems.push(`Квест "${quest.id}" (этаж ${quest.reqFloor}): ресурс "${objectives.res}" — ${describe(objectives.res)}`);
+    }
+    if (objectives.kill) {
+      const mobFloor = mobFloors.get(objectives.kill);
+      if (mobFloor === undefined) {
+        problems.push(`Квест "${quest.id}": моб "${objectives.kill}" не найден на этажах`);
+      } else if (mobFloor > quest.reqFloor) {
+        problems.push(`Квест "${quest.id}" (этаж ${quest.reqFloor}): моб "${objectives.kill}" появляется только на этаже ${mobFloor}`);
+      }
+    }
+  }
+
+  for (const contract of HUNT_CONTRACTS) {
+    const mobFloor = mobFloors.get(contract.mobId);
+    if (mobFloor === undefined) {
+      problems.push(`Контракт "${contract.id}": моб "${contract.mobId}" не найден на этажах`);
+    } else if (mobFloor > contract.floorId) {
+      problems.push(`Контракт "${contract.id}" (этаж ${contract.floorId}): моб "${contract.mobId}" появляется только на этаже ${mobFloor}`);
+    }
+  }
+
+  console.group("Достижимость");
+  if (!problems.length) {
+    console.log("OK");
+  } else {
+    for (const problem of problems) console.warn(problem);
+  }
+  console.groupEnd();
+
+  return problems;
+}
+
+if (typeof window !== "undefined") {
+  window.auditBalance = auditBalance;
+  window.auditReachability = auditReachability;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports.validateData = validateData;
+  module.exports.auditBalance = auditBalance;
+  module.exports.auditReachability = auditReachability;
+}
+
+// ── validateCraftTiers: правило «тир предмета = этаж его материалов» ────────
+// Рецепт тира N собирается только из FLOOR_RESOURCES[N]; уровень улучшения N —
+// только из FLOOR_RESOURCES[N + 1]. Возвращает список нарушений и печатает их
+// в консоль; ошибки не модифицируют данные. validateData() вызывает её и
+// добавляет в сводку только число нарушений.
+function validateCraftTiers() {
+  const errors = [];
+  for (const r of RECIPES) {
+    const tier = ITEMS[r.result]?.shopTier;
+    if (!tier) continue;
+    const allowed = new Set((FLOOR_RESOURCES[tier] || []).map(x => x.id));
+    for (const resId of Object.keys(r.materials || {})) {
+      if (!allowed.has(resId)) {
+        errors.push(`[craft/tier] ${r.id}: материал «${resId}» не с этажа ${tier}`);
+      }
+    }
+  }
+  for (const [pathId, path] of Object.entries(UPGRADE_PATHS)) {
+    path.materials.forEach((mats, level) => {
+      const allowed = new Set((FLOOR_RESOURCES[level + 1] || []).map(x => x.id));
+      for (const resId of Object.keys(mats)) {
+        if (!allowed.has(resId)) {
+          errors.push(`[upgrade/tier] ${pathId}.materials[${level}]: «${resId}» не с этажа ${level + 1}`);
+        }
+      }
+    });
+  }
+  if (errors.length) {
+    console.group(`%c[data] ${errors.length} нарушений tier-правила`, "color:#e06060;font-weight:bold");
+    errors.forEach(e => console.warn(e));
+    console.groupEnd();
+  } else {
+    console.log("%c[data] tier-правило соблюдено", "color:#7ac47a");
+  }
+  return errors;
+}
+
+if (typeof window !== "undefined") {
+  window.validateCraftTiers = validateCraftTiers;
+}
+
+// ── Звуки боя (строго под существующие файлы) ──────────────────────
+const SOUND_VARIANTS = {
+  hit_slash: [
+    "assets/sfx/hit_slash1.mp3", "assets/sfx/hit_slash2.mp3",
+    "assets/sfx/hit_slash3.mp3", "assets/sfx/hit_slash4.mp3",
+    "assets/sfx/hit_slash5.mp3", "assets/sfx/hit_slash6.mp3"
+  ],
+  hit_blunt: [
+    "assets/sfx/hit_blunt.mp3", "assets/sfx/hit_blunt2.mp3"
+  ],
+  hit_crit_slash: ["assets/sfx/hit_slashcrit.mp3"],
+  hit_crit_blunt: ["assets/sfx/hit_bluntcrit.mp3"],
+  hit_block: [
+    "assets/sfx/hit_block1.mp3", "assets/sfx/hit_block2.mp3",
+    "assets/sfx/hit_block3.mp3", "assets/sfx/hit_block4.mp3"
+  ],
+  hit_miss: [
+    "assets/sfx/hit_miss1.mp3", "assets/sfx/hit_miss2.mp3",
+    "assets/sfx/hit_miss3.mp3", "assets/sfx/hit_miss4.mp3",
+    "assets/sfx/hit_bluntmiss.mp3", "assets/sfx/hit_bluntmiss2.mp3"
+  ],
+  disarm: ["assets/sfx/disarm.mp3", "assets/sfx/disarm2.mp3"],
+  
+  // Заглушки (файлов пока нет)
+  potion: ["assets/sfx/potion.mp3"],
+  victory: ["assets/sfx/victory.mp3"],
+  defeat: ["assets/sfx/defeat.mp3"],
+  levelup: ["assets/sfx/levelup.mp3"],
+  open: ["assets/sfx/open.mp3"],
+  chest: ["assets/sfx/chest.mp3"],
+  event: ["assets/sfx/event.mp3"],
+  quest_complete: ["assets/sfx/quest_complete.mp3"],
+
+  // Шаги
+  footstep_dirt: ["assets/sfx/footsteps/dirt_walk_1.wav", "assets/sfx/footsteps/dirt_walk_2.wav", "assets/sfx/footsteps/dirt_walk_3.wav", "assets/sfx/footsteps/dirt_walk_4.wav", "assets/sfx/footsteps/dirt_walk_5.wav"],
+  footstep_stone: ["assets/sfx/footsteps/stone_walk_1.wav", "assets/sfx/footsteps/stone_walk_2.wav", "assets/sfx/footsteps/stone_walk_3.wav", "assets/sfx/footsteps/stone_walk_4.wav", "assets/sfx/footsteps/stone_walk_5.wav"],
+  footstep_wood: ["assets/sfx/footsteps/wood_walk_1.wav", "assets/sfx/footsteps/wood_walk_2.wav", "assets/sfx/footsteps/wood_walk_3.wav", "assets/sfx/footsteps/wood_walk_4.wav", "assets/sfx/footsteps/wood_walk_5.wav"],
+  footstep_water: ["assets/sfx/footsteps/water_walk_1.wav", "assets/sfx/footsteps/water_walk_2.wav", "assets/sfx/footsteps/water_walk_3.wav"],
+  // Прыжки и приземления
+  footstep_jump: ["assets/sfx/footsteps/dirt_jump.wav", "assets/sfx/footsteps/stone_jump.wav", "assets/sfx/footsteps/wood_jump.wav", "assets/sfx/footsteps/water_jump.wav"],
+  footstep_land: ["assets/sfx/footsteps/dirt_land.wav", "assets/sfx/footsteps/stone_land.wav", "assets/sfx/footsteps/wood_land.wav", "assets/sfx/footsteps/water_land.wav"],
+  // Интерфейс и взаимодействия
+  chest_open: ["assets/sfx/misc/chest_open_1.wav", "assets/sfx/misc/chest_open_2.wav"],
+  chest_close: ["assets/sfx/misc/chest_close_1.wav", "assets/sfx/misc/chest_close_2.wav"],
+  door_open: ["assets/sfx/misc/door_open_1.wav", "assets/sfx/misc/door_open_2.wav"],
+  door_close: ["assets/sfx/misc/door_close_1.wav", "assets/sfx/misc/door_close_2.wav"],
+  gate_open: ["assets/sfx/misc/gate_open.wav"],
+  portcullis: ["assets/sfx/misc/portcullis_gate.wav"],
+  lock_unlock: ["assets/sfx/misc/lock_unlock.wav"],
+  forge_craft: ["assets/sfx/misc/forge_craft.wav"]
+};
+window.SOUND_VARIANTS = SOUND_VARIANTS;
+
+// ── Фоновая музыка и амбиент локаций ───────────────────────────────────────
+const MUSIC_TRACKS = {
+  hub: "assets/audio/hub_music.mp3",
+  market: "assets/audio/market_ambient.mp3",
+  tower: "assets/audio/tower_music.mp3",
+  battle: "assets/audio/battle_music.mp3",
+  boss: "assets/audio/boss_music.mp3",
+};
+
+const AMBIENT_TRACKS = {
+  hotel: "assets/audio/tavern_ambient.mp3",
+  forge: "assets/audio/forge_ambient.mp3",
+  alchemy: "assets/audio/alchemy_ambient.mp3",
+  jewelry: "assets/audio/jewelry_ambient.mp3",
+  training: "assets/audio/tavern_ambient.mp3",
+  floor_1: "assets/audio/floor1_forest.mp3",
+  floor_2: "assets/audio/floor2_mines.mp3",
+  floor_3: "assets/audio/floor3_crypt.mp3",
+  floor_4: "assets/audio/floor4_orcs.mp3",
+  floor_5: "assets/audio/floor5_hell.mp3",
+};

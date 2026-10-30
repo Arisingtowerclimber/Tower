@@ -2,7 +2,7 @@
   "compaction": {
     "auto": true,
     "prune": true,
-    "reserved": 900000
+    "reserved": 800000
   },
   "autoupdate": false,
   "snapshot": false

@@ -170,6 +170,11 @@ function resolveEventAction(optionId, event, state, st) {
   const check = eventCheck(state, attr, difficulty, st);
 
   if (check.success) {
+    // Пропасть: прыжок и приземление при удачном преодолении.
+    if (event.id === "chasm") {
+      Sfx.play("footstep_jump");
+      Sfx.play("footstep_land");
+    }
     return { ok: true, success: true, check, text: event.successText, effects: event.successEffects || {} };
   }
   return { ok: true, success: false, check, text: event.failText, effects: event.failEffects || {} };
@@ -192,4 +197,19 @@ function applyEventEffects(effects, state, st) {
     gained.push(`${e.debuff.icon || ""} ${e.debuff.name} (${e.debuff.days || 1} дн.)`);
   }
   return gained;
+}
+
+// ── Спонтанные события этажей (FLOOR_EVENTS) ────────────────────────────────
+// Не сцены, а случайные встречи. Разыгрывается в exploreFloor (state.js),
+// выбор игрока разбирает resolveFloorEventAction (actions.js).
+const FLOOR_EVENT_CHANCE = 0.15; // шанс встречи за одно исследование
+const FLOOR_EVENT_COOLDOWN = 3;  // не чаще 1 встречи на 3 исследования
+
+function rollFloorEvent(floorId, state) {
+  if ((state.floorEventCooldown || 0) > 0) { state.floorEventCooldown -= 1; return null; }
+  if (Math.random() >= FLOOR_EVENT_CHANCE) return null;
+  const pool = Object.values(FLOOR_EVENTS || {}).filter((e) => e.floor === floorId);
+  if (!pool.length) return null;
+  state.floorEventCooldown = FLOOR_EVENT_COOLDOWN;
+  return pool[Math.floor(Math.random() * pool.length)];
 }

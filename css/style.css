@@ -876,6 +876,20 @@ kbd {
 .archetype-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .archetype-body b { font-size: 14.5px; }
 .archetype-body span { color: var(--dim); font-size: 12px; line-height: 1.35; }
+.effect-summary { font-size: 12px; color: var(--gold2); margin-top: 6px; font-weight: 600; opacity: 0.9; }
+/* Вложенные span в .archetype-body красятся в --dim, поэтому уточняем селектор. */
+.archetype-body .effect-summary { color: var(--gold2); }
+
+/* ── Диалоговые деревья (Блок 2) ─────────────────────────── */
+.dialog-option { width: 100%; text-align: left; }
+.dialog-option.good { border-color: #4caf50; color: #a5d6a7; }
+.dialog-option.good:hover { border-color: #66bb6a; }
+.dialog-option.bad { border-color: #c2483c; color: #e0a39c; }
+.dialog-option.bad:hover { border-color: #d96b5e; }
+.dialog-option.neutral { border-color: var(--line2); }
+
+/* ── Реакции компаньонов (Блок 3) ────────────────────────── */
+.companion-reaction { font-size: 13px; color: var(--gold2); font-style: italic; }
 
 .preview-archetype { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #130f0c; font-size: 13px; }
 .preview-archetype-head { display: flex; align-items: center; gap: 6px; }
@@ -1129,24 +1143,33 @@ kbd {
 
 .npc-dialogue-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 18px;
-  background: rgba(18, 13, 11, 0.85);
-  border: 1px solid var(--line);
-  border-radius: 12px; 
-  padding: 16px 20px; 
+  gap: 20px;
+  padding: 16px;
   margin-bottom: 18px;
+  background: rgba(20, 16, 14, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+/* Портрет + реплика занимают основную часть ширины, кнопки — справа. */
+.npc-dialogue-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1 1 0;
+  min-width: 260px;
 }
 .npc-dialogue-bar .npc-portrait {
-  width: 120px; 
-  height: 120px; 
+  width: 120px !important;
+  height: 120px !important;
   flex-shrink: 0;
-  object-fit: cover; 
+  object-fit: cover;
   border-radius: 12px;
-  border: 2px solid var(--gold); 
-  background-color: #171210; /
+  border: 2px solid var(--gold);
+  background-color: #171210;
 }
-.npc-dialogue-text { flex: 1; min-width: 0; }
+.npc-dialogue-text { flex: 1; min-width: 0; padding-top: 4px; }
 .npc-dialogue-text .npc-name {
   margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold);
@@ -1154,12 +1177,75 @@ kbd {
 .npc-dialogue-text .npc-dialogue {
   margin: 0; font-style: italic; color: #e2e8f0; font-size: 1rem; line-height: 1.55;
 }
-.npc-dialogue-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+/* Сетка действий NPC: 2 колонки, группы разделены подзаголовками. */
+.npc-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  flex: 0 0 clamp(280px, 32%, 340px);
+  width: clamp(280px, 32%, 340px);
+  max-width: 100%;
+}
+.npc-action-group-title {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.npc-action-group-title:first-child { margin-top: 0; }
+.npc-action-featured {
+  grid-column: 1 / -1;
+  display: flex;
+}
+.npc-action-featured .btn { width: 100%; }
+/* Сюжетный слайд: те же пропорции, что и у обычного диалога, но кнопки-реплики справа. */
+.npc-story-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 clamp(280px, 32%, 340px);
+  width: clamp(280px, 32%, 340px);
+  max-width: 100%;
+}
+.npc-story-actions .btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.3;
+}
+.npc-dialogue-text .npc-name.npc-name-lg { font-size: 1.1rem; color: var(--gold2); margin-bottom: 10px; }
+.npc-dialogue-text .npc-dialogue.npc-dialogue-lg { font-size: 1.05rem; line-height: 1.5; }
+.npc-action-grid .shop-tab,
+.npc-action-grid .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 10px;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.25;
+}
+.npc-action-grid .shop-tab.active,
+.npc-action-grid .btn.active {
+  border-color: var(--gold);
+  background: #241a0e;
+  color: var(--gold2);
+  box-shadow: inset 0 0 0 1px rgba(223, 184, 108, 0.25);
+}
 @media (max-width: 680px) {
   .npc-dialogue-bar { flex-direction: column; text-align: center; padding: 14px; }
-  .npc-dialogue-bar .npc-portrait { width: 80px; height: 80px; }
-  .npc-dialogue-actions { flex-direction: column; width: 100%; }
-  .npc-dialogue-actions .shop-tab { width: 100%; }
+  .npc-dialogue-main { flex-direction: column; align-items: center; text-align: center; width: 100%; min-width: 0; }
+  .npc-dialogue-bar .npc-portrait { width: 80px !important; height: 80px !important; }
+  .npc-action-grid { flex: 1 1 100%; width: 100%; }
+  .npc-story-actions { flex: 1 1 100%; width: 100%; }
+  .npc-story-actions .btn { justify-content: center; text-align: center; }
 }
 
 /* Панель продажи: чекбоксы */
@@ -1367,103 +1453,6 @@ kbd {
   background: rgba(10, 8, 7, 0.5);
 }
 
-/* ── Виджет музыки ──────────────────────────────────────── */
-
-.music-widget {
-  position: fixed;
-  top: 22px;
-  left: 50%;
-  margin-left: -620px; /* Увеличиваем сдвиг влево (было -380) */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 4px;
-  z-index: 9999;
-  transition: all 0.2s;
-}
-
-.music-widget:hover {
-  background: rgba(20, 15, 10, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  padding: 6px;
-  transform: translateY(-2px);
-}
-
-#music-toggle {
-  background: none;
-  border: none;
-  color: #ffd700;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0;
-  outline: none;
-  transition: transform 0.2s, opacity 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#music-toggle:hover {
-  transform: scale(1.15);
-}
-
-#music-volume {
-  -webkit-appearance: none; 
-  appearance: none;
-  width: 4px;      
-  height: 0;       
-  background: rgba(255, 215, 0, 0.3);
-  border-radius: 2px;
-  outline: none;
-  transition: height 0.3s ease, opacity 0.3s ease;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.music-widget:hover #music-volume {
-  height: 80px;
-  opacity: 1;
-}
-
-#music-volume::-webkit-slider-thumb {
-  -webkit-appearance: none; 
-  appearance: none;
-  width: 12px; 
-  height: 12px; 
-  border-radius: 50%;
-  background: #ffd700; 
-  cursor: pointer;
-}
-
-#music-volume::-moz-range-thumb {
-  width: 12px; 
-  height: 12px; 
-  border: none; 
-  border-radius: 50%;
-  background: #ffd700; 
-  cursor: pointer;
-}
-
-/* На планшетах и ноутбуках */
-@media (max-width: 1200px) {
-  .music-widget {
-    left: 18px;
-    margin-left: 0;
-  }
-}
-
-/* На мобильных экранах */
-@media (max-width: 680px) {
-  .music-widget {
-    top: 10px;
-    left: auto;
-    right: 10px;
-    margin-left: 0;
-  }
-}
 .hero-bg {
   position: fixed;
   top: 0;
@@ -2912,4 +2901,164 @@ kbd {
   border-color: var(--gold) !important;
   color: var(--gold2) !important;
   box-shadow: 0 0 8px rgba(217, 169, 75, 0.45);
+}
+
+/* ── Сетовые бонусы (профиль героя) ── */
+.set-bonus-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.set-bonus-row {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(201, 152, 78, 0.07);
+}
+.set-bonus-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.set-bonus-head b { color: var(--gold2); font-size: 13.5px; }
+.set-pieces {
+  font-size: 12px;
+  color: var(--gold2);
+  background: rgba(201, 152, 78, 0.16);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.set-bonus-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--dim);
+}
+.set-next { opacity: 0.75; }
+.set-bonus-now { margin-top: 5px; font-size: 12px; color: #9fd3a0; }
+
+
+/* ── QTE-модалки (Точный удар / Парирование) ─────────────────────────────── */
+.qte-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 3, 2, 0.82);
+  backdrop-filter: blur(3px);
+  animation: qte-fade-in 0.12s ease-out;
+}
+
+.qte-card {
+  width: min(460px, 94vw);
+  padding: 26px 28px 24px;
+  border: 1px solid var(--gold);
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 0%, #2a1c11 0%, #140d09 70%);
+  box-shadow: 0 0 40px rgba(217, 169, 75, 0.25), 0 18px 50px rgba(0, 0, 0, 0.65);
+  text-align: center;
+}
+
+.qte-title {
+  margin: 0 0 8px;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  color: var(--gold2);
+  text-shadow: 0 0 18px rgba(217, 169, 75, 0.55);
+}
+
+.qte-subtitle {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.qte-timer-bar {
+  position: relative;
+  height: 10px;
+  margin: 16px 0 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.qte-timer-bar > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c2483c, #d9a94b, #7ac47c);
+}
+
+.crit-scale {
+  position: relative;
+  height: 42px;
+  margin: 6px 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    #6b4a32 0%, #6b4a32 25%,
+    #c9a227 25%, #c9a227 42%,
+    #4caf50 42%, #4caf50 58%,
+    #c9a227 58%, #c9a227 75%,
+    #6b4a32 75%, #6b4a32 100%
+  );
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.55);
+}
+
+.crit-cursor {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 5px;
+  margin-left: -2px;
+  border-radius: 3px;
+  background: #fff7e0;
+  box-shadow: 0 0 10px #fff2c4, 0 0 18px rgba(255, 255, 255, 0.65);
+  pointer-events: none;
+}
+
+.crit-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.03em;
+}
+
+.parry-btn {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #8a5a24, #5a3413);
+  color: #fff3d6;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  animation: qte-pulse 0.75s ease-in-out infinite;
+}
+
+.parry-btn:hover { filter: brightness(1.15); }
+.parry-btn:active { transform: scale(0.98); }
+.qte-stop-btn { letter-spacing: 0.12em; }
+.parry-title { color: #ff9a7c; text-shadow: 0 0 20px rgba(194, 72, 60, 0.7); }
+.parry-card { border-color: #c2483c; }
+
+.ability-badges { margin: 10px 0 4px; }
+.ability-badges .badge { border-color: var(--gold); color: var(--gold2); }
+.hero-debuffs { margin: 10px 0 2px; }
+
+@keyframes qte-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes qte-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 169, 75, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(217, 169, 75, 0); }
 }
