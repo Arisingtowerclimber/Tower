@@ -539,7 +539,6 @@ function topbarHtml(st) {
       <button class="nav-btn icon-btn rest-btn" data-act="rest" type="button" data-tooltip="Отдых (+3 энергии)">⚡</button>
       <button class="nav-btn icon-btn${hasRewards ? " ok" : ""}" data-act="quests-open" type="button" data-tooltip="Журнал">📋</button>
       <button class="nav-btn icon-btn" data-act="bestiary-open" type="button" data-tooltip="Бестиарий">📖</button>
-      <button class="nav-btn icon-btn" data-act="settings-open" type="button" data-tooltip="Настройки">⚙️</button>
       <button class="nav-btn icon-btn" data-act="goto" data-screen="hero" type="button" data-tooltip="Герой">👤</button>
       <button class="nav-btn icon-btn" data-act="goto" data-screen="hub" type="button" data-tooltip="Вернуться в Йорстед">🏰</button>
     </nav>
@@ -3438,6 +3437,7 @@ function render() {
     if (!view.create) resetCreate(); 
     topbar.innerHTML = ""; topbar.hidden = true; 
     screen.innerHTML = createHtml(); screen.dataset.screen = "create"; 
+    if (view.settingsOpen) screen.insertAdjacentHTML("beforeend", settingsModalHtml());
     return; 
   }
 
@@ -4591,6 +4591,7 @@ function onClick(event) {
       break;
     }
     case "rest":
+      if (battleActive()) { toast("Сначала завершите бой.", "warn"); break; }
       res = freeRest();
       if (isNight()) {
         view.screen = "hub";

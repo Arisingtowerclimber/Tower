@@ -5432,53 +5432,53 @@ if (typeof window !== "undefined") {
 // ── Звуки боя (строго под существующие файлы) ──────────────────────
 const SOUND_VARIANTS = {
   hit_slash: [
-    "assets/sfx/hit_slash1.mp3", "assets/sfx/hit_slash2.mp3",
-    "assets/sfx/hit_slash3.mp3", "assets/sfx/hit_slash4.mp3",
-    "assets/sfx/hit_slash5.mp3", "assets/sfx/hit_slash6.mp3"
+    "assets/audio/hit_slash1.mp3", "assets/audio/hit_slash2.mp3",
+    "assets/audio/hit_slash3.mp3", "assets/audio/hit_slash4.mp3",
+    "assets/audio/hit_slash5.mp3", "assets/audio/hit_slash6.mp3"
   ],
   hit_blunt: [
-    "assets/sfx/hit_blunt.mp3", "assets/sfx/hit_blunt2.mp3"
+    "assets/audio/hit_blunt.mp3", "assets/audio/hit_blunt2.mp3"
   ],
-  hit_crit_slash: ["assets/sfx/hit_slashcrit.mp3"],
-  hit_crit_blunt: ["assets/sfx/hit_bluntcrit.mp3"],
+  hit_crit_slash: ["assets/audio/hit_slashcrit.mp3"],
+  hit_crit_blunt: ["assets/audio/hit_bluntcrit.mp3"],
   hit_block: [
-    "assets/sfx/hit_block1.mp3", "assets/sfx/hit_block2.mp3",
-    "assets/sfx/hit_block3.mp3", "assets/sfx/hit_block4.mp3"
+    "assets/audio/hit_block1.mp3", "assets/audio/hit_block2.mp3",
+    "assets/audio/hit_block3.mp3", "assets/audio/hit_block4.mp3"
   ],
   hit_miss: [
-    "assets/sfx/hit_miss1.mp3", "assets/sfx/hit_miss2.mp3",
-    "assets/sfx/hit_miss3.mp3", "assets/sfx/hit_miss4.mp3",
-    "assets/sfx/hit_bluntmiss.mp3", "assets/sfx/hit_bluntmiss2.mp3"
+    "assets/audio/hit_miss1.mp3", "assets/audio/hit_miss2.mp3",
+    "assets/audio/hit_miss3.mp3", "assets/audio/hit_miss4.mp3",
+    "assets/audio/hit_bluntmiss.mp3", "assets/audio/hit_bluntmiss2.mp3"
   ],
-  disarm: ["assets/sfx/disarm.mp3", "assets/sfx/disarm2.mp3"],
+  disarm: ["assets/audio/disarm.mp3", "assets/audio/disarm2.mp3"],
   
   // Заглушки (файлов пока нет)
-  potion: ["assets/sfx/potion.mp3"],
-  victory: ["assets/sfx/victory.mp3"],
-  defeat: ["assets/sfx/defeat.mp3"],
-  levelup: ["assets/sfx/levelup.mp3"],
-  open: ["assets/sfx/open.mp3"],
-  chest: ["assets/sfx/chest.mp3"],
-  event: ["assets/sfx/event.mp3"],
-  quest_complete: ["assets/sfx/quest_complete.mp3"],
+  potion: ["assets/audio/potion.mp3"],
+  victory: ["assets/audio/victory.mp3"],
+  defeat: ["assets/audio/defeat.mp3"],
+  levelup: ["assets/audio/levelup.mp3"],
+  open: ["assets/audio/open.mp3"],
+  chest: ["assets/audio/chest.mp3"],
+  event: ["assets/audio/event.mp3"],
+  quest_complete: ["assets/audio/quest_complete.mp3"],
 
   // Шаги
-  footstep_dirt: ["assets/sfx/footsteps/dirt_walk_1.wav", "assets/sfx/footsteps/dirt_walk_2.wav", "assets/sfx/footsteps/dirt_walk_3.wav", "assets/sfx/footsteps/dirt_walk_4.wav", "assets/sfx/footsteps/dirt_walk_5.wav"],
-  footstep_stone: ["assets/sfx/footsteps/stone_walk_1.wav", "assets/sfx/footsteps/stone_walk_2.wav", "assets/sfx/footsteps/stone_walk_3.wav", "assets/sfx/footsteps/stone_walk_4.wav", "assets/sfx/footsteps/stone_walk_5.wav"],
-  footstep_wood: ["assets/sfx/footsteps/wood_walk_1.wav", "assets/sfx/footsteps/wood_walk_2.wav", "assets/sfx/footsteps/wood_walk_3.wav", "assets/sfx/footsteps/wood_walk_4.wav", "assets/sfx/footsteps/wood_walk_5.wav"],
-  footstep_water: ["assets/sfx/footsteps/water_walk_1.wav", "assets/sfx/footsteps/water_walk_2.wav", "assets/sfx/footsteps/water_walk_3.wav"],
+  footstep_dirt: ["assets/audio/dirt_walk_1.wav", "assets/audio/dirt_walk_2.wav", "assets/audio/dirt_walk_3.wav", "assets/audio/dirt_walk_4.wav", "assets/audio/dirt_walk_5.wav"],
+  footstep_stone: ["assets/audio/stone_walk_1.wav", "assets/audio/stone_walk_2.wav", "assets/audio/stone_walk_3.wav", "assets/audio/stone_walk_4.wav", "assets/audio/stone_walk_5.wav"],
+  footstep_wood: ["assets/audio/wood_walk_1.wav", "assets/audio/wood_walk_2.wav", "assets/audio/wood_walk_3.wav", "assets/audio/wood_walk_4.wav", "assets/audio/wood_walk_5.wav"],
+  footstep_water: ["assets/audio/water_walk_1.wav", "assets/audio/water_walk_2.wav", "assets/audio/water_walk_3.wav"],
   // Прыжки и приземления
-  footstep_jump: ["assets/sfx/footsteps/dirt_jump.wav", "assets/sfx/footsteps/stone_jump.wav", "assets/sfx/footsteps/wood_jump.wav", "assets/sfx/footsteps/water_jump.wav"],
-  footstep_land: ["assets/sfx/footsteps/dirt_land.wav", "assets/sfx/footsteps/stone_land.wav", "assets/sfx/footsteps/wood_land.wav", "assets/sfx/footsteps/water_land.wav"],
+  footstep_jump: ["assets/audio/dirt_jump.wav", "assets/audio/stone_jump.wav", "assets/audio/wood_jump.wav", "assets/audio/water_jump.wav"],
+  footstep_land: ["assets/audio/dirt_land.wav", "assets/audio/stone_land.wav", "assets/audio/wood_land.wav", "assets/audio/water_land.wav"],
   // Интерфейс и взаимодействия
-  chest_open: ["assets/sfx/misc/chest_open_1.wav", "assets/sfx/misc/chest_open_2.wav"],
-  chest_close: ["assets/sfx/misc/chest_close_1.wav", "assets/sfx/misc/chest_close_2.wav"],
-  door_open: ["assets/sfx/misc/door_open_1.wav", "assets/sfx/misc/door_open_2.wav"],
-  door_close: ["assets/sfx/misc/door_close_1.wav", "assets/sfx/misc/door_close_2.wav"],
-  gate_open: ["assets/sfx/misc/gate_open.wav"],
-  portcullis: ["assets/sfx/misc/portcullis_gate.wav"],
-  lock_unlock: ["assets/sfx/misc/lock_unlock.wav"],
-  forge_craft: ["assets/sfx/misc/forge_craft.wav"]
+  chest_open: ["assets/audio/chest_open_1.wav", "assets/audio/chest_open_2.wav"],
+  chest_close: ["assets/audio/chest_close_1.wav", "assets/audio/chest_close_2.wav"],
+  door_open: ["assets/audio/door_open_1.wav", "assets/audio/door_open_2.wav"],
+  door_close: ["assets/audio/door_close_1.wav", "assets/audio/door_close_2.wav"],
+  gate_open: ["assets/audio/gate_open.wav"],
+  portcullis: ["assets/audio/portcullis_gate.wav"],
+  lock_unlock: ["assets/audio/lock_unlock.wav"],
+  forge_craft: ["assets/audio/forge_craft.wav"]
 };
 window.SOUND_VARIANTS = SOUND_VARIANTS;
 

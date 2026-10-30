@@ -47,7 +47,7 @@ const platform = {
     _missing: {}, // path → true, если файл не загрузился (чтобы не спамить 404)
 
     create(id) {
-      const el = new Audio(`assets/sfx/${id}.mp3`);
+      const el = new Audio(`assets/audio/${id}.mp3`);
       el.preload = "auto";
       return el;
     },
@@ -79,7 +79,7 @@ const platform = {
       }
     },
 
-    // Проигрывает конкретный файл по пути (assets/sfx/...). Кеш — по пути,
+    // Проигрывает конкретный файл по пути (assets/audio/...). Кеш — по пути,
     // чтобы разные варианты одного звука не перетирали друг друга.
     playPath(path, { volume = null, rate = null } = {}) {
       if (typeof Audio === "undefined" || !path) return;
