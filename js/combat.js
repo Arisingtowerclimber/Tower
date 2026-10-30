@@ -507,7 +507,7 @@ function exchange(state, battle, action, weaponInst = null) {
       // применяется — его нанесёт ui.js после остановки указателя.
       const preciseStrike = crit && state.abilities && state.abilities.preciseStrike === true;
       if (preciseStrike) {
-        battle.critWindow = { zone: action.zone, damageBase: damage, timeLeft: 1.5 };
+        battle.critWindow = { zone: action.zone, damageBase: damage, timeLeft: 3.0 };
         battle.lastPlayerHit = true;
         battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
         battleLog(battle, "КРИТ! Точный удар — остановите указатель в зелёной зоне!", "crit");
@@ -671,7 +671,7 @@ function exchange(state, battle, action, weaponInst = null) {
         // «Парирование»: вместо пассивного уворота — окно QTE. Урон
         // применяется только после реакции игрока (или по таймеру).
         if (parryTrigger) {
-          battle.parryWindow = { damageBase: damage, zone: enemyZone, timeLeft: 1.0 };
+          battle.parryWindow = { damageBase: damage, zone: enemyZone, timeLeft: 2.0 };
           battleLog(battle, `⚠️ Удар в «${enemyZone}»! Парируй!`, "warn");
         } else {
           state.hp = Math.max(0, state.hp - damage);

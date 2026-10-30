@@ -11,7 +11,9 @@ const view = {
   npcShopOpen: false, traderStock: null,
   talkNpc: null, talkNpcText: null, dialogNode: null,
   shopTab: "buy", sellSelection: [], activeShopNpc: null, shopNpcPhrase: null, shopFilterArmor: null,
+  companionInfo: null,
   trainingTab: "train",
+  hallTab: "board",
   inventoryTab: "gear",
   invItemUid: null,
   invFilter: "all",
@@ -20,10 +22,12 @@ const view = {
   heroBackScreen: "hub",
   ambush: null,
   storyJustPlayed: false,
+  introPending: false,
   exploreResult: null,
   weaponSwap: false,
   battleModal: null,
   titleModal: false,
+  achievementsOpen: false,
   talentsModal: false,
   settingsOpen: false, settingsTab: "audio",
   shopFilterSlot: "all", shopFilterType: "all", shopFilterStyle: null,
@@ -33,17 +37,20 @@ let toastTimer = null;
 let invFilterCache = { key: "", list: [] };
 
 // ── QTE: общее состояние анимации ──────────────────────────────────────────
-// Указатель «Точного удара» ходит слева направо и обратно; таймеры окон
-// крутятся в requestAnimationFrame и обновляют DOM без полного render().
-const QTE_CRIT_TIME = 1.5;
-const QTE_PARRY_TIME = 1.0;
-const QTE_TRAINING_TIME = 3.0;
-let qteFrame = null;
-let qteLastTs = 0;
+// Таймеры окон тикают setInterval раз в 100 мс и обновляют только полоску.
+// Указатель «Точного удара» тоже двигается в этом тике.
+const QTE_CRIT_TIME = 3.0;
+const QTE_PARRY_TIME = 2.0;
+const QTE_TRAINING_TIME = 6.0;
+const QTE_TICK_MS = 100;
+let qteInterval = null;
 let qteCursorPos = 0;
 let qteCursorDir = 1;
+let qteRunnerPos = 0;
+let qteRunnerDir = 1;
 
-function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
+// Экранирование для HTML и атрибутов: важны кавычки — в data-tooltip лежит готовый HTML.
+function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
 function bar(cls, value, max, role = "") { const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100)); return `<div class="bar ${cls}"${role ? ` data-role="${role}"` : ""}><span style="width:${pct}%"></span></div>`; }
 function toast(text, kind = "info") { const el = platform.dom.byId("toast"); if (!el) return; el.textContent = text; el.className = `toast show ${kind}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = "toast"; }, 2400); }
 
@@ -299,7 +306,11 @@ function formatEffects(effects) {
 function createHtml() {
   const c = view.create;
   const totalSteps = BACKGROUND_STEPS.length;
-  const portrait = PORTRAIT_MAP[c.portrait] || PORTRAITS[0];
+  const genderPortraits = PORTRAITS.filter((p) => p.gender === c.gender);
+  const chosenPortrait = PORTRAIT_MAP[c.portrait];
+  const portrait = chosenPortrait && chosenPortrait.gender === c.gender
+    ? chosenPortrait
+    : (genderPortraits[0] || PORTRAITS[0]);
 
   if (c.step >= totalSteps) {
     return createSummaryHtml(c, portrait);
@@ -321,7 +332,6 @@ function createHtml() {
       : `data-act="bio-option" data-step="${step.id}" data-option="${opt.id}"`;
     return `
       <button class="archetype-card${selected ? " selected" : ""}" ${action} type="button">
-        <span class="archetype-icon">${opt.icon || "•"}</span>
         <span class="archetype-body">
           <b>${opt.label || opt.name}</b>
           <span>${opt.desc}</span>
@@ -336,7 +346,7 @@ function createHtml() {
   return `
     <div class="create-bg"></div>
     <section class="create">
-      <div class="create-head">
+      <div class="create-head create-panel">
         <p class="eyebrow">Перед подъёмом · Шаг ${c.step + 1} из ${totalSteps + 1}</p>
         ${step.lore ? `<p class="lore">${esc(step.lore)}</p>` : ""}
         <h1>${step.title}</h1>
@@ -363,6 +373,9 @@ function createSummaryHtml(c, portrait) {
   let bonusGold = 0;
   let bonusPotions = 0;
   const pathChips = [];
+  const genderPortraits = PORTRAITS.filter((p) => p.gender === c.gender);
+  const selectedPortrait = genderPortraits.some((p) => p.id === c.portrait) ? c.portrait : (genderPortraits[0] || portrait).id;
+  const previewPortrait = PORTRAIT_MAP[selectedPortrait] || portrait;
 
   for (const step of BACKGROUND_STEPS) {
     if (step.id === "archetype") continue;
@@ -371,7 +384,7 @@ function createSummaryHtml(c, portrait) {
     const pool = step.optionsByArchetype ? step.optionsByArchetype[c.archetype] || [] : step.options || [];
     const opt = pool.find((o) => o.id === optionId);
     if (!opt) continue;
-    pathChips.push(`<span class="chip">${opt.icon || "•"} ${esc(opt.label)}</span>`);
+    pathChips.push(`<span class="chip">${esc(opt.label)}</span>`);
     const eff = opt.effects || {};
     for (const a of ["str", "agi", "end", "int"]) {
       if (eff[a]) attrs[a] += Math.min(4, Math.max(0, Number(eff[a]) || 0));
@@ -394,7 +407,7 @@ function createSummaryHtml(c, portrait) {
   return `
     <div class="create-bg"></div>
     <section class="create">
-      <div class="create-head">
+      <div class="create-head create-panel">
         <p class="eyebrow">Шаг ${BACKGROUND_STEPS.length + 1} из ${BACKGROUND_STEPS.length + 1} · Имя и портрет</p>
         <h1>Ваш герой</h1>
         <p class="lead">Остался последний штрих: имя и лицо.</p>
@@ -403,9 +416,7 @@ function createSummaryHtml(c, portrait) {
         <section class="panel">
           <div class="field"><label>Пол</label><div class="gender-toggle"><button class="btn${c.gender === "male" ? " selected" : ""}" data-act="bio-gender" data-id="male" type="button">Мужчина</button><button class="btn${c.gender === "female" ? " selected" : ""}" data-act="bio-gender" data-id="female" type="button">Женщина</button></div></div>
 
-          <div class="field"><label for="hero-name">Имя героя</label><input class="name-input" id="hero-name" type="text" maxlength="20" data-role="create-name" autocomplete="off" spellcheck="false" placeholder="Странник" value="${esc(c.name)}"></div>
-
-          <div class="field"><label>Портрет</label><div class="portrait-picker">${PORTRAITS.map((p) => `<button class="portrait-option${p.id === c.portrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" style="aspect-ratio: 1 / 1;" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
+          <div class="field"><label>Портрет</label><div class="portrait-picker" style="--portrait-count:${Math.max(1, genderPortraits.length)};">${genderPortraits.map((p) => `<button class="portrait-option${p.id === selectedPortrait ? " selected" : ""}" data-act="bio-portrait" data-id="${p.id}" type="button" title="${esc(p.name)}"><img src="${p.src}" alt="${esc(p.name)}"></button>`).join("")}</div></div>
 
           <div class="field"><label>Пройденный путь</label><div class="chips">${pathChips.length ? pathChips.join("") : `<span class="chip dim">Биография не выбрана</span>`}</div></div>
 
@@ -429,12 +440,16 @@ function createSummaryHtml(c, portrait) {
 
         <section class="panel">
           <div class="preview-portrait">
-            <img src="${portrait.src}" alt="${esc(c.name || "Странник")}">
-            <div class="preview-portrait-caption"><b>${esc(c.name || "Странник")}</b></div>
+            <img src="${previewPortrait.src}" alt="${esc(c.name || "Странник")}">
+          </div>
+
+          <div class="field preview-name-field">
+            <label for="hero-name">Имя героя</label>
+            <input class="name-input" id="hero-name" type="text" maxlength="20" data-role="create-name" autocomplete="off" spellcheck="false" placeholder="Странник" value="${esc(c.name)}">
           </div>
 
           ${arch ? `<div class="preview-archetype">
-            <div class="preview-archetype-head"><span class="archetype-icon">${arch.icon}</span><b>${arch.name}</b></div>
+            <div class="preview-archetype-head"><b>${arch.name}</b></div>
             <span>${arch.desc}</span>
           </div>` : `<div class="preview-archetype empty"><b>Архетип не выбран</b><span>Вернитесь на первый шаг.</span></div>`}
 
@@ -459,7 +474,11 @@ function tryStartGame() {
   const c = view.create; if (!c) return;
   if (!ARCHETYPE_MAP[c.archetype]) { toast("Выберите архетип.", "warn"); return; }
   createHero(c.answers, c.archetype, c.portrait, c.name, c.gender);
-  view.create = null; view.screen = "hub"; view.summary = null; render();
+  view.create = null; view.screen = "hub"; view.summary = null;
+  // Вступительная сцена с Тимми — сразу на первом экране хаба.
+  view.introPending = true;
+  view.dialogNode = "intro_start";
+  render();
   toast(`Добро пожаловать, ${state.name}.`, "ok");
 }
 
@@ -532,11 +551,12 @@ function topbarHtml(st) {
       ${weeklyPill}
     </div>
     <nav class="topnav${lockNav}">
-      <button class="nav-btn icon-btn${hasRewards ? " ok" : ""}" data-act="quests-open" type="button" title="Журнал заданий">📋</button>
-      <button class="nav-btn icon-btn" data-act="bestiary-open" type="button" title="Бестиарий">📖</button>
-      <button class="nav-btn icon-btn" data-act="settings-open" type="button" title="Настройки">⚙️</button>
-      <button class="nav-btn icon-btn" data-act="goto" data-screen="hero" type="button" title="Меню Героя">👤</button>
-      <button class="nav-btn icon-btn" data-act="goto" data-screen="hub" type="button" title="Вернуться в Йорстед">🏰</button>
+      <button class="nav-btn icon-btn rest-btn" data-act="rest" type="button" data-tooltip="Отдых (+3 энергии)">⚡</button>
+      <button class="nav-btn icon-btn${hasRewards ? " ok" : ""}" data-act="quests-open" type="button" data-tooltip="Журнал">📋</button>
+      <button class="nav-btn icon-btn" data-act="bestiary-open" type="button" data-tooltip="Бестиарий">📖</button>
+      <button class="nav-btn icon-btn" data-act="settings-open" type="button" data-tooltip="Настройки">⚙️</button>
+      <button class="nav-btn icon-btn" data-act="goto" data-screen="hero" type="button" data-tooltip="Герой">👤</button>
+      <button class="nav-btn icon-btn" data-act="goto" data-screen="hub" type="button" data-tooltip="Вернуться в Йорстед">🏰</button>
     </nav>
     ${debuffStrip}
   `;
@@ -561,23 +581,21 @@ function hubHtml(st) {
       <div class="hub-head">
         <img src="assets/backgrounds/hub.webp" class="hub-image" onerror="this.style.display='none'" alt="">
         <div class="hub-head-text">
-          <h1>Йорстед</h1>
-          <p class="lead">Йорстед - один из древних городов-крепостей человечества и единственное безопасное место в округе.</p>
+          <div class="hub-head-copy">
+            <h1>Йорстед</h1>
+            <p class="lead">Йорстед - один из древних городов-крепостей человечества и единственное безопасное место в округе.</p>
+          </div>
         </div>
       </div>
 
-      <div style="display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;">
-        <button class="btn primary" data-act="rest" type="button">
-          ${isNight() ? "🌙 Дождаться утра" : "⚡ Отдых · +3 энергии"}
-        </button>
-        ${companion ? `
-          <div class="status-item buff" style="margin: 0; padding: 8px 12px;">
-            <span>Спутница</span>
-            <b>${companion.icon} ${companion.name}</b>
-            <small>${companion.buffText} · ${companionAffinityInfo(companion.id).rank.name} · ${companionWage(companion.id)} 💰/день</small>
-          </div>
-        ` : ""}
-      </div>
+      ${companion ? `
+        <div class="hub-status-row">
+          <button class="companion-pill" data-act="companion-info" data-id="${companion.id}" type="button" title="Рассказать о спутнице">
+            <span class="companion-pill-label">Спутница</span>
+            <b>${companion.icon} ${esc(companion.name)}</b>
+          </button>
+        </div>
+      ` : ""}
 
             <div class="locations">
         <button class="loc-card${isNight() ? " locked" : ""}" data-act="goto" data-screen="market" type="button">
@@ -629,6 +647,51 @@ function hubHtml(st) {
   `;
 }
 
+const COMPANION_BATTLE_TEXT = {
+  heal: "🌿 Лечит героя в бою",
+  stun: "🎼 Оглушает врага",
+  strike: "🗡️ Наносит удар по врагу",
+};
+
+// Карточка спутницы по клику на плашку в хабе: портрет, роль, описание,
+// ранг отношений и боевое действие.
+function renderCompanionInfoModal() {
+  const companion = COMPANION_MAP[view.companionInfo];
+  if (!companion) return "";
+  const info = companionAffinityInfo(companion.id);
+  const active = state.companion === companion.id;
+  const nextText = info.next ? `${info.value} / ${info.next.min}` : `${info.value} / максимум`;
+  const battleText = COMPANION_BATTLE_TEXT[companion.battleAction] || "Помогает в бою";
+
+  return `
+    <div class="result-overlay" data-act="companion-info-close" style="z-index: 190;">
+      <div class="result-card companion-modal" data-act="companion-info-stop" style="max-width: 560px; text-align: left;">
+        <div class="companion-modal-head">
+          <img src="${npcPortraitSrc(companion.id)}" alt="${esc(companion.name)}">
+          <div>
+            <span class="companion-modal-kicker">Спутница</span>
+            <h2>${esc(companion.name)}</h2>
+            <span class="hint">${esc(companion.role)}${active ? " · сейчас с вами" : ""}</span>
+          </div>
+        </div>
+        <p class="companion-modal-desc">${esc(genderText(companion.desc || ""))}</p>
+        <div class="companion-modal-block">
+          <div class="companion-modal-row"><b>Ранг Affinity</b><span>${esc(info.rank.name)}</span></div>
+          <div class="bar"><span style="width:${info.percent}%"></span></div>
+          <div class="hint">${nextText}</div>
+        </div>
+        <div class="companion-modal-block">
+          <div class="companion-modal-row"><b>Боевые действия</b></div>
+          <p class="companion-modal-action">${battleText}</p>
+        </div>
+        <div class="companion-modal-foot">
+          <button class="btn primary" data-act="companion-info-close" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 const SHOP_NPCS = { forge: "ron", alchemy: "elain", jewelry: "elize", hotel: "stella", training: "ivan" };
 const CRAFT_NPC_STATIONS = { ron: "forge", elain: "alchemy", elize: "jewelry" };
 
@@ -638,24 +701,28 @@ function npcStorySlide(npcId) {
   return (!view.storyJustPlayed && Array.isArray(storyArr)) ? storyArr[storyIndex] : null;
 }
 
-function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
+function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "", portraitClass = "") {
   const tab = view.shopTab;
   const npcName = NPC_NAMES[npcId] || npcId;
-  
+
+  // Активный разговор: диалог встраивается в полосу, кнопки покупки скрываются.
+  const talkId = view.talkNpc && DIALOG_TREES[view.talkNpc] ? view.talkNpc : null;
+  if (talkId) return npcInlineDialogueBar(talkId);
+
   const currentSlide = npcStorySlide(npcId);
 
   if (currentSlide) {
     const optionsHtml = currentSlide.options.map((opt, idx) => 
-      `<button class="btn primary npc-story-option" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button">${esc(opt.text)}</button>`
+      `<button class="btn primary npc-story-option" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button">${esc(genderText(opt.text))}</button>`
     ).join("");
 
     return `
       <div class="npc-dialogue-bar npc-story-bar">
         <div class="npc-dialogue-main">
-          <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}">
+          <img class="npc-portrait ${portraitClass}" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}">
           <div class="npc-dialogue-text">
             <p class="npc-name npc-name-lg">${esc(npcName)}</p>
-            <p class="npc-dialogue npc-dialogue-lg">«${esc(currentSlide.npc)}»</p>
+            <p class="npc-dialogue npc-dialogue-lg">«${esc(genderText(currentSlide.npc))}»</p>
           </div>
         </div>
         <div class="npc-story-actions">
@@ -672,10 +739,12 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
     `<button class="shop-tab npc-action-btn${tab === tabId ? " active" : ""}" data-act="shop-tab" data-tab="${tabId}" data-npc="${npcId}" type="button">${label}</button>`;
   const craftStation = CRAFT_NPC_STATIONS[npcId];
   const craftBtn = craftStation && getRecipes(craftStation).length ? btn("craft", "📜 Крафт") : "";
+  // Разговор — единственный вход в сюжетные задания NPC.
+  const talkBtn = `<button class="shop-tab npc-action-btn" data-act="npc-talk" data-npc="${npcId}" type="button">💬 Поговорить</button>`;
 
   // Группы действий: пустые группы не выводятся, чтобы не оставлять дыр в сетке.
   const actionGroups = [
-    { title: "Торговля", items: [btn("buy", buyLabel), sellLabel ? btn("sell", sellLabel) : ""] },
+    { title: "Торговля", items: [buyLabel ? btn("buy", buyLabel) : "", sellLabel ? btn("sell", sellLabel) : ""] },
     { title: "Мастерская", items: [
       craftBtn,
       FACTION_BY_NPC[npcId] ? btn("upgrade", "🔧 Улучшить") : "",
@@ -683,7 +752,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
     ] },
     { title: "Информация", items: [
       npcId === "ivan" ? "" : btn("quests", "📜 Есть задания?"),
-      storyQuestBarBtn(npcId),
+      talkBtn,
     ] },
   ];
   const actionsHtml = actionGroups.map((group) => {
@@ -695,7 +764,7 @@ function npcDialogueBar(npcId, buyLabel, sellLabel, extraAction = "") {
   return `
     <div class="npc-dialogue-bar">
       <div class="npc-dialogue-main">
-        <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
+        <img class="npc-portrait ${portraitClass}" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
         <div class="npc-dialogue-text">
           <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
           <p class="npc-dialogue">«${esc(phrase)}»</p>
@@ -827,14 +896,13 @@ function affinityBarHtml(companionId) {
   if (!companion) return "";
   const info = companionAffinityInfo(companionId);
   const nextText = info.next ? `${info.value} / ${info.next.min}` : `${info.value} / максимум`;
-  const bonusText = info.rank.bonus ? `+${Math.round(info.rank.bonus * 100)}% к баффу` : "без бонуса";
   return `<div style="margin-top:10px;">
     <div style="display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--gold2);">
       <b>${companion.icon} ${esc(companion.name)}</b><span>${esc(info.rank.name)}</span>
     </div>
     <div class="bar" style="height:6px; margin-top:5px;"><span style="width:${info.percent}%"></span></div>
     <div style="display:flex; justify-content:space-between; gap:8px; margin-top:4px; font-size:11px; opacity:.8;">
-      <span>${nextText}</span><span>${bonusText} · ${companionWage(companionId)} 💰/день</span>
+      <span>${nextText}</span><span>${companionWage(companionId)} 💰/день</span>
     </div>
   </div>`;
 }
@@ -842,27 +910,30 @@ function affinityBarHtml(companionId) {
 function hotelHtml() {
   const companion = activeCompanion();
   const canHotel = state.gold >= HOTEL_PRICE;
+  // Компактная горизонтальная карточка: только портрет, имя, роль и диалог.
+  // Найм — через диалог «Поговорить»; пассивных баффов и цены в карточке нет.
   const cards = COMPANIONS.map((c) => {
     const active = companion?.id === c.id;
-    const cost = companionHireCost(c.id);
-    const canPay = state.gold >= cost.price;
-    const discountNote = cost.discount > 0 ? ` <span class="hint">−${Math.round(cost.discount * 100)}%</span>` : "";
-    const action = active
-      ? `<button class="btn small primary" type="button" disabled>С вами</button>`
-      : `<button class="btn small" data-act="companion" data-id="${c.id}" ${canPay ? "" : "disabled"} type="button">Нанять · ${cost.price} 💰</button>`;
-    return `<article class="companion-card${active ? " active" : ""}"><div class="companion-head"><img class="companion-portrait" src="${c.src || npcPortraitSrc(c.id)}" alt=""><div class="companion-name"><h3>${c.name}</h3><span class="companion-role">${c.role}</span><span class="companion-buff">${c.buffText} · ${companionWage(c.id)} 💰/день</span></div></div>${active ? `<span class="badge">Сейчас с вами</span>` : ""}<p class="item-desc">${c.desc}</p>${affinityBarHtml(c.id)}<div class="companion-foot" style="flex-wrap:wrap; gap:8px;"><span class="price">${cost.price} 💰${discountNote}</span><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn small ghost" data-act="companion-talk" data-id="${c.id}" type="button">Поговорить</button>${action}</div></div></article>`;
+    return `<article class="companion-row${active ? " active" : ""}">
+      <img class="companion-portrait" src="${npcPortraitSrc(c.id)}" alt="${esc(c.name)}">
+      <div class="companion-info">
+        <h3>${esc(c.name)}</h3>
+        <span class="companion-role">${esc(c.role)}</span>
+      </div>
+      <div class="companion-actions">
+        <button class="btn small ghost" data-act="npc-talk" data-npc="${c.id}" type="button">Поговорить</button>
+      </div>
+    </article>`;
   }).join("");
   const companionNote = companion
-    ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>`
+    ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>`
     : `<div class="companion-note">💞 Компаньон остаётся с вами, пока вы платите жалование. Отношения растут в боях и событиях.</div>`;
 
-  const tab = view.shopTab === "quests" ? "quests" : view.shopTab === "story" ? "story" : "buy";
+  const tab = view.shopTab === "quests" ? "quests" : "buy";
   const content =
     tab === "quests"
       ? npcQuestHtml("stella")
-      : tab === "story"
-        ? storyQuestPanelHtml("stella")
-        : `<h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
+      : `<h2 class="group-title">Спутницы</h2>${companionNote}<div class="companion-grid">${cards}</div>`;
 
   return `
     <div class="screen-bg" style="background-image: url('assets/backgrounds/hotel.webp');"></div>
@@ -882,6 +953,11 @@ function trainingAvailability(training) {
 }
 
 function trainingHtml() {
+  const hallTab = view.hallTab === "training" ? "training" : "board";
+  const tabBtn = (tabId, label) =>
+    `<button class="shop-tab npc-action-btn${hallTab === tabId ? " active" : ""}" data-act="hall-tab" data-tab="${tabId}" type="button">${label}</button>`;
+  const hallTabs = `<div class="hall-tabs">${tabBtn("training", "💪 Тренировки")}${tabBtn("board", "📋 Задания")}</div>`;
+
   const warning = state.phase === 0
     ? (state.energy < TRAINING_ENERGY_COST ? `<div class="banner warn-banner">⚡ Не хватает энергии.</div>` : `<div class="banner">⏳ Тренировка занимает фазу: утро → день.</div>`)
     : `<div class="banner warn-banner">🌙 Сейчас не утро. Иван отдыхает.</div>`;
@@ -906,22 +982,36 @@ function trainingHtml() {
     </article>`;
   }).join("");
 
+  // Центральная колонка: доска контрактов либо тренировочный зал.
+  const boardSection = hallTab === "board"
+    ? huntBoardHtml()
+    : "";
+  const trainingSection = hallTab === "training"
+    ? `<section class="shop-group training-section">
+        <h2 class="group-title">💪 Тренировочный зал</h2>
+        <div class="training-grid">${trainingCards}</div>
+      </section>`
+    : "";
+
   return `
     <div class="screen-bg hall-bg" style="background-image: url('assets/backgrounds/hunters_hall.webp');"></div>
     ${subHeader("Зал Охотников", "Место сбора авантюристов", "hub")}
     <div class="hall-npcs">
-      ${npcDialogueBar("ivan", "Тренировки", "")}
+      ${npcDialogueBar("ivan", "", "")}
       ${timmyCardHtml()}
     </div>
-    ${warning}
-    ${view.shopTab === "story" ? storyQuestPanelHtml("ivan") : ""}
-    ${huntBoardHtml()}
-    <div class="hall-lower">
-      <section class="shop-group training-section">
-        <h2 class="group-title">💪 Тренировочный зал</h2>
-        <div class="training-grid">${trainingCards}</div>
-      </section>
-      ${hunterStatsHtml()}
+    <div class="hall-shell">
+      <div class="hall-nav">
+        ${hallTabs}
+      </div>
+      <div class="hall-layout">
+        <div class="hall-content">
+          ${hallTab === "training" ? warning : ""}
+          ${boardSection}
+          ${trainingSection}
+        </div>
+        ${hunterStatsHtml()}
+      </div>
     </div>
   `;
 }
@@ -1026,7 +1116,7 @@ function randomTimmyTip() {
 
 function timmyCardHtml() {
   return `
-    <aside class="hall-npc timmy-card">
+    <aside class="timmy-card">
       <img class="timmy-portrait" src="${npcPortraitSrc("timmy")}" alt="Тимми" onerror="this.style.display='none'">
       <div class="timmy-info">
         <p class="timmy-name">Тимми, молодой охотник</p>
@@ -1401,13 +1491,6 @@ function storyQuestRewardText(def) {
   return parts.join(" · ");
 }
 
-// Кнопка «📖 Сюжет» в полосе диалога NPC — только если есть сюжетное задание.
-function storyQuestBarBtn(npcId) {
-  if (!availableStoryQuestForNpc(npcId) && !activeStoryQuestForNpc(npcId)) return "";
-  const inWork = !!activeStoryQuestForNpc(npcId);
-  return `<button class="shop-tab npc-action-btn${view.shopTab === "story" ? " active" : ""}" data-act="shop-tab" data-tab="story" data-npc="${npcId}" type="button">📖 Сюжет${inWork ? " ✓" : ""}</button>`;
-}
-
 function storyQuestPanelHtml(npcId) {
   const npcName = NPC_NAMES[npcId] || npcId;
   const wrap = (inner) => `<section class="shop-group" style="width: 100%; max-width: 100%;">${inner}</section>`;
@@ -1590,8 +1673,10 @@ function shopItemsHtml(tabs, activeId, shopName) {
       const countChip = copies.length ? `<span class="chip ok">В сумке: ${copies.length}</span>` : "";
       const equippedChip = equippedInfo ? `<span class="chip ok">Надето: ${SLOT_NAME[equippedInfo.slot] || equippedInfo.slot}</span>` : "";
       const durChips = copies.map((inst) => durabilityChip(inst)).join("");
+      const shopTooltip = itemTooltipHtml(item);
+      const rowTitle = shopTooltip ? ` data-tooltip="${esc(shopTooltip)}"` : "";
 
-      return `<article class="gear-row${copies.length ? " owned" : ""}${item.rarity && item.rarity !== "common" && RARITY_TIERS[item.rarity] ? ` rarity-${item.rarity}` : ""}">
+      return `<article class="gear-row${copies.length ? " owned" : ""}${item.rarity && item.rarity !== "common" && RARITY_TIERS[item.rarity] ? ` rarity-${item.rarity}` : ""}"${rowTitle}>
         <div class="gear-row-icon">${iconHtml(item.icon, 34)}</div>
         <div class="gear-row-main">
           <h3>${item.name}</h3>
@@ -1730,7 +1815,6 @@ function forgeHtml() {
   const content =
     tab === "sell" ? sellPanelHtml("forge")
     : tab === "quests" ? npcQuestHtml("ron")
-    : tab === "story" ? storyQuestPanelHtml("ron")
     : tab === "exchange" ? exchangePanelHtml()
     : tab === "craft" ? craftPanelHtml("forge")
     : tab === "upgrade" ? upgradePanelHtml()
@@ -1751,7 +1835,6 @@ function jewelryHtml() {
   const content =
     tab === "sell" ? sellPanelHtml("jewelry")
     : tab === "quests" ? npcQuestHtml("elize")
-    : tab === "story" ? storyQuestPanelHtml("elize")
     : tab === "craft" ? craftPanelHtml("jewelry")
     : tab === "upgrade" ? upgradePanelHtml()
     : tab === "buy" ? shopItemsHtml([{ id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] }], "jewelry", "jewelry")
@@ -1773,8 +1856,6 @@ function alchemyHtml() {
     content = sellPanelHtml("alchemy");
   } else if (tab === "quests") {
     content = npcQuestHtml("elain");
-  } else if (tab === "story") {
-    content = storyQuestPanelHtml("elain");
   } else if (tab === "craft") {
     content = craftPanelHtml("alchemy");
   } else if (tab === "upgrade") {
@@ -1833,22 +1914,26 @@ function dollSlotHtml(slotId) {
   const broken = eq && isBroken(eq);
   const rarityClass = eq && eq.rarity !== "common" ? ` rarity-${eq.rarity}` : "";
 
-  let title = "";
-  if (item) {
-    const stats = itemStats(eq.item, eq).join(", ");
-    const affix = eq.affix ? ` (${eq.affix.name})` : "";
-    
-    // Подсказка слота: имя + статы (разбивку по стилям itemStats отдаёт сам).
-    title = `title="${item.name}${affix}${stats ? ` — ${stats}` : ""}"`;
-  } else {
-    title = `title="${slot.name}: пусто"`;
-  }
+  // Подсказка слота: имя, статы, сет и его активные/следующие бонусы.
+  const tooltip = item
+    ? itemTooltipHtml(item, eq)
+    : `<div class="tt-title">${esc(slot.name)}</div><div class="tt-negative">Пусто</div>`;
+  const tooltipAttr = `data-tooltip="${esc(tooltip)}"`;
 
-  return `<button class="doll-slot${item ? " filled" : ""}${open ? " open" : ""}${broken ? " broken" : ""}${rarityClass}" data-act="doll-slot" data-slot="${slot.id}" type="button" ${title}><span class="slot-glyph">${iconHtml(item ? item.icon : slot.icon, 24)}</span><span class="slot-caption">${slot.name}</span></button>`;
+  // Только картинка предмета: эмодзи-заглушки в слотах больше не выводим.
+  const iconSrc = item ? resolveIcon(item.icon) : "";
+  const icon = iconSrc.startsWith("assets/")
+    ? `<img class="slot-img" src="${iconSrc}" alt="${esc(item.name)}" onerror="this.remove()">`
+    : "";
+
+  return `<div class="doll-slot-wrapper">
+    <span class="slot-label">${esc(slot.name)}</span>
+    <button class="doll-slot${item ? " filled" : ""}${open ? " open" : ""}${broken ? " broken" : ""}${rarityClass}" data-act="doll-slot" data-slot="${slot.id}" type="button" ${tooltipAttr}>${icon}</button>
+  </div>`;
 }
 function paperDollHtml() {
   const left = DOLL_LEFT.map(dollSlotHtml).join(""); const right = DOLL_RIGHT.map(dollSlotHtml).join(""); const count = Object.values(state.equipped).filter(Boolean).length;
-  return `<div class="paper-doll"><div class="doll-col">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b>${state.currentTitle ? `<span class="hero-title">${esc(state.currentTitle)}</span>` : ""}<span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span><div class="doll-actions"><button class="btn small primary" data-act="talents-open" type="button">🌟 Таланты</button><button class="btn small ghost" data-act="title-open" type="button">👑 Сменить титул</button></div></div></div><div class="doll-col">${right}</div></div>`;
+  return `<div class="paper-doll"><div class="doll-col doll-left">${left}</div><div class="doll-center"><div class="doll-figure"><img src="${portraitSrc(state.portrait)}" alt=""></div><div class="doll-name"><b>${esc(state.name)}</b>${state.currentTitle ? `<span class="hero-title">${esc(state.currentTitle)}</span>` : ""}<span>УР ${state.level} · надето ${count} / ${SLOTS.length}</span><div class="doll-actions"><button class="btn small primary" data-act="talents-open" type="button">🌟 Таланты</button><button class="btn small ghost" data-act="title-open" type="button">👑 Сменить титул</button><button class="btn small ghost" data-act="achievements-open" type="button">🏆 Достижения</button></div></div></div><div class="doll-col doll-right">${right}</div></div>`;
 }
 
 function dollMenuHtml() {
@@ -2041,7 +2126,6 @@ function achievementsHtml() {
 }
 
 function heroInventoryHtml() {
-   if (view.inventoryTab === "achievements") return achievementsHtml();
    if (view.inventoryTab === "talents") return talentsHtml();
    if (view.inventoryTab === "potions") {
     const potions = Object.values(ITEMS).filter((i) => i.type === "potion" && (state.potions[i.id] || 0) > 0);
@@ -2071,6 +2155,10 @@ function heroInventoryHtml() {
     return `<div class="resource-list">${rows}</div>`;
   }
   if (view.inventoryTab === "gear") {
+    // Мультивыбор для продажи: uid'ы живут в state, поэтому выбор переживает
+    // перерисовки и смену фильтра.
+    if (!Array.isArray(state.selectedItems)) state.selectedItems = [];
+    const selectedSet = new Set(state.selectedItems);
     const bag = state.owned.slice().sort((a, b) => (isEquipped(a.uid) ? 0 : 1) - (isEquipped(b.uid) ? 0 : 1));
     if (!bag.length) return `<p class="empty">Инвентарь пуст.</p>`;
     const q = view.invSearch.trim().toLowerCase();
@@ -2106,16 +2194,30 @@ function heroInventoryHtml() {
       const item = ITEMS[inst.id]; if (!item) return "";
       const equipped = isEquipped(inst.uid);
       const tier = RARITY_TIERS[inst.rarity] || RARITY_TIERS.common;
-      const statLine = itemStats(item, inst).join(", ");
       const affixLine = (inst.affix?.bonuses || []).filter((b) => ATTR_LABEL[b.id]).map((b) => `${ATTR_LABEL[b.id]} +${b.value}`).join(", ");
       const eff = inst.unique ? UNIQUE_EFFECTS.find((u) => u.id === inst.unique) : null;
-      let title = `${getItemDisplayName(inst)} (${tier.name})`;
-      if (statLine) title += ` — ${statLine}`;
-      if (affixLine) title += `, ${affixLine}`;
-      if (eff) title += `. ✨ ${eff.name}: ${eff.desc}`;
-      return `<button class="inv-slot${equipped ? " equipped-item" : ""}${rarityClass(inst)}" data-act="inv-slot-click" data-uid="${inst.uid}" type="button" title="${esc(title)}">${iconHtml(item.icon, 40)}${equipped ? `<span class="equipped-badge">Надето</span>` : ""}</button>`;
+      const extra = [
+        `<div class="tt-set">${esc(tier.name)}</div>`,
+        affixLine ? `<div class="tt-stat">${esc(affixLine)}</div>` : "",
+        eff ? `<div class="tt-set-active">${esc(eff.name)}: ${esc(eff.desc)}</div>` : "",
+      ];
+      const tooltip = itemTooltipHtml(item, inst, extra);
+      const checked = selectedSet.has(inst.uid);
+      return `<div class="inv-cell${checked ? " selected" : ""}">
+        <input class="inv-check" type="checkbox" data-act="inv-select" data-uid="${inst.uid}" ${checked ? "checked" : ""} ${equipped ? "disabled" : ""} aria-label="${equipped ? "Надетый предмет продать нельзя" : "Выбрать предмет для продажи"}">
+        <button class="inv-slot${equipped ? " equipped-item" : ""}${rarityClass(inst)}" data-act="inv-slot-click" data-uid="${inst.uid}" type="button" data-tooltip="${esc(tooltip)}">${iconHtml(item.icon, 40)}${equipped ? `<span class="equipped-badge">Надето</span>` : ""}</button>
+      </div>`;
     }).join("");
-    return `${filters}<div class="inventory-grid">${slots}</div><div class="inv-count">Показано: ${filtered.length} из ${bag.length}</div><p class="hint">Кликните по предмету в сумке, чтобы надеть его. Продать снаряжение можно у торговцев: Рон — оружие и броня, Элиза — украшения, Элейн — зелья.</p>`;
+    // Итог по выбранным: снаряжение, которое реально можно продать (не надето).
+    const sellable = (Array.isArray(state.selectedItems) ? state.selectedItems : [])
+      .map((uid) => getInstance(uid))
+      .filter((inst) => inst && ITEMS[inst.id] && !isEquipped(inst.uid));
+    const sellTotal = sellable.reduce((sum, inst) => sum + sellPrice(ITEMS[inst.id], inst), 0);
+    const bulkBar = `<div class="inv-bulk">
+      <span class="inv-bulk-count">Выбрано: ${sellable.length}</span>
+      <button class="btn small primary" data-act="inv-sell-selected" type="button" ${sellable.length ? "" : "disabled"}>Продать выбранное (${sellTotal} 💰)</button>
+    </div>`;
+    return `${filters}<div class="inventory-grid">${slots}</div>${bulkBar}<div class="inv-count">Показано: ${filtered.length} из ${bag.length}</div><p class="hint">Кликните по предмету в сумке, чтобы надеть его. Продать снаряжение можно у торговцев: Рон — оружие и броня, Элиза — украшения, Элейн — зелья.</p>`;
   }
 
   if (view.inventoryTab === "resources") {
@@ -2162,29 +2264,94 @@ function setBonusText(bonuses) {
     if (!label || !Number.isFinite(value)) return "";
     if (label.mult) return `+${Math.round((value - 1) * 100)}${label.suffix}`;
     if (label.reduction) return `−${value}${label.suffix}`;
-    return `+${value} ${label.suffix}`;
+    // Суффиксы заданы вперемешку («% уворота» и « защиты») — нормализуем пробел.
+    const suffix = label.suffix.startsWith(" ") || label.suffix.startsWith("%") ? label.suffix : ` ${label.suffix}`;
+    return `+${value}${suffix}`;
   }).filter(Boolean).join(", ");
 }
 
-function setBonusesHtml(st) {
-  const active = (st && st.setBonuses) || activeSetBonuses().activeSets;
-  if (!active || !active.length) return "";
-  const rows = active.map((entry) => {
-    const set = SETS[entry.id];
-    if (!set) return "";
-    const now = set.bonuses[entry.threshold] ? setBonusText(set.bonuses[entry.threshold]) : "";
-    const typeName = entry.pair ? "Пара" : (ARMOR_TYPE_NAMES[set.type] || "Броня");
-    const next = entry.nextThreshold
-      ? `<span class="set-next">ещё ${entry.nextThreshold - entry.count} → ${setBonusText(set.bonuses[entry.nextThreshold])}</span>`
-      : "";
-    return `<div class="set-bonus-row">
-      <div class="set-bonus-head"><b>${esc(set.name)}</b><span class="set-pieces">${entry.count}/${entry.size}</span></div>
-      <div class="set-bonus-meta"><span>${typeName} · тир ${set.tier}</span>${next}</div>
-      ${now ? `<div class="set-bonus-now">Сейчас: ${now}</div>` : ""}
-    </div>`;
-  }).join("");
-  if (!rows) return "";
-  return `<div class="attr-head"><h2 class="group-title">Сетовые бонусы</h2></div><div class="set-bonus-list">${rows}</div>`;
+// ── Сет в подсказках предметов ─────────────────────────────────────────────
+// У предметов нет ссылки на сет, поэтому строим индекс «id предмета → id сета».
+let SET_ITEM_INDEX = null;
+function setOfItem(itemId) {
+  if (!SET_ITEM_INDEX) {
+    SET_ITEM_INDEX = {};
+    for (const [setId, set] of Object.entries(SETS || {})) {
+      for (const id of set.items || []) SET_ITEM_INDEX[id] = setId;
+    }
+  }
+  const setId = SET_ITEM_INDEX[itemId];
+  return setId && SETS[setId] ? { id: setId, ...SETS[setId] } : null;
+}
+
+// Сколько предметов сета надето сейчас (сломанные не считаются).
+function wornSetCount(set) {
+  const worn = new Set();
+  for (const uid of Object.values(state.equipped || {})) {
+    if (!uid) continue;
+    const inst = getInstance(uid);
+    if (!inst || isBroken(inst)) continue;
+    worn.add(inst.id);
+  }
+  return (set.items || []).filter((id) => worn.has(id)).length;
+}
+
+// Текст для title: «Сет: X (3/8). Активно: +1 защита. Далее: +5% HP (4/8)».
+function setTooltipText(itemId) {
+  const found = setOfItem(itemId);
+  if (!found) return "";
+  const total = (found.items || []).length;
+  const worn = wornSetCount(found);
+  const thresholds = Object.keys(found.bonuses || {}).map(Number).sort((a, b) => a - b);
+  const activeText = thresholds
+    .filter((t) => t <= worn)
+    .map((t) => setBonusText(found.bonuses[t]))
+    .filter(Boolean)
+    .join(", ");
+  const nextText = thresholds
+    .filter((t) => t > worn)
+    .map((t) => `${setBonusText(found.bonuses[t])} (${t}/${total})`)
+    .filter(Boolean)
+    .join(", ");
+  const parts = [`Сет: ${found.name} (${worn}/${total})`];
+  if (activeText) parts.push(`Активно: ${activeText}`);
+  if (nextText) parts.push(`Далее: ${nextText}`);
+  return parts.join(". ");
+}
+
+// HTML-версия подсказки предмета для кастомного тултипа (data-tooltip).
+// Возвращает готовую разметку; в атрибут её кладём через esc().
+function itemTooltipHtml(item, inst = null, extra = []) {
+  if (!item) return "";
+  const parts = [`<div class="tt-title">${esc(item.name)}</div>`];
+  for (const line of extra) if (line) parts.push(line);
+  if (inst && inst.affix) parts.push(`<div class="tt-set">${esc(inst.affix.name)}</div>`);
+
+  const stats = itemStats(item, inst);
+  if (stats.length) parts.push(`<div class="tt-stat">${esc(stats.join(", "))}</div>`);
+
+  const set = setOfItem(item.id);
+  if (set) {
+    const total = (set.items || []).length;
+    const worn = wornSetCount(set);
+    parts.push(`<div class="tt-set">Сет: ${esc(set.name)} (${worn}/${total})</div>`);
+
+    const thresholds = Object.keys(set.bonuses || {}).map(Number).sort((a, b) => a - b);
+    const active = thresholds
+      .filter((t) => t <= worn)
+      .map((t) => setBonusText(set.bonuses[t]))
+      .filter(Boolean);
+    if (active.length) parts.push(`<div class="tt-set-active">Активно: ${esc(active.join(", "))}</div>`);
+
+    const next = thresholds
+      .filter((t) => t > worn)
+      .map((t) => `${setBonusText(set.bonuses[t])} (${t}/${total})`)
+      .filter(Boolean);
+    if (next.length) parts.push(`<div>Далее: ${esc(next.join(", "))}</div>`);
+  }
+
+  if (inst && isBroken(inst)) parts.push(`<div class="tt-negative">Сломано — бонусы не действуют</div>`);
+  return parts.join("");
 }
 
 function heroHtml(st) {
@@ -2233,9 +2400,8 @@ function heroHtml(st) {
         </div>
         ${abilitiesHtml}
         ${heroDebuffsHtml}
-        ${setBonusesHtml(st)}
         ${archetype ? `<div class="archetype-note">${iconHtml(archetype.icon, 20)} <span><b>${archetype.name}</b>: ${archetype.desc}</span></div>` : ""}
-        ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companion.buffText}. ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>${affinityBarHtml(companion.id)}` : ""}
+        ${companion ? `<div class="companion-note">${iconHtml(companion.icon, 20)} <span><b>${companion.name}</b>: ${companionAffinityInfo(companion.id).rank.name}. Жалование ${companionWage(companion.id)} 💰/день.</span></div>${affinityBarHtml(companion.id)}` : ""}
         <div class="attr-head"><h2 class="group-title">Репутация</h2></div>
         <div class="faction-list">${factionReputationHtml()}</div>
         <div class="attr-head"><h2 class="group-title">Атрибуты</h2></div>
@@ -2253,7 +2419,6 @@ function heroHtml(st) {
             <button class="shop-tab${view.inventoryTab === "resources" ? " active" : ""}" data-act="inventory-tab" data-tab="resources" type="button">Материалы</button>
             <button class="shop-tab${view.inventoryTab === "recipes" ? " active" : ""}" data-act="inventory-tab" data-tab="recipes" type="button">Рецепты</button>
             <button class="shop-tab${view.inventoryTab === "potions" ? " active" : ""}" data-act="inventory-tab" data-tab="potions" type="button">Зелья</button>
-            <button class="shop-tab${view.inventoryTab === "achievements" ? " active" : ""}" data-act="inventory-tab" data-tab="achievements" type="button">🏆 Достижения</button>
           </div>
 
           ${heroInventoryHtml()}
@@ -2458,7 +2623,7 @@ function companionReaction(type, key = "") {
   const lines = set[type] || set.explore;
   if (!Array.isArray(lines) || !lines.length) return "";
   const seed = String(key || type).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-  return `${companion.icon} ${companion.name}: «${lines[seed % lines.length]}»`;
+  return `${companion.icon} ${companion.name}: «${genderText(lines[seed % lines.length])}»`;
 }
 
 // Модалка процедурного события: заглушка-картинка, заголовок, текст и кнопки выбора.
@@ -2751,7 +2916,7 @@ function battleHtml(st) {
           </div>
         </article>
         <div class="vs" style="align-self: center; font-size: 24px; color: var(--gold2);">VS</div>
-        <article class="fighter enemy-fighter">
+        <article class="fighter enemy-fighter${battle.hp <= 0 ? " dead" : ""}">
           <div class="fighter-avatar" style="width: 80px; height: 80px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: #1c1511;">
             <img src="${resolveIcon(enemy.icon)}" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
@@ -2905,7 +3070,7 @@ function renderCritModal() {
           <div class="crit-cursor" data-role="crit-cursor" style="left:0%"></div>
         </div>
         <div class="crit-legend"><span>×1.3</span><span>×1.6</span><span>×1.9</span><span>×1.6</span><span>×1.3</span></div>
-        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:100%"></span></div>
+        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
         <button class="parry-btn qte-stop-btn" data-act="crit-stop" type="button">Стоп!</button>
       </div>
     </div>`;
@@ -2919,7 +3084,7 @@ function renderParryModal() {
       <div class="qte-card parry-card">
         <h2 class="qte-title parry-title">ПАРИРУЙ!</h2>
         <p class="qte-subtitle">Удар в «${esc(w.zone || "")}»!</p>
-        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:100%"></span></div>
+        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:100%"></span></div>
         <button class="parry-btn" data-act="parry-block" type="button">Блок</button>
       </div>
     </div>`;
@@ -2930,6 +3095,7 @@ function renderTrainingQte() {
   if (!qte) return "";
   const training = TRAINING_MAP[qte.trainingId];
   if (!training) return "";
+  if (training.qteType === "rhythm") return renderRhythmQte(training);
   const total = Array.isArray(qte.sequence) && qte.sequence.length ? qte.sequence.length : 3;
   const step = Math.max(0, Math.min(total, Number(qte.currentStep) || 0));
   const dots = Array.from({ length: total }, (_, i) =>
@@ -2944,7 +3110,7 @@ function renderTrainingQte() {
         <h2 class="qte-title">Тренировка: ${esc(training.name)}</h2>
         <p class="qte-subtitle">Повтори движение: влево → вправо → удар</p>
         <div style="margin:4px 0 14px;">${dots}</div>
-        <div class="qte-timer-bar"><span data-role="qte-timer-fill" style="width:${pct}%"></span></div>
+        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:${pct}%"></span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           ${button("left", "Влево")}
           ${button("right", "Вправо")}
@@ -2954,45 +3120,77 @@ function renderTrainingQte() {
     </div>`;
 }
 
+// «Полоса препятствий»: ритм-QTE. Бегунок ходит по шкале, в центре — зелёная
+// зона. Прыжок в этой зоне — успех, любой другой клик или таймаут — провал.
+function renderRhythmQte(training) {
+  const qte = view.trainingQTE;
+  if (!qte) return "";
+  const pct = Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / QTE_TRAINING_TIME) * 100));
+  return `
+    <div class="qte-modal" role="dialog" aria-label="Полоса препятствий">
+      <div class="qte-card">
+        <h2 class="qte-title">${esc(training.name)}</h2>
+        <p class="qte-subtitle">Прыгай, когда бегунок в зелёной зоне</p>
+        <div class="rhythm-scale">
+          <div class="rhythm-zone"></div>
+          <div class="rhythm-runner" data-role="rhythm-runner" style="left:0%"></div>
+        </div>
+        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:${pct}%"></span></div>
+        <button class="parry-btn qte-stop-btn" data-act="rhythm-jump" type="button">Прыжок!</button>
+      </div>
+    </div>`;
+}
+
 function stopQteLoop() {
-  if (qteFrame !== null) {
-    cancelAnimationFrame(qteFrame);
-    qteFrame = null;
+  if (qteInterval !== null) {
+    clearInterval(qteInterval);
+    qteInterval = null;
   }
 }
 
 function updateQteTimer(ratio) {
-  const fill = document.querySelector('[data-role="qte-timer-fill"]');
+  const fill = document.querySelector('.qte-timer-fill');
   if (fill) fill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
 }
 
 function ensureQteLoop() {
-  stopQteLoop();
+  if (qteInterval !== null) return;
   const battle = view.battle;
   const battleQte = battle && !battle.over && !view.summary && view.screen === "battle"
     && (battle.critWindow || battle.parryWindow);
   if (!view.trainingQTE && !battleQte) return;
 
-  qteLastTs = performance.now();
   qteCursorPos = 0;
   qteCursorDir = 1;
+  qteRunnerPos = 0;
+  qteRunnerDir = 1;
 
-  const tick = (now) => {
-    const dt = Math.min(0.1, Math.max(0, (now - qteLastTs) / 1000));
-    qteLastTs = now;
+  qteInterval = setInterval(() => {
+    const dt = QTE_TICK_MS / 1000;
 
-    // Тренировка: три кнопки и общий таймер на 3 секунды.
+    // Тренировка: общий таймер на 6 секунд. Для «Полосы препятствий»
+    // дополнительно двигаем бегунок (полный проход шкалы — 3 секунды).
     if (view.trainingQTE) {
       const q = view.trainingQTE;
-      q.timeLeft -= dt;
+      q.timeLeft = (Number(q.timeLeft) || 0) - dt;
       updateQteTimer(q.timeLeft / QTE_TRAINING_TIME);
-      if (q.timeLeft <= 0) { completeTraining(false); return; }
-      qteFrame = requestAnimationFrame(tick);
+      const training = TRAINING_MAP[q.trainingId];
+      if (training && training.qteType === "rhythm") {
+        qteRunnerPos += qteRunnerDir * dt / 3;
+        if (qteRunnerPos >= 1) { qteRunnerPos = 1; qteRunnerDir = -1; }
+        else if (qteRunnerPos <= 0) { qteRunnerPos = 0; qteRunnerDir = 1; }
+        const runner = document.querySelector('[data-role="rhythm-runner"]');
+        if (runner) runner.style.left = `${qteRunnerPos * 100}%`;
+      }
+      if (q.timeLeft <= 0) {
+        stopQteLoop();
+        completeTraining(false);
+      }
       return;
     }
 
     const b = view.battle;
-    if (!b) { qteFrame = null; return; }
+    if (!b) { stopQteLoop(); return; }
 
     if (b.critWindow) {
       b.critWindow.timeLeft -= dt;
@@ -3002,18 +3200,21 @@ function ensureQteLoop() {
       const cursor = document.querySelector('[data-role="crit-cursor"]');
       if (cursor) cursor.style.left = `${qteCursorPos * 100}%`;
       updateQteTimer(b.critWindow.timeLeft / QTE_CRIT_TIME);
-      if (b.critWindow.timeLeft <= 0) { resolveCritTimeout(); return; }
+      if (b.critWindow.timeLeft <= 0) {
+        stopQteLoop();
+        resolveCritTimeout();
+      }
     } else if (b.parryWindow) {
       b.parryWindow.timeLeft -= dt;
       updateQteTimer(b.parryWindow.timeLeft / QTE_PARRY_TIME);
-      if (b.parryWindow.timeLeft <= 0) { resolveParryTimeout(); return; }
+      if (b.parryWindow.timeLeft <= 0) {
+        stopQteLoop();
+        resolveParryTimeout();
+      }
     } else {
-      qteFrame = null;
-      return;
+      stopQteLoop();
     }
-    qteFrame = requestAnimationFrame(tick);
-  };
-  qteFrame = requestAnimationFrame(tick);
+  }, QTE_TICK_MS);
 }
 
 // Общий финиш QTE: победа/поражение и полный render.
@@ -3237,12 +3438,26 @@ function levelUpModalHtml() {
 }
 
 function render() {
+  // Подсказка не должна «зависать» после перерисовки DOM.
+  hideTooltip();
   const screen = platform.dom.byId("screen"); const topbar = platform.dom.byId("topbar");
   if (!state.created) { 
     if (!view.create) resetCreate(); 
     topbar.innerHTML = ""; topbar.hidden = true; 
     screen.innerHTML = createHtml(); screen.dataset.screen = "create"; 
     return; 
+  }
+
+  // Смерть врага: сначала fade-out карточки (.dead), и только через 0.5с —
+  // модалка победы. Флаг живёт на объекте боя, поэтому новый бой его сбрасывает.
+  if (view.battle && view.battle.hp <= 0 && view.summary?.victory && !view.battle._deathShown) {
+    const enemyCard = document.querySelector(".fighter.enemy-fighter");
+    if (enemyCard) {
+      view.battle._deathShown = true;
+      enemyCard.classList.add("dead");
+      setTimeout(render, 500);
+      return;
+    }
   }
   
   topbar.hidden = false; 
@@ -3260,7 +3475,9 @@ function render() {
   if (view.questsOpen) html += questsModalHtml();
   if (view.timmyTip) html += timmyModalHtml();
   if (view.settingsOpen) html += settingsModalHtml();
+  if (view.companionInfo) html += renderCompanionInfoModal();
   if (view.titleModal) html += titleModalHtml();
+  if (view.achievementsOpen) html += renderAchievementsModal();
   if (view.talentsModal) html += talentsModalHtml();
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.levelUp) html += levelUpModalHtml();
@@ -3271,7 +3488,10 @@ function render() {
   
   if (view.exploreResult) html += exploreResultModalHtml();
   
-  if (view.talkNpc) {
+  // В лавках, Зале и Гостинице разговор рендерится прямо в полосе NPC
+  // (npcDialogueBar), поэтому модалка здесь не нужна.
+  const inlineDialogScreen = ["forge", "alchemy", "jewelry", "hotel", "training"].includes(view.screen);
+  if (view.talkNpc && !inlineDialogScreen) {
     if (!state.npcDialogueIndex) state.npcDialogueIndex = {};
     const index = state.npcDialogueIndex[view.talkNpc] || 0;
     const hasStory = DIALOGS[view.talkNpc]?.story?.[index];
@@ -3302,7 +3522,25 @@ function render() {
   // QTE тренировки: модалка живёт поверх экрана Зала Охотников.
   if (view.trainingQTE) html += renderTrainingQte();
 
+  // Вступительная сцена с Тимми. Показывается один раз: флаг ставит createHero,
+  // закрывается кнопкой «До встречи» (next: null) и записывает tutorial_done.
+  const introActive = (view.introPending || state.introPending) && view.screen === "hub" && !view.talkNpc;
+  const introNode = introActive
+    ? (view.dialogNode && DIALOG_TREES.timmy?.[view.dialogNode] ? view.dialogNode : "intro_start")
+    : null;
+  if (introNode) view.dialogNode = introNode;
+
   screen.innerHTML = html;
+  // Слой вступления живёт вне #screen: у экрана есть transform-анимация, из-за
+  // которой position:fixed внутри него привязан к экрану и не перекрывает топбар.
+  const appRoot = screen.parentElement || document.body;
+  appRoot.querySelectorAll(".intro-overlay").forEach((el) => el.remove());
+  if (introNode) {
+    const layer = document.createElement("div");
+    layer.className = "intro-overlay";
+    layer.innerHTML = renderDialogTree("timmy", introNode);
+    appRoot.appendChild(layer);
+  }
   screen.dataset.screen = view.screen; 
   
   if (view.screen === "battle") requestAnimationFrame(scrollLog);
@@ -3427,8 +3665,15 @@ const NPC_NAMES = { ron: "Рон, кузнец", elain: "Элейн, алхим�
 function getRandomPhrase(npcId, phraseType) {
   const set = DIALOGS[npcId];
   const phrase = set ? set[phraseType] : null;
-  if (Array.isArray(phrase) && phrase.length) return phrase[Math.floor(Math.random() * phrase.length)];
-  return phrase || "";
+  if (Array.isArray(phrase) && phrase.length) return genderText(phrase[Math.floor(Math.random() * phrase.length)]);
+  return genderText(phrase || "");
+}
+
+// Подставляет форму обращения из плейсхолдера {gender_term:мужская|женская}.
+// Используется для текстов из data.js, которые остаются обычными строками.
+function genderText(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\{gender_term:([^|}]+)\|([^}]+)\}/g, (_, male, female) => getGenderTerm(male, female));
 }
 
 const NPC_TALK_PLACE = { ron: "Кузница", elain: "Лавка Алхимика", elize: "Ювелирная лавка", stella: "Гостиница «Усталый путник»", ivan: "Зал Охотников", timmy: "Зал Охотников", arthur: "Торговая площадь", mira: "Гостиница «Усталый путник»", alva: "Гостиница «Усталый путник»", solveig: "Гостиница «Усталый путник»" };
@@ -3452,8 +3697,8 @@ function firstMeetModalHtml(npcId) {
         </div>
         
         <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-          <p style="color: #e2e8f0; font-style: italic; margin-bottom: 12px; line-height: 1.5;">«${met.npc}»</p>
-          <p style="color: var(--gold2); font-weight: bold; line-height: 1.5;">Вы: «${met.player}»</p>
+          <p style="color: #e2e8f0; font-style: italic; margin-bottom: 12px; line-height: 1.5;">«${esc(genderText(met.npc))}»</p>
+          <p style="color: var(--gold2); font-weight: bold; line-height: 1.5;">Вы: «${esc(genderText(met.player))}»</p>
         </div>
 
         <button class="btn primary" data-act="story-choice" data-npc="${npcId}" type="button" style="width: 100%;">Продолжить</button>
@@ -3462,12 +3707,6 @@ function firstMeetModalHtml(npcId) {
     </div>
   `;
 }
-// Кнопка «📖 Сюжет» в модалке разговора: открывает экран NPC на вкладке story.
-function storyQuestTalkBtnHtml(npcId) {
-  if (!availableStoryQuestForNpc(npcId) && !activeStoryQuestForNpc(npcId)) return "";
-  return `<button class="btn ghost" data-act="npc-talk-story" data-npc="${npcId}" type="button">📖 Сюжет</button>`;
-}
-
 // Диалоговое дерево: узел + опции с mood-цветами. opt.action === "open_shop"
 // открывает лавку NPC, opt.next === null закрывает разговор.
 function openDialogShop(npcId) {
@@ -3490,13 +3729,19 @@ function openDialogShop(npcId) {
   go(screen);
 }
 
-function renderDialogTree(npcId, nodeId) {
-  const tree = DIALOG_TREES[npcId];
-  if (!tree) return "";
-  let node = tree[nodeId] || tree.start;
-  if (!node || (node.requires && !dialogRequiresMet(node.requires))) node = tree.start;
-  if (!node) return "";
+function dialogOptionsHtml(npcId, node) {
+  // Скрытые опции (requires) не показываем, но сохраняем исходный индекс:
+  // обработчик dialog-option ищет опцию по data-option в полном массиве.
+  return (node.options || [])
+    .map((opt, index) => ({ opt, index }))
+    .filter(({ opt }) => dialogRequiresMet(opt.requires))
+    .map(({ opt, index }) => {
+      const moodClass = opt.mood === "good" ? " good" : opt.mood === "bad" ? " bad" : " neutral";
+      return `<button class="btn dialog-option${moodClass}" data-act="dialog-option" data-npc="${npcId}" data-option="${index}" type="button">${esc(genderText(opt.label))}</button>`;
+    }).join("");
+}
 
+function dialogActionParts(npcId) {
   ensureWeekQuests();
   const q = state.weekQuests.list.find((x) => x.npc === npcId);
   let questButton = "";
@@ -3508,18 +3753,102 @@ function renderDialogTree(npcId, nodeId) {
   const topicsButton = DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length
     ? `<button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" type="button">🗣 Поболтать</button>`
     : "";
+
+  // Сдача сюжетного задания тоже идёт через диалог: отдельной панели «Сюжет» больше нет.
+  let storyActionBtn = "";
+  const storyEntry = activeStoryQuestForNpc(npcId);
+  if (storyEntry) {
+    const def = STORY_QUEST_MAP[storyEntry.id];
+    if (def) {
+      const { progress, target } = storyQuestProgress(storyEntry);
+      storyActionBtn = progress >= target
+        ? `<button class="btn dialog-option good" data-act="claim-story-quest" data-id="${storyEntry.id}" type="button">📜 Сдать: ${esc(def.title)}</button>`
+        : `<button class="btn dialog-option neutral" disabled type="button">📜 В работе: ${esc(def.title)} (${progress}/${target})</button>`;
+    }
+  }
+
+  return { questButton, topicsButton, storyActionBtn };
+}
+
+// Встроенный диалог NPC: текст и варианты ответов живут прямо в полосе лавки,
+// без модального окна. Кнопки покупки при этом не рендерятся.
+function npcInlineDialogueBar(npcId) {
+  const npcName = NPC_NAMES[npcId] || npcId;
+
+  // Первое знакомство (сюжетные слайды) остаётся слайдом, но тоже внутри полосы.
+  const slide = npcStorySlide(npcId);
+  if (slide) {
+    const slideOptions = slide.options.map((opt, idx) =>
+      `<button class="btn primary npc-story-option" data-act="story-choice" data-npc="${npcId}" data-choice="${idx}" type="button">${esc(genderText(opt.text))}</button>`
+    ).join("");
+    return `
+      <div class="npc-dialogue-bar npc-story-bar npc-inline-dialogue">
+        <div class="npc-dialogue-main">
+          <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}">
+          <div class="npc-dialogue-text">
+            <p class="npc-name npc-name-lg">${esc(npcName)}</p>
+            <p class="npc-dialogue npc-dialogue-lg">«${esc(genderText(slide.npc))}»</p>
+          </div>
+        </div>
+        <div class="npc-inline-actions">
+          <div class="npc-inline-options">
+            ${slideOptions}
+            <button class="btn ghost npc-story-option" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const tree = DIALOG_TREES[npcId];
+  if (!tree) return "";
+  let node = tree[view.dialogNode] || tree.start;
+  if (node && node.requires && !dialogRequiresMet(node.requires)) node = tree.start;
+  if (!node) return "";
+
+  const { questButton, topicsButton, storyActionBtn } = dialogActionParts(npcId);
+  const optionsHtml = dialogOptionsHtml(npcId, node);
+  // Если в узле уже есть опция «Уйти», отдельная кнопка закрытия не нужна.
+  const hasLeaveOption = (node.options || [])
+    .some((opt) => dialogRequiresMet(opt.requires) && /^уйти$/i.test(String(opt.label || "").trim()));
+  const footerHtml = questButton || topicsButton || !hasLeaveOption
+    ? `<div class="npc-inline-footer">
+        ${questButton}
+        ${topicsButton}
+        ${hasLeaveOption ? "" : `<button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>`}
+      </div>`
+    : "";
+
+  return `
+    <div class="npc-dialogue-bar npc-inline-dialogue">
+      <div class="npc-dialogue-main">
+        <img class="npc-portrait" src="${npcPortraitSrc(npcId)}" alt="${esc(npcName)}" style="background-color: #171210;">
+        <div class="npc-dialogue-text">
+          <p class="npc-name" style="margin-top: 0;">${esc(npcName)}</p>
+          <p class="npc-dialogue npc-inline-text">«${esc(genderText(node.text || ""))}»</p>
+        </div>
+      </div>
+      <div class="npc-inline-actions">
+        <div class="npc-inline-options">
+          ${optionsHtml}${storyActionBtn}
+        </div>
+        ${footerHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderDialogTree(npcId, nodeId) {
+  const tree = DIALOG_TREES[npcId];
+  if (!tree) return "";
+  let node = tree[nodeId] || tree.start;
+  if (!node || (node.requires && !dialogRequiresMet(node.requires))) node = tree.start;
+  if (!node) return "";
+
+  const { questButton, topicsButton, storyActionBtn } = dialogActionParts(npcId);
   const mood = state.npcMood?.[npcId];
   const moodLabel = mood === "good" ? "расположен" : mood === "bad" ? "недоволен" : "";
-
-  // Скрытые опции (requires) не показываем, но сохраняем исходный индекс:
-  // обработчик dialog-option ищет опцию по data-option в полном массиве.
-  const optionsHtml = (node.options || [])
-    .map((opt, index) => ({ opt, index }))
-    .filter(({ opt }) => dialogRequiresMet(opt.requires))
-    .map(({ opt, index }) => {
-      const moodClass = opt.mood === "good" ? " good" : opt.mood === "bad" ? " bad" : " neutral";
-      return `<button class="btn dialog-option${moodClass}" data-act="dialog-option" data-npc="${npcId}" data-option="${index}" type="button">${esc(opt.label)}</button>`;
-    }).join("");
+  const optionsHtml = dialogOptionsHtml(npcId, node);
 
   return `
     <div class="result-overlay" data-act="npc-talk-backdrop" style="z-index: 184;">
@@ -3531,11 +3860,10 @@ function renderDialogTree(npcId, nodeId) {
             <span class="hint">${esc(NPC_NAMES[npcId] || npcId)}${moodLabel ? ` · ${moodLabel}` : ""}</span>
           </div>
         </div>
-        <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(node.text || "")}»</p>
-        <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">${optionsHtml}</div>
+        <p style="font-size:14px; margin:14px 0 0; line-height:1.55;">«${esc(genderText(node.text || ""))}»</p>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">${optionsHtml}${storyActionBtn}</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
           ${questButton}
-          ${storyQuestTalkBtnHtml(npcId)}
           ${topicsButton}
         </div>
       </div>
@@ -3571,7 +3899,6 @@ function npcDialogHtml(npcId) {
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
           <button class="btn primary" data-act="npc-talk-shop" data-npc="${npcId}" type="button">${target.shopLabel}</button>
           ${questButton}
-          ${storyQuestTalkBtnHtml(npcId)}
           ${DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length ? `<button class="btn ghost" data-act="npc-talk-topics" data-npc="${npcId}" type="button">🗣 Поболтать</button>` : ""}
           <button class="btn ghost" data-act="npc-talk-close" data-npc="${npcId}" type="button">Уйти</button>
         </div>
@@ -3637,7 +3964,7 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
 
   if (currentSlide) {
     const optionsHtml = currentSlide.options.map((opt, idx) => 
-      `<button class="btn primary" data-act="story-choice-trader" data-npc="${npc.id}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(opt.text)}</button>`
+      `<button class="btn primary" data-act="story-choice-trader" data-npc="${npc.id}" data-choice="${idx}" type="button" style="margin-bottom: 8px; text-align: left; width: 100%;">${esc(genderText(opt.text))}</button>`
     ).join("");
 
     return `
@@ -3651,7 +3978,7 @@ function traderDialogHtml() {  const npc = NPCS[state.activeNpcId];
           </div>
           
           <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-            <p style="color: #e2e8f0; font-style: italic; line-height: 1.5;">«${esc(currentSlide.npc)}»</p>
+            <p style="color: #e2e8f0; font-style: italic; line-height: 1.5;">«${esc(genderText(currentSlide.npc))}»</p>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -3749,6 +4076,22 @@ function titleModalHtml() {
     </div>
   `;
 }
+
+function renderAchievementsModal() {
+  return `
+    <div class="result-overlay" data-act="achievements-close" style="z-index: 186;">
+      <div class="result-card achievements-modal">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 14px;">
+          <h2 style="color: var(--gold2); font-size: 20px; margin: 0;">🏆 Достижения</h2>
+          <button class="btn tiny ghost" data-act="achievements-close" type="button">✕</button>
+        </div>
+        <div class="achievements-modal-body">${achievementsHtml()}</div>
+        <button class="btn ghost" data-act="achievements-close" type="button" style="width:100%; margin-top:12px;">Закрыть</button>
+      </div>
+    </div>
+  `;
+}
+
 function setAttackZone(zone) { 
   if (!ZONE_NAME[zone]) return; 
   view.attackZone = zone; 
@@ -3770,9 +4113,10 @@ function toggleBlock(zone) {
 }
 
 function onClick(event) {
+  event.preventDefault();
   const el = event.target.closest("[data-act]"); 
   if (!el || el.disabled) return; 
-  event.preventDefault();
+  
   
   const act = el.dataset.act; const id = el.dataset.id; let res;
   
@@ -3818,6 +4162,8 @@ function onClick(event) {
       const c = view.create;
       if (!c) break;
       c.gender = el.dataset.id === "female" ? "female" : "male";
+      const allowed = PORTRAITS.filter((p) => p.gender === c.gender);
+      if (!allowed.some((p) => p.id === c.portrait)) c.portrait = (allowed[0] || PORTRAITS[0]).id;
       render();
       break;
     }
@@ -3862,13 +4208,32 @@ function onClick(event) {
       if (["all", "defeated", "unknown", "boss"].includes(el.dataset.filter)) { view.bestiaryFilter = el.dataset.filter; render(); }
       break;
     case "levelup-close": view.levelUp = null; render(); break;
+    case "companion-info": {
+      if (!COMPANION_MAP[el.dataset.id]) break;
+      view.companionInfo = el.dataset.id;
+      render();
+      break;
+    }
+    case "companion-info-close": view.companionInfo = null; render(); break;
+    case "companion-info-stop": break;
     case "goto":
       if (el.dataset.screen === "tower") view.currentFloor = null;
       go(el.dataset.screen);
       break;
-    case "npc-talk":
-      if (NPC_TALK_TARGETS[el.dataset.npc]) { view.talkNpc = el.dataset.npc; view.talkNpcText = getRandomPhrase(el.dataset.npc, "greetings"); view.dialogNode = "start"; view.timmyTip = null; render(); }
+    case "npc-talk": {
+      const npcId = el.dataset.npc;
+      if (!NPC_TALK_TARGETS[npcId]) break;
+      // У компаньонов «Поговорить» открывает найм-диалог (ветки hire_*),
+      // а не общий узел start.
+      const comp = COMPANION_MAP[npcId];
+      view.hiringCompanion = comp ? comp.id : null;
+      view.talkNpc = npcId;
+      view.talkNpcText = getRandomPhrase(npcId, "greetings");
+      view.dialogNode = comp ? (comp.hireDialog || `hire_${comp.id}`) : "start";
+      view.timmyTip = null;
+      render();
       break;
+    }
     case "dialog-option": {
       const npcId = el.dataset.npc;
       const tree = DIALOG_TREES[npcId];
@@ -3903,12 +4268,36 @@ function onClick(event) {
         render();
         break;
       }
+      // Сюжетное задание выдаётся прямо в диалоге: effects.action = "accept_story".
+      if (opt.effects && opt.effects.action === "accept_story") {
+        const storyRes = acceptStoryQuest(opt.effects.questId);
+        if (!storyRes.ok) { toast(storyRes.text, "warn"); break; }
+        // Флаг скрывает опцию предложения, пока задание не сдано.
+        state.dialogFlags[`story_accepted_${opt.effects.questId}`] = true;
+        saveState();
+        toast("Задание принято", "ok");
+        if (opt.next === null || opt.next === undefined) {
+          view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null;
+        } else {
+          view.dialogNode = opt.next;
+        }
+        render();
+        break;
+      }
       if (opt.next === null || opt.next === undefined) {
         const farewell = getRandomPhrase(npcId, "farewell");
+        // Завершение вступительной сцены: снимаем оба флага и сохраняемся,
+        // чтобы сцена не появилась снова после перезагрузки.
+        const wasIntro = view.introPending || state.introPending;
         view.talkNpc = null;
         view.talkNpcText = null;
         view.dialogNode = null;
         view.hiringCompanion = null;
+        if (wasIntro) {
+          view.introPending = false;
+          state.introPending = false;
+          saveState();
+        }
         render();
         if (farewell) toast(farewell, "ok");
         break;
@@ -3917,7 +4306,11 @@ function onClick(event) {
       render();
       break;
     }
-    case "npc-talk-backdrop": view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null; view.hiringCompanion = null; render(); break;
+    case "npc-talk-backdrop": {
+      // Вступительную сцену нельзя закрыть кликом мимо — только кнопкой «До встречи».
+      if (view.introPending || state.introPending) break;
+      view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null; view.hiringCompanion = null; render(); break;
+    }
     case "npc-talk-topics": {
       view.topicsNpc = el.dataset.npc || null;
       view.topicReply = null;
@@ -4034,6 +4427,13 @@ function onClick(event) {
     case "upgrade-item": {
       res = upgradeItem(el.dataset.uid, el.dataset.stat || null);
       toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
+    case "hall-tab": {
+      const tab = el.dataset.tab === "training" ? "training" : "board";
+      view.hallTab = tab;
+      if (tab !== "board") view.shopTab = "buy";
       render();
       break;
     }
@@ -4183,15 +4583,6 @@ function onClick(event) {
       render();
       break;
     }
-    case "npc-talk-story": {
-      const npcId = el.dataset.npc;
-      const target = NPC_TALK_TARGETS[npcId];
-      if (!target) break;
-      view.talkNpc = null; view.talkNpcText = null; view.dialogNode = null;
-      view.shopTab = "story";
-      go(target.screen);
-      break;
-    }
     case "create-portrait": { const c = view.create; if (c && PORTRAIT_MAP[el.dataset.portrait]) { c.portrait = el.dataset.portrait; render(); } break; }
     case "create-archetype": { const c = view.create; if (c && ARCHETYPE_MAP[el.dataset.id]) { c.archetype = el.dataset.id; render(); } break; }
     case "create-attr": { const c = view.create; if (!c) break; const attr = el.dataset.attr; const delta = Number(el.dataset.delta); if (delta > 0 && c.points > 0) { c.attrs[attr]++; c.points--; } else if (delta < 0 && c.attrs[attr] > 1) { c.attrs[attr]--; c.points++; } render(); break; }
@@ -4202,11 +4593,31 @@ function onClick(event) {
     case "doll-equip": res = equipItemToSlot(el.dataset.uid, el.dataset.slot); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.dollSlot = null; render(); break;
     case "doll-unequip": res = unequipSlot(el.dataset.slot); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.dollSlot = null; render(); break;
     case "inv-slot-click": view.invItemUid = view.invItemUid === el.dataset.uid ? null : el.dataset.uid; view.dollSlot = null; render(); break;
+    case "inv-select": {
+      if (!Array.isArray(state.selectedItems)) state.selectedItems = [];
+      const uid = el.dataset.uid;
+      const idx = state.selectedItems.indexOf(uid);
+      if (idx >= 0) state.selectedItems.splice(idx, 1);
+      else state.selectedItems.push(uid);
+      render();
+      break;
+    }
+    case "inv-sell-selected": {
+      const list = Array.isArray(state.selectedItems) ? state.selectedItems.slice() : [];
+      if (!list.length) break;
+      const res = sellMultipleItems(list);
+      state.selectedItems = [];
+      toast(res.text, res.ok ? "ok" : "warn");
+      render();
+      break;
+    }
     case "inv-menu-close": view.invItemUid = null; Sfx.play("chest_close"); render(); break;
     case "inv-equip": res = equipItem(el.dataset.uid); toast(res.text, res.ok ? "ok" : "warn"); if (res.ok) view.invItemUid = null; render(); break;
     case "inv-filter": view.invFilter = el.dataset.filter || "all"; render(); break;
     case "add-attr": res = addAttr(el.dataset.attr); toast(res.text, res.ok ? "ok" : "warn"); render(); break;
     case "title-open": view.titleModal = true; render(); break;
+    case "achievements-open": view.achievementsOpen = true; render(); break;
+    case "achievements-close": view.achievementsOpen = false; Sfx.play("chest_close"); render(); break;
     case "talents-open": view.talentsModal = true; render(); break;
     case "talents-close": view.talentsModal = false; Sfx.play("chest_close"); render(); break;
     case "title-close": view.titleModal = false; Sfx.play("chest_close"); render(); break;
@@ -4362,6 +4773,7 @@ function onClick(event) {
     case "training-qte": {
       const qte = view.trainingQTE;
       if (!qte) break;
+      stopQteLoop();
       const expected = Array.isArray(qte.sequence) ? qte.sequence[qte.currentStep] : null;
       if (el.dataset.move !== expected) {
         completeTraining(false);
@@ -4370,6 +4782,14 @@ function onClick(event) {
       qte.currentStep += 1;
       if (qte.currentStep >= qte.sequence.length) completeTraining(true);
       else render();
+      break;
+    }
+    case "rhythm-jump": {
+      if (!view.trainingQTE) break;
+      stopQteLoop();
+      // Зелёная зона занимает центральные 20% шкалы (40–60%).
+      const inZone = qteRunnerPos >= 0.4 && qteRunnerPos <= 0.6;
+      completeTraining(inZone);
       break;
     }
 
@@ -4481,6 +4901,7 @@ function handleKey(event) {
   if (event.key === "Escape") {
     if (view.settingsOpen) { view.settingsOpen = false; Sfx.play("chest_close"); render(); return; }
     if (view.titleModal) { view.titleModal = false; Sfx.play("chest_close"); render(); return; }
+    if (view.achievementsOpen) { view.achievementsOpen = false; Sfx.play("chest_close"); render(); return; }
     if (view.talentsModal) { view.talentsModal = false; Sfx.play("chest_close"); render(); return; }
     if (view.questsOpen) { view.questsOpen = false; Sfx.play("chest_close"); render(); return; }
   }
@@ -4497,3 +4918,69 @@ function handleKey(event) {
   }
   if (event.key === "Enter") doExchange("attack");
 }
+
+
+// ── Кастомные тултипы (вместо нативных title) ──────────────────────────────
+// Один общий элемент на документ: переиспользуем его, чтобы не плодить DOM.
+function tooltipEl() {
+  let el = document.getElementById("custom-tooltip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "custom-tooltip";
+    el.className = "custom-tooltip";
+    el.setAttribute("role", "tooltip");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+// Позиционирование у курсора с учётом границ окна.
+function positionTooltip(el, event) {
+  const margin = 10;
+  const x = event.clientX + 15;
+  const y = event.clientY + 15;
+  el.style.left = Math.max(margin, Math.min(x, window.innerWidth - el.offsetWidth - margin)) + "px";
+  el.style.top = Math.max(margin, Math.min(y, window.innerHeight - el.offsetHeight - margin)) + "px";
+}
+
+// htmlContent — готовая HTML-разметка подсказки (см. .tt-* в style.css).
+function showTooltip(htmlContent, event) {
+  if (!htmlContent) return;
+  const el = tooltipEl();
+  el.innerHTML = htmlContent;
+  el.style.display = "block";
+  positionTooltip(el, event);
+}
+
+function hideTooltip() {
+  const el = document.getElementById("custom-tooltip");
+  if (el) el.style.display = "none";
+}
+
+// Глобальные обработчики: любой элемент с data-tooltip получает подсказку.
+function bindTooltips() {
+  let activeTarget = null;
+  document.addEventListener("mouseover", (e) => {
+    const target = e.target.closest?.("[data-tooltip]");
+    if (!target) return;
+    // Переход внутри того же элемента (например, на <img>) не перезапускает подсказку.
+    if (target === activeTarget) return;
+    activeTarget = target;
+    showTooltip(target.dataset.tooltip, e);
+  });
+  document.addEventListener("mousemove", (e) => {
+    const el = document.getElementById("custom-tooltip");
+    if (el && el.style.display === "block") positionTooltip(el, e);
+  });
+  document.addEventListener("mouseout", (e) => {
+    const target = e.target.closest?.("[data-tooltip]");
+    if (!target) return;
+    // Курсор остался внутри подсказочного элемента — не мигаем.
+    if (e.relatedTarget && target.contains(e.relatedTarget)) return;
+    activeTarget = null;
+    hideTooltip();
+  });
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindTooltips);
+else bindTooltips();

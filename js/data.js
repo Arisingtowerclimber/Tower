@@ -75,7 +75,7 @@ const NPC_PORTRAITS = {
   stella: "assets/portraits/stella.webp",
   arthur: "assets/portraits/arthur.webp",
   ivan: "assets/portraits/ivan.webp",
-  timmy: "assets/portraits/m2.webp",
+  timmy: "assets/portraits/timmy.webp",
   mira: "assets/portraits/mira.webp",
   alva: "assets/portraits/alva.webp",
   solveig: "assets/portraits/solveig.webp",
@@ -89,7 +89,7 @@ const DIALOGS = {
   ron: {
     story: [
       { 
-        npc: "Стой, путник. Новое лицо в Йорстеде. Я — Рон, держу эту кузницу. Судя по твоему виду, ты идёшь в Башню.", 
+        npc: "Стой, {gender_term:путник|путница}. Новое лицо в Йорстеде. Я — Рон, держу эту кузницу. Судя по твоему виду, ты идёшь в Башню.", 
         options: [
           { text: "Верно. Мне нужно снаряжение, которое не подведёт." }
         ]
@@ -101,7 +101,7 @@ const DIALOGS = {
         ]
       }
     ],
-    greetings: ["Сталь не ждёт, путник. Что вам нужно: клинок или крепкая броня?", "Хороший металл, хороший уголь..."],
+    greetings: ["Сталь не ждёт, {gender_term:путник|путница}. Что вам нужно: клинок или крепкая броня?", "Хороший металл, хороший уголь..."],
     shop_open: "Смотри, что сегодня на прилавке.",
     quest_complete: ["С добрым материалом и работать приятно."],
     farewell: "Заходи ещё.",
@@ -121,7 +121,7 @@ const DIALOGS = {
         ]
       }
     ],
-    greetings: ["Тише сходи, путник, не урони мой склероций."],
+    greetings: ["Тише сходи, {gender_term:путник|путница}, не урони мой склероций."],
     shop_open: "Пузырьки не бей, перемешивать я уже успела.",
     quest_complete: ["Всё свежее, всё добротное."],
     farewell: "Не хворай.",
@@ -181,7 +181,7 @@ const DIALOGS = {
         ]
       }
     ],
-    greetings: ["А, новобранец. Заходи. Я научу тебя выживать."],
+    greetings: ["А, {gender_term:новобранец|новобранка}. Заходи. Я научу тебя выживать."],
     shop_open: "Вот мои тренировки и контракты.",
     quest_complete: ["Неплохо. Для новичка — даже отлично."],
     farewell: "Не забывай отдыхать.",
@@ -189,7 +189,7 @@ const DIALOGS = {
   arthur: {
     story: [
       { 
-        npc: "Эй, путник! Не хочешь взглянуть на мой товар? У меня есть редкие вещицы, которых нет у местных лавочников.", 
+        npc: "Эй, {gender_term:путник|путница}! Не хочешь взглянуть на мой товар? У меня есть редкие вещицы, которых нет у местных лавочников.", 
         options: [
           { text: "Показывай, что у тебя есть." }
         ]
@@ -202,7 +202,7 @@ const DIALOGS = {
       }
     ],
     greetings: [
-      "Эй, путник! Не хочешь взглянуть на мой товар?",
+      "Эй, {gender_term:путник|путница}! Не хочешь взглянуть на мой товар?",
       "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников.",
       "Редкие вещицы, зелья, амулеты... Всё для настоящего героя."
     ],
@@ -363,6 +363,7 @@ const DIALOG_TREES = {
         { label: "Твои клинки — ржавый хлам.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ron_insulted" } },
         { label: "👑 Вождь Гоблинов мёртв. Моя работа.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
         { label: "🕯 Владыка Бездны пал. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 4, notFlag: "story_accepted_sq_ron_mithril_ore" } },
         { label: "Уйти", next: "leave" },
       ],
     },
@@ -485,6 +486,20 @@ const DIALOG_TREES = {
         { label: "Уйти", next: null },
       ],
     },
+    story_offer: {
+      text: "Слышал, в Лагере Орков жилы мифрила блестят на солнце. Принеси мне 5 мифриловой руды — скуём из неё что-нибудь стоящее, и я заплачу щедро.",
+      options: [
+        { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ron_mithril_ore" } },
+        { label: "Не сейчас.", next: "start" },
+      ],
+    },
+    story_taken: {
+      text: "Вот это разговор. Жду руду. И не умри по дороге — мне нужен живой поставщик.",
+      options: [
+        { label: "Понял.", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
     leave: {
       text: "Ступай. И не забудь: хорошая сталь не прощает спешки.",
       options: [{ label: "Уйти", next: null }],
@@ -503,6 +518,7 @@ const DIALOG_TREES = {
         { label: "Твои отвары — просто грязная вода.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elain_insulted" } },
         { label: "👑 Вождь Гоблинов мёртв. Больше не будет рваных ран.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
         { label: "🕯 Владыка Бездны мёртв. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 2, notFlag: "story_accepted_sq_elain_cave_mushroom" } },
         { label: "Уйти", next: "leave" },
       ],
     },
@@ -624,6 +640,20 @@ const DIALOG_TREES = {
         { label: "Уйти", next: null },
       ],
     },
+    story_offer: {
+      text: "Пещерные грибы из Шахт Кобольдов — основа половины моих отваров, а запасы кончились. Принеси 4 штуки, и я не останусь в долгу.",
+      options: [
+        { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elain_cave_mushroom" } },
+        { label: "Не сейчас.", next: "start" },
+      ],
+    },
+    story_taken: {
+      text: "Отлично. Только не жуй их по дороге — я говорила, что они ядовиты? Говорила.",
+      options: [
+        { label: "Понял.", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
     leave: {
       text: "Не хворай. И не пей из неподписанных склянок. Мне потом отмывать.",
       options: [{ label: "Уйти", next: null }],
@@ -642,6 +672,7 @@ const DIALOG_TREES = {
         { label: "Этот блеск — дешёвая подделка.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elize_insulted" } },
         { label: "👑 Вождь Гоблинов мёртв. Его тесак — история.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
         { label: "🕯 Владыка Бездны мёртв. Его трон молчит.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_elize_rune_dust" } },
         { label: "Уйти", next: "leave" },
       ],
     },
@@ -763,6 +794,20 @@ const DIALOG_TREES = {
         { label: "Уйти", next: null },
       ],
     },
+    story_offer: {
+      text: "Неупокоенные призраки таскают при себе рунную пыль. Мне нужно 3 щепотки — хочу опробовать новую оправу. Только не рассыпь её по пути.",
+      options: [
+        { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elize_rune_dust" } },
+        { label: "Не сейчас.", next: "start" },
+      ],
+    },
+    story_taken: {
+      text: "Хорошо. Камни запомнят твой шаг. Не заставляй их ждать.",
+      options: [
+        { label: "Понял.", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
     leave: {
       text: "До встречи. И не хлопай дверью — камни пугаются.",
       options: [{ label: "Уйти", next: null }],
@@ -781,6 +826,7 @@ const DIALOG_TREES = {
         { label: "Твоя гостиница — дыра с тараканами.", next: "insult", mood: "bad", effects: { rep: -2, flag: "stella_insulted" } },
         { label: "👑 Вождь Гоблинов мёртв. Меньше визга по ночам.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
         { label: "🕯 Владыка Бездны мёртв. Теперь можно спать?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_stella_crypt_ghoul" } },
         { label: "Уйти", next: "leave" },
       ],
     },
@@ -909,6 +955,20 @@ const DIALOG_TREES = {
         { label: "Уйти", next: null },
       ],
     },
+    story_offer: {
+      text: "Неупокоенные из Древнего Склепа пугают постояльцев, а упыри и того хуже. Справься с упырём — и я буду встречать тебя как собственного героя.",
+      options: [
+        { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_stella_crypt_ghoul" } },
+        { label: "Не сейчас.", next: "start" },
+      ],
+    },
+    story_taken: {
+      text: "Спасибо. Наконец-то кто-то наведёт порядок. Комната за тобой, герой.",
+      options: [
+        { label: "Понял.", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
     leave: {
       text: "Ночь тёплая. Заглядывай ещё — но не с пустым кошельком.",
       options: [{ label: "Уйти", next: null }],
@@ -917,7 +977,7 @@ const DIALOG_TREES = {
 
   ivan: {
     start: {
-      text: "Новобранец? Вижу, взгляд серьёзный. Если хочешь выжить в Башне — слушай. Если хочешь славы — иди мимо.",
+      text: "{gender_term:Новобранец|Новобранка}? Вижу, взгляд серьёзный. Если хочешь выжить в Башне — слушай. Если хочешь славы — иди мимо.",
       options: [
         { label: "⚔️ Тренировки", next: "shop" },
         { label: "Что ждёт на глубине?", next: "lore_tower" },
@@ -927,6 +987,7 @@ const DIALOG_TREES = {
         { label: "Твои тренировки — пустая трата времени.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ivan_insulted" } },
         { label: "👑 Вождь Гоблинов мёртв. Первый босс взят.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
         { label: "🕯 Владыка Бездны мёртв. Дно достигнуто.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "📜 Расспросить о делах", next: "story_offer", requires: { notFlag: "story_accepted_sq_ivan_goblin_chief" } },
         { label: "Уйти", next: "leave" },
       ],
     },
@@ -1063,6 +1124,20 @@ const DIALOG_TREES = {
         { label: "Уйти", next: null },
       ],
     },
+    story_offer: {
+      text: "Вождь Гоблинов треплет караваны возле Йорстеда. Сруби ему башку — и я поставлю тебя в пример каждому новобранцу.",
+      options: [
+        { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ivan_goblin_chief" } },
+        { label: "Не сейчас.", next: "start" },
+      ],
+    },
+    story_taken: {
+      text: "Так и знал, что ты не пустозвон. Иди. И вернись с его головой.",
+      options: [
+        { label: "Понял.", next: "start" },
+        { label: "Уйти", next: null },
+      ],
+    },
     leave: {
       text: "Свободен. И не забывай отдыхать — мёртвые не тренируются.",
       options: [{ label: "Уйти", next: null }],
@@ -1070,8 +1145,41 @@ const DIALOG_TREES = {
   },
 
   timmy: {
+    // Вступительная сцена: показывается один раз после создания героя
+    // (флаг state.introPending), заканчивается флагом tutorial_done.
+    intro_start: {
+      text: "Вы замечаете, как к вам подходит кто-то в потрёпанном плаще. Молодой парень с усталыми, но внимательными глазами. «Эй! {gender_term:Новенький|Новенькая}? По взгляду вижу — в Башню собрался. Не спеши, тут есть о чём подумать. Я Тимми, местный охотник.»",
+      options: [
+        { label: "Кто ты такой?", next: "intro_who" },
+        { label: "Отойди, я спешу.", next: "intro_angry" },
+      ],
+    },
+    intro_who: {
+      text: "Я тот, кто вытаскивал таких, как ты, из пасти гоблинов. Слушай сюда, это спасёт тебе жизнь...",
+      options: [
+        { label: "Слушаю.", next: "intro_tutorial" },
+      ],
+    },
+    intro_angry: {
+      text: "Дерзкий. Люблю таких. Но дерзость не спасёт от когтей. Ладно, слушай...",
+      options: [
+        { label: "Ну, говори.", next: "intro_tutorial" },
+      ],
+    },
+    intro_tutorial: {
+      text: "Первое — Зал Охотников. Там тренировки и контракты. Второе — Башня. Пять этажей, каждый — отдельный мир. Третье — отдых. Не лезь на рожон с пустой энергией. Зайди в Гостиницу, найми спутницу, если тяжело.",
+      options: [
+        { label: "Понял. Спасибо.", next: "intro_end" },
+      ],
+    },
+    intro_end: {
+      text: "Удачи, {gender_term:новобранец|новобранка}. Если что — я в Зале Охотников.",
+      options: [
+        { label: "До встречи.", next: null, effects: { flag: "tutorial_done", value: true } },
+      ],
+    },
     start: {
-      text: "О, новенький! Я Тимми. Молодой охотник, гроза гоблинов, любимец барменши. Два из трёх — правда.",
+      text: "О, {gender_term:новенький|новенькая}! Я Тимми. Молодой охотник, гроза гоблинов, любимец барменши. Два из трёх — правда.",
       options: [
         { label: "🏹 Спросить совет", next: "shop" },
         { label: "Что ты знаешь об этажах?", next: "lore_tower" },
@@ -1718,10 +1826,10 @@ const BACKGROUND_STEPS = [
     lore: "Башня не спрашивает имени. Она смотрит на походку, хватку и шрамы.",
     // Варианты шага рендерятся из ARCHETYPES (ui.js), здесь — краткая сводка.
     options: [
-      { id: "duelist", label: "Дуэлянт", desc: "Танец клинка: быстрота, точность и презрение к броне.", icon: "🤺" },
-      { id: "guardian", label: "Страж", desc: "Живая стена: щит, стойка и ответный удар.", icon: "🛡️" },
-      { id: "assassin", label: "Убийца", desc: "Смерть с двух рук: тень, скорость и яд.", icon: "🗡️" },
-      { id: "monk", label: "Аскет", desc: "Отказ от стали: кулак, стойка и внутренний жар.", icon: "🧘" }
+      { id: "duelist", label: "Дуэлянт", desc: "Танец клинка: быстрота, точность и презрение к броне." },
+      { id: "guardian", label: "Страж", desc: "Живая стена: щит, стойка и ответный удар." },
+      { id: "assassin", label: "Убийца", desc: "Смерть с двух рук: тень, скорость и яд." },
+      { id: "monk", label: "Аскет", desc: "Отказ от стали: кулак, стойка и внутренний жар." }
     ]
   },
   {
@@ -1735,21 +1843,18 @@ const BACKGROUND_STEPS = [
           id: "duelist_child_arena",
           label: "Среди гладиаторов",
           desc: "Яма для боёв, где хлеб добывался кровью.",
-          icon: "⚔️",
           effects: { agi: 1, end: 1 }
         },
         {
           id: "duelist_child_yard",
           label: "Двор наставника",
           desc: "Тысяча ударов по столбу — раньше, чем первое слово.",
-          icon: "🗡️",
           effects: { str: 1, gold: 10 }
         },
         {
           id: "duelist_child_troupe",
           label: "Бродячая труппа",
           desc: "Поклоны, клинки и монеты, брошенные в пыль.",
-          icon: "🎭",
           effects: { int: 2 }
         }
       ],
@@ -1758,21 +1863,18 @@ const BACKGROUND_STEPS = [
           id: "guardian_child_wall",
           label: "Тень городской стены",
           desc: "Стена выше дома — и урок: не быть ниже.",
-          icon: "🧱",
           effects: { end: 2 }
         },
         {
           id: "guardian_child_quarry",
           label: "Каменный двор",
           desc: "Камень в руках тяжелел с каждым годом.",
-          icon: "⛏️",
           effects: { str: 1, end: 1 }
         },
         {
           id: "guardian_child_barracks",
           label: "Кухня гарнизона",
           desc: "Слухи стражников — первая школа войны.",
-          icon: "🍲",
           effects: { end: 1, gold: 10 }
         }
       ],
@@ -1781,21 +1883,18 @@ const BACKGROUND_STEPS = [
           id: "assassin_child_alley",
           label: "Тени переулков",
           desc: "Голод учит тишине быстрее любой школы.",
-          icon: "🌑",
           effects: { agi: 1, gold: 10 }
         },
         {
           id: "assassin_child_roofs",
           label: "Крыши и карнизы",
           desc: "Падение — единственный учитель, которого не прощают.",
-          icon: "🏚️",
           effects: { agi: 1, end: 1 }
         },
         {
           id: "assassin_child_house",
           label: "Дом без окон",
           desc: "Здесь учили читать людей, а не книги.",
-          icon: "🕯️",
           effects: { int: 1, potions: 1 }
         }
       ],
@@ -1804,21 +1903,18 @@ const BACKGROUND_STEPS = [
           id: "monk_child_cloister",
           label: "Тишина обители",
           desc: "Молитва, пост и холодный пол под коленями.",
-          icon: "🕯️",
           effects: { int: 2 }
         },
         {
           id: "monk_child_well",
           label: "Двор с колодцем",
           desc: "Вёдра с водой и долгие поклоны закалили спину.",
-          icon: "🪣",
           effects: { end: 2 }
         },
         {
           id: "monk_child_vigil",
           label: "Долгие посты",
           desc: "Голод и безмолвие учат слышать себя.",
-          icon: "🌙",
           effects: { end: 1, int: 1 }
         }
       ]
@@ -1835,21 +1931,18 @@ const BACKGROUND_STEPS = [
           id: "duelist_youth_mercenary",
           label: "Наёмный клинок",
           desc: "Чужая война платила золотом и учила бить первым.",
-          icon: "⚔️",
           effects: { str: 1, gold: 15 }
         },
         {
           id: "duelist_youth_duels",
           label: "Дуэли за монету",
           desc: "Честь стоила дешевле, чем хороший удар.",
-          icon: "🤺",
           effects: { agi: 1, gold: 10 }
         },
         {
           id: "duelist_youth_school",
           label: "Школа фехтования",
           desc: "Пыльные трактаты о том, как не умереть.",
-          icon: "📖",
           effects: { int: 2 }
         }
       ],
@@ -1858,21 +1951,18 @@ const BACKGROUND_STEPS = [
           id: "guardian_youth_watch",
           label: "Караул у ворот",
           desc: "Ночные смены и чужие лица, которым нет доверия.",
-          icon: "🛡️",
           effects: { end: 1, gold: 10 }
         },
         {
           id: "guardian_youth_shieldwall",
           label: "Щит в первой шеренге",
           desc: "Стойка держится на плече соседа. Или не держится.",
-          icon: "🪖",
           effects: { str: 1, end: 1 }
         },
         {
           id: "guardian_youth_guard",
           label: "Служба в страже",
           desc: "Приказы, смены и один украденный сон.",
-          icon: "🏰",
           effects: { end: 1, potions: 1 }
         }
       ],
@@ -1881,21 +1971,18 @@ const BACKGROUND_STEPS = [
           id: "assassin_youth_night",
           label: "Ночной промысел",
           desc: "Чужие карманы и тёмные крыши.",
-          icon: "🗡️",
           effects: { agi: 1, gold: 15 }
         },
         {
           id: "assassin_youth_poison",
           label: "Яд и шёпот",
           desc: "Смерть не обязана быть громкой.",
-          icon: "🧪",
           effects: { int: 1, potions: 1 }
         },
         {
           id: "assassin_youth_contract",
           label: "Работа по контракту",
           desc: "Имя жертвы важнее имени исполнителя.",
-          icon: "📜",
           effects: { agi: 1, end: 1 }
         }
       ],
@@ -1904,21 +1991,18 @@ const BACKGROUND_STEPS = [
           id: "monk_youth_obedience",
           label: "Годы послушания",
           desc: "Смирение оказалось тяжелее камня.",
-          icon: "🧎",
           effects: { end: 2 }
         },
         {
           id: "monk_youth_stances",
           label: "Стойки на рассвете",
           desc: "Тигр, Журавль и Медведь — до первого пота.",
-          icon: "🧘",
           effects: { agi: 1, int: 1 }
         },
         {
           id: "monk_youth_scribes",
           label: "Переписывание свитков",
           desc: "Чужие слова оставляли мозоли на разуме.",
-          icon: "📜",
           effects: { int: 2 }
         }
       ]
@@ -1935,21 +2019,18 @@ const BACKGROUND_STEPS = [
           id: "duelist_adult_arena",
           label: "Кровь на арене",
           desc: "Толпа помнит победителей и забывает остальных.",
-          icon: "⚔️",
           effects: { str: 1, end: 1 }
         },
         {
           id: "duelist_adult_fame",
           label: "Слава дуэлянта",
           desc: "Имя, которое произносят с опаской.",
-          icon: "🏅",
           effects: { agi: 1, gold: 15 }
         },
         {
           id: "duelist_adult_master",
           label: "Уроки старого мастера",
           desc: "Наставник ушёл, оставив только науку.",
-          icon: "🎓",
           effects: { int: 1, potions: 1 }
         }
       ],
@@ -1958,21 +2039,18 @@ const BACKGROUND_STEPS = [
           id: "guardian_adult_siege",
           label: "Осада и пепел",
           desc: "Стена пала. Ты — нет.",
-          icon: "🔥",
           effects: { end: 2 }
         },
         {
           id: "guardian_adult_veteran",
           label: "Ветеран стены",
           desc: "Тяжёлый щит и ещё более тяжёлый опыт.",
-          icon: "🛡️",
           effects: { str: 1, gold: 10 }
         },
         {
           id: "guardian_adult_oath",
           label: "Клятва защитника",
           desc: "Слово, данное тем, кто уже не может сказать.",
-          icon: "📿",
           effects: { end: 1, int: 1 }
         }
       ],
@@ -1981,21 +2059,18 @@ const BACKGROUND_STEPS = [
           id: "assassin_adult_nameless",
           label: "Заказ без имени",
           desc: "Никто не спрашивал, кто ты. Только когда.",
-          icon: "🕯️",
           effects: { agi: 1, gold: 15 }
         },
         {
           id: "assassin_adult_court",
           label: "Тень при дворе",
           desc: "Интриги оказались острее любого клинка.",
-          icon: "🎭",
           effects: { int: 1, potions: 1 }
         },
         {
           id: "assassin_adult_hunted",
           label: "Охота на охотника",
           desc: "Тех, кто шёл по следу, больше нет.",
-          icon: "🐺",
           effects: { agi: 1, end: 1 }
         }
       ],
@@ -2004,21 +2079,18 @@ const BACKGROUND_STEPS = [
           id: "monk_adult_hermit",
           label: "Путь отшельника",
           desc: "Годы в тишине, где отвечает только эхо.",
-          icon: "🏔️",
           effects: { int: 2 }
         },
         {
           id: "monk_adult_fist",
           label: "Кулак и посох",
           desc: "Оружие отринуто, но руки помнят всё.",
-          icon: "🥋",
           effects: { str: 1, end: 1 }
         },
         {
           id: "monk_adult_mountains",
           label: "Молчание гор",
           desc: "Здесь не было свидетелей — только путь.",
-          icon: "🌄",
           effects: { end: 1, potions: 1 }
         }
       ]
@@ -2034,28 +2106,24 @@ const BACKGROUND_STEPS = [
         id: "motive_wealth",
         label: "Богатство",
         desc: "Золото откроет двери, что заперты для прочих.",
-        icon: "💰",
         effects: { gold: 50 }
       },
       {
         id: "motive_revenge",
         label: "Месть",
         desc: "Одна тень в Башне знает твоё имя. Она ответит.",
-        icon: "🔥",
         effects: { str: 1 }
       },
       {
         id: "motive_knowledge",
         label: "Знание",
         desc: "Тайны глубин стоят дороже любой короны.",
-        icon: "📜",
         effects: { int: 2 }
       },
       {
         id: "motive_defense",
         label: "Защита",
         desc: "Кто-то должен встать между тьмой и домом.",
-        icon: "🛡️",
         effects: { end: 1 }
       }
     ]
@@ -2066,7 +2134,6 @@ const ARCHETYPES = [
   {
     id: "duelist",
     name: "Дуэлянт",
-    icon: "🤺", // иконка останется в данных, но отображаться не будет
     desc: "Танец клинка и пустоты: с одноручным оружием в правой и свободной левой бьёт на 30% сильнее и на 10% чаще в уязвимое место. Скользит по грани — предел уворота 45%, но плоть на 10% тоньше.",
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 45, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
@@ -2074,7 +2141,6 @@ const ARCHETYPES = [
    {
     id: "guardian",
     name: "Страж",
-    icon: "🛡️",
     desc: "Живая стена. Успешный блок отвечает врагу десятой частью его же удара. Спокоен и в атаке, и в защите: наносит и получает на 10% меньше урона.",
     mods: { atk: 0.9, maxHp: 1, dodgeCap: 35, blockZones: 2, ragePerHit: 1, blockCounter: 0.1, dmgTakenMult: 0.9 },
     startEquipment: ["rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots", "wood_shield"]
@@ -2082,7 +2148,6 @@ const ARCHETYPES = [
   {
     id: "assassin",
     name: "Убийца",
-    icon: "🗡️",
     desc: "Смерть с двух рук: клинок в левой ладони бьёт вполсилы — на 50% урона. Скользит между ударами, предел уворота 60%. Щиты не для него, а плоть на 10% слабее.",
     mods: { atk: 1, maxHp: 0.9, dodgeCap: 60, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rusty_knife", "rusty_knife", "rags", "worn_hood", "patched_pants", "worn_boots"]
@@ -2090,7 +2155,6 @@ const ARCHETYPES = [
   {
     id: "monk",
     name: "Аскет",
-    icon: "🧘",
     desc: "Отвергает сталь: бьёт голыми руками, и урон растёт от силы и ловкости. Три звериные стойки — Тигр, Журавль и Медведь. Оружие запрещено, зато предел уворота — 50%.",
     mods: { atk: 1.0, maxHp: 1.0, dodgeCap: 50, blockZones: 2, ragePerHit: 1, blockCounter: 0 },
     startEquipment: ["rags", "worn_hood", "patched_pants", "worn_boots"]
@@ -2197,10 +2261,10 @@ const ACHIEVEMENTS = [
   },
   {
     id: "ach_goblin_exterminator", name: "Истребитель гоблинов", title: "Истребитель гоблинов", icon: "🔥", race: "goblin",
-    desc: "Убить 100 гоблинов. Бонус против гоблинов: +10 урона, +2% крита и уворота.",
+    desc: "Убить 100 гоблинов. Бонус против гоблинов: +10% урона, +2% крита и уворота.",
     condition: (s) => achKillSum(s, ACH_GOBLIN_IDS) >= 100,
     progress: (s) => [Math.min(100, achKillSum(s, ACH_GOBLIN_IDS)), 100],
-    bonus: { atk: 10, crit: 2, dodge: 2 },
+    bonus: { dmgPct: 10, crit: 2, dodge: 2 },
   },
   {
     id: "ach_kobold_slayer", name: "Убийца кобольдов", title: "Убийца кобольдов", icon: "🦎", race: "kobold",
@@ -2211,10 +2275,10 @@ const ACHIEVEMENTS = [
   },
   {
     id: "ach_kobold_exterminator", name: "Истребитель кобольдов", title: "Истребитель кобольдов", icon: "🐲", race: "kobold",
-    desc: "Убить 100 кобольдов. Бонус против кобольдов: +10 урона, +2% крита и уворота.",
+    desc: "Убить 100 кобольдов. Бонус против кобольдов: +10% урона, +2% крита и уворота.",
     condition: (s) => achKillSum(s, ACH_KOBOLD_IDS) >= 100,
     progress: (s) => [Math.min(100, achKillSum(s, ACH_KOBOLD_IDS)), 100],
-    bonus: { atk: 10, crit: 2, dodge: 2 },
+    bonus: { dmgPct: 10, crit: 2, dodge: 2 },
   },
   {
     id: "ach_crypt_storm", name: "Гроза склепа", title: "Гроза склепа", icon: "💀", race: "undead",
@@ -2225,10 +2289,10 @@ const ACHIEVEMENTS = [
   },
   {
     id: "ach_undead_bane", name: "Погибель нежити", title: "Погибель нежити", icon: "☠️", race: "undead",
-    desc: "Убить 100 неупокоенных. Бонус против нежити: +10 урона, +2% крита и уворота.",
+    desc: "Убить 100 неупокоенных. Бонус против нежити: +10% урона, +2% крита и уворота.",
     condition: (s) => achKillSum(s, ACH_UNDEAD_IDS) >= 100,
     progress: (s) => [Math.min(100, achKillSum(s, ACH_UNDEAD_IDS)), 100],
-    bonus: { atk: 10, crit: 2, dodge: 2 },
+    bonus: { dmgPct: 10, crit: 2, dodge: 2 },
   },
 
   // ── Обычные достижения (пассивные, без титула) ────────────────────────────
@@ -2408,8 +2472,6 @@ const COMPANIONS = [
     name: "Мира", 
     role: "Травница", 
     icon: "🌿", 
-    buff: "hp", 
-    buffText: "+10% к максимуму HP", 
     price: COMPANION_PRICE, 
     baseHireCost: 500,
     dailyWage: 50,
@@ -2417,15 +2479,13 @@ const COMPANIONS = [
     hireDialog: "hire_mira",
     affinityLevels: COMPANION_AFFINITY_LEVELS,
     src: "assets/portraits/mira.webp", 
-    desc: "«Твоему телу нужен покой, а твоему упрямству — моя рука. Ложись и закрой глаза, милый.» Высокая и статная, Мира излучает спокойную, зрелую красоту. В ее изумрудных глазах читается безграничная теплота, но ее забота не терпит возражений. Сон в ее объятиях — это не просто отдых, это глубокое, живительное восстановление. Ее присутствие заставляет забытые раны затягиваться, а измученное тело — обретать новую прочность." 
+    desc: "«Твоему телу нужен покой, а твоему упрямству — моя рука. Ложись и закрой глаза, {gender_term:милый|милая}.» Высокая и статная, Мира излучает спокойную, зрелую красоту. В ее изумрудных глазах читается безграничная теплота, но ее забота не терпит возражений. Сон в ее объятиях — это не просто отдых, это глубокое, живительное восстановление. Ее присутствие заставляет забытые раны затягиваться, а измученное тело — обретать новую прочность." 
   },
   { 
     id: "alva", 
     name: "Альва", 
     role: "Певица", 
     icon: "🎼", 
-    buff: "hybrid", 
-    buffText: "+5% к максимуму HP, +5% к урону", 
     price: COMPANION_PRICE, 
     baseHireCost: 500,
     dailyWage: 50,
@@ -2440,8 +2500,6 @@ const COMPANIONS = [
     name: "Сольвейг", 
     role: "Наёмница", 
     icon: "🗡️", 
-    buff: "damage", 
-    buffText: "+10% к урону", 
     price: COMPANION_PRICE, 
     baseHireCost: 500,
     dailyWage: 50,
@@ -2616,9 +2674,9 @@ function trainingCap(level = state.level) {
 // Тренировки Зала Охотников. cap — личный потолок именно этой тренировки,
 // stat — какой атрибут растёт, risk — шанс травмы за занятие.
 const TRAININGS = [
-  { id: "drill", attr: "end", stat: "end", name: "Строй", icon: "🪖", cap: 10, risk: 0.2, desc: "Иван гоняет вас по плацу, пока шаг не станет единым. Ноги гудят, зато спина держит.", effect: "+1 к выносливости за тренировку" },
-  { id: "sparring", attr: "agi", stat: "agi", name: "Спарринг", icon: "🤺", cap: 10, risk: 0.25, desc: "Учебный бой на деревянных клинках. Быстрота важнее силы — Иван бьёт по пальцам за каждый зевок.", effect: "+1 к ловкости за тренировку" },
-  { id: "heavy_lifting", attr: "str", stat: "str", name: "Тяжести", icon: "🏋️", cap: 10, risk: 0.3, desc: "Камни, мешки с песком и старые наковальни. После десятого подхода руки перестают дрожать — или отказывают.", effect: "+1 к силе за тренировку" },
+  { id: "obstacle_course", attr: "end", stat: "end", name: "Полоса препятствий", icon: "🏃", cap: 10, risk: 0.2, desc: "Иван гоняет вас через рвы, заборы и канаты.", effect: "+1 к выносливости за тренировку", qteType: "rhythm", reward: { maxEnergy: 10 } },
+  { id: "sparring", attr: "agi", stat: "agi", name: "Спарринг на клинках", icon: "🤺", cap: 10, risk: 0.25, desc: "Учебный бой на деревянных клинках. Быстрота важнее силы — Иван бьёт по пальцам за каждый зевок.", effect: "+1 к ловкости за тренировку" },
+  { id: "heavy_lifting", attr: "str", stat: "str", name: "Тяжёлые камни", icon: "🏋️", cap: 10, risk: 0.3, desc: "Камни, мешки с песком и старые наковальни. После десятого подхода руки перестают дрожать — или отказывают.", effect: "+1 к силе за тренировку" },
 ];
 
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));
@@ -5638,7 +5696,7 @@ const AMBIENT_TRACKS = {
   forge: "assets/audio/forge_ambient.mp3",
   alchemy: "assets/audio/alchemy_ambient.mp3",
   jewelry: "assets/audio/jewelry_ambient.mp3",
-  training: "assets/audio/tavern_ambient.mp3",
+  training: "guild",
   floor_1: "assets/audio/floor1_forest.mp3",
   floor_2: "assets/audio/floor2_mines.mp3",
   floor_3: "assets/audio/floor3_crypt.mp3",

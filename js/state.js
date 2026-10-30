@@ -20,6 +20,11 @@ function invalidateStats() {
 
 let state = null;
 
+// Мужская/женская форма обращения по полу героя. null-safe: до создания героя — male.
+function getGenderTerm(male, female) {
+  return state && state.gender === "female" ? female : male;
+}
+
 function defaultState() {
   let uid = 0;
   const inst = (id) => ({ uid: `item_${++uid}`, id, durability: DURABILITY_MAX, rarity: "common", affix: null, unique: null, upgrade: null });
@@ -28,6 +33,7 @@ function defaultState() {
   
   return {
     version: SAVE_VERSION, created: false, name: "Странник", portrait: "m1", gender: "male", archetype: null,
+    introPending: false,
     level: 1, xp: 0, points: 0, attrs: { str: 1, agi: 1, end: 1, int: 1 },
     gold: 60, hp: BASE_STATS.hp + 2, mana: BASE_STATS.mana + 2, energy: EXPLORATION_MAX,
     phase: 0, day: 1, companion: null, companionDay: 0,
@@ -47,7 +53,8 @@ function defaultState() {
     killCount: {}, bestiaryKills: {}, weekQuests: { weekStartDay: 0, format: WEEK_QUEST_FORMAT, list: [] },
     unlockedAchievements: [], currentTitle: null, critCount: 0, brinkSurvived: false,
     contractsDone: 0,
-    trainingCount: { drill: 0, sparring: 0, heavy_lifting: 0 },
+    trainingCount: { obstacle_course: 0, sparring: 0, heavy_lifting: 0 },
+    trainingBonus: { maxEnergy: 0 },
     abilities: { preciseStrike: false, parry: false },
     activeStoryQuests: [], completedStoryQuests: [],
     resources: {},
@@ -361,11 +368,16 @@ function loadState() {
     }
 
     // Тренировки и освоенные QTE-способности. Старые сейвы получают дефолты.
-    state.trainingCount = { ...defaults.trainingCount, ...(saved.trainingCount && typeof saved.trainingCount === "object" ? saved.trainingCount : {}) };
+    const savedTraining = saved.trainingCount && typeof saved.trainingCount === "object" ? saved.trainingCount : {};
+    // Совместимость: прежняя тренировка «Строй» стала «Полосой препятствий».
+    if (savedTraining.obstacle_course === undefined && savedTraining.drill !== undefined) savedTraining.obstacle_course = savedTraining.drill;
+    state.trainingCount = { ...defaults.trainingCount, ...savedTraining };
     for (const id of Object.keys(defaults.trainingCount)) {
       const n = Number(state.trainingCount[id]);
       state.trainingCount[id] = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
     }
+    state.trainingBonus = { ...defaults.trainingBonus, ...(saved.trainingBonus && typeof saved.trainingBonus === "object" ? saved.trainingBonus : {}) };
+    state.trainingBonus.maxEnergy = Math.max(0, Math.floor(Number(state.trainingBonus.maxEnergy) || 0));
     state.abilities = { ...defaults.abilities, ...(saved.abilities && typeof saved.abilities === "object" ? saved.abilities : {}) };
     for (const id of Object.keys(defaults.abilities)) state.abilities[id] = state.abilities[id] === true;
 
@@ -735,14 +747,9 @@ function companionWage(companionId) {
   return Math.max(1, Math.round((Number(companion.dailyWage) || 50) * (Number(level.wageMult) || 1)));
 }
 
+// Пассивные баффы компаньонов удалены: спутники больше не меняют статы героя.
+// Функция оставлена нейтральной ради совместимости с расчётом stats().
 function companionMultipliers() {
-  const companion = activeCompanion();
-  if (!companion) return { hp: 1, mana: 1, damage: 1 };
-  const bonus = Number(companionAffinityLevel(companion.id).bonus) || 0;
-  if (companion.buff === "hp") return { hp: 1.1 + bonus, mana: 1, damage: 1 };
-  if (companion.buff === "mana") return { hp: 1, mana: 1.1 + bonus, damage: 1 };
-  if (companion.buff === "damage") return { hp: 1, mana: 1, damage: 1.1 + bonus };
-  if (companion.buff === "hybrid") return { hp: 1.05 + bonus, mana: 1 + bonus, damage: 1.05 + bonus };
   return { hp: 1, mana: 1, damage: 1 };
 }
 
@@ -937,7 +944,7 @@ function stats() {
   if (state.archetype === "assassin" && chestArmorType === "plate") dodge = Math.round(dodge * 0.8);
   const counter = Math.min(COUNTERATTACK_CAP, a.agi * AGILITY_COUNTER_PERCENT + setBonus.counterBonus);
   const blockZones = Math.min(ZONES.length, mods.blockZones + gear.block + setBonus.blockZones);
-  const maxEnergy = EXPLORATION_MAX + (state.level - 1) + (tal.maxEnergy || 0);
+  const maxEnergy = EXPLORATION_MAX + (state.level - 1) + (tal.maxEnergy || 0) + (state.trainingBonus?.maxEnergy || 0);
   const result = { maxHp, maxMana, maxEnergy, atk, def, crit, dodge, counter, blockZones, ragePerHit: mods.ragePerHit, attrs: state.attrs, gearAttrs: { str: gear.str || 0, end: gear.end || 0, agi: gear.agi || 0, int: gear.int || 0 }, gear, companion, companionMult: mult, mods, archetype: activeArchetype(), chestArmorType, mainWeapon,
     hpRegen: hpRegen, counterOnDodge: tal.counterOnDodge || 0, lootChance: (tal.lootChance || 0) + ach.loot + setBonus.lootChance, armorPierce: round1(tal.armorPierce || 0), lifesteal: (tal.lifesteal || 0) + setBonus.lifesteal, secondWind: tal.secondWind || 0,
     setBonuses: setBonus.activeSets, goldBonus: setBonus.goldBonus, damageReduction: setBonus.damageReduction };
@@ -1059,6 +1066,8 @@ function createHero(biography, archetypeId, portrait = "m1", name = "", gender =
   clampVitals();
 
   state.weekQuests = { weekStartDay: 0, format: WEEK_QUEST_FORMAT, list: [] };
+  // Вступительная сцена с Тимми: UI покажет её на первом экране хаба.
+  state.introPending = true;
   ensureWeekQuests(true);
   saveState();
 }
@@ -2281,7 +2290,7 @@ function trySteal(entryId, stock) {
 function trainAttr(trainingId) {
   const training = TRAINING_MAP[trainingId];
   if (!training) return { ok: false, text: "Такой тренировки здесь нет." };
-  if (!state.trainingCount) state.trainingCount = { drill: 0, sparring: 0, heavy_lifting: 0 };
+  if (!state.trainingCount) state.trainingCount = { obstacle_course: 0, sparring: 0, heavy_lifting: 0 };
   if (typeof view !== "undefined" && view.trainingQTE) {
     return { ok: false, text: "Иван: Сначала закончи текущую тренировку." };
   }
@@ -2297,7 +2306,7 @@ function trainAttr(trainingId) {
     trainingId,
     sequence: ["left", "right", "strike"],
     currentStep: 0,
-    timeLeft: 3.0,
+    timeLeft: 6.0,
   };
   saveState();
   if (typeof render === "function") render();
@@ -2315,7 +2324,7 @@ function completeTraining(success = true) {
     if (typeof render === "function") render();
     return { ok: false, text: "Тренировка не найдена." };
   }
-  if (!state.trainingCount) state.trainingCount = { drill: 0, sparring: 0, heavy_lifting: 0 };
+  if (!state.trainingCount) state.trainingCount = { obstacle_course: 0, sparring: 0, heavy_lifting: 0 };
   if (!state.abilities) state.abilities = { preciseStrike: false, parry: false };
 
   const stat = training.stat || training.attr;
@@ -2330,8 +2339,14 @@ function completeTraining(success = true) {
     applyVitalsDelta(oldStats, stats());
     notes.push(`Тренировка завершена. ${training.name}: ${attrName} +1.`);
 
-    // Курс из 10 занятий открывает боевую способность.
+    // Курс из 10 занятий даёт награду: выносливость или боевые приёмы.
     if (state.trainingCount[trainingId] >= 10) {
+      if (trainingId === "obstacle_course") {
+        state.trainingBonus = state.trainingBonus || { maxEnergy: 0 };
+        state.trainingBonus.maxEnergy = (state.trainingBonus.maxEnergy || 0) + 10;
+        invalidateStats();
+        notes.push("Выносливость +10!");
+      }
       if (trainingId === "heavy_lifting" && !state.abilities.preciseStrike) {
         state.abilities.preciseStrike = true;
         notes.push('Вы освоили "Точный удар"!');

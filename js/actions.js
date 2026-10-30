@@ -125,6 +125,15 @@ function go(screen) {
 
   // Шаги и двери: уход из Йорстеда, вход в лавки, ворота Башни.
   const prevScreen = view.screen;
+  // Переход в другую локацию закрывает открытый разговор: диалог не «переезжает»
+  // вместе с игроком и не всплывает в следующей лавке.
+  if (prevScreen !== screen) {
+    view.talkNpc = null;
+    view.talkNpcText = null;
+    view.dialogNode = null;
+    view.hiringCompanion = null;
+    view.companionInfo = null;
+  }
   playFootstep(screen);
   if (prevScreen === "hub" && screen !== "hub") Sfx.play("door_close");
   if (["forge", "alchemy", "jewelry", "hotel"].includes(screen)) Sfx.play("door_open");
