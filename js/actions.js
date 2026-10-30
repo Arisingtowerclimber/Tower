@@ -92,7 +92,6 @@ function go(screen) {
       view.shopFilterArmor = null;
     }
     view.shopNpcPhrase = getRandomPhrase(shopNpc, "greetings");
-    view.talkNpcPhase = 0;
     view.storyJustPlayed = false;
   } else {
     view.activeShopNpc = null; 
@@ -125,12 +124,10 @@ function go(screen) {
 
   // Шаги и двери: уход из Йорстеда, вход в лавки, ворота Башни.
   const prevScreen = view.screen;
-  // Переход в другую локацию закрывает открытый разговор: диалог не «переезжает»
-  // вместе с игроком и не всплывает в следующей лавке.
+  // Переход в другую локацию закрывает открытое взаимодействие: диалог не
+  // «переезжает» вместе с игроком и не всплывает в следующей лавке.
   if (prevScreen !== screen) {
-    view.talkNpc = null;
-    view.talkNpcText = null;
-    view.dialogNode = null;
+    view.npcInteraction = null;
     view.hiringCompanion = null;
     view.companionInfo = null;
   }
@@ -145,6 +142,14 @@ function go(screen) {
   view.invItemUid = null;
   if (screen === "tower") view.tripActive = true;
   if (screen !== "battle") view.summary = null;
+
+  // Вход в лавку сразу открывает диалог NPC в режиме "dialog". После «Уйти»
+  // interaction = null, и рендерится обычный магазин.
+  if (shopNpc && ["forge", "alchemy", "jewelry"].includes(screen)) {
+    view.npcInteraction = { npcId: shopNpc, mode: "dialog", node: "start" };
+  } else if (prevScreen !== screen) {
+    view.npcInteraction = null;
+  }
   
   render();
 }

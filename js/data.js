@@ -44,14 +44,14 @@ const FORGE_TABS = [
   { id: "armor", name: "Доспехи", slots: ["head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"] },
   { id: "craft", name: "Крафт", slots: [] },
   { id: "buyback", name: "Скупка", slots: [] },
-  { id: "quests", name: "📦 Заказы", slots: [] },
+  { id: "quests", name: "Заказы", slots: [] },
 ];
 
 const JEWELRY_TABS = [
   { id: "jewelry", name: "Украшения", slots: ["neck", "ring", "trinket"] },
   { id: "craft", name: "Крафт", slots: [] },
   { id: "buyback", name: "Скупка", slots: [] },
-  { id: "quests", name: "📦 Заказы", slots: [] },
+  { id: "quests", name: "Заказы", slots: [] },
 ];
 
 const PORTRAITS = [
@@ -348,31 +348,33 @@ const DIALOG_BRANCHES = {
 
 // ── Диалоговые деревья NPC (Блок 2) ────────────────────────────────────────
 // Узел: { text, options: [{ label, next, mood?, effects?, action? }] }.
-// next: null — закрыть диалог. action: "open_shop" — открыть лавку NPC.
+// next: null — закрыть диалог. action: "open_shop"/"open_craft" — переключить
+// режим единой state machine (view.npcInteraction), не выходя из диалога.
 // effects применяет applyDialogEffects (state.js): gold, rep, flag, item.
 const DIALOG_TREES = {
   ron: {
     start: {
       text: "Сталь не ждёт. Люди — тоже. Говори: клинок, броня или беда?",
       options: [
-        { label: "🛒 Показать товары", next: "shop" },
+        { label: "Показать товары", action: "open_shop" },
+        { label: "Крафт", action: "open_craft" },
         { label: "Что такое Башня на самом деле?", next: "lore_tower" },
         { label: "Ты ведь не всегда был кузнецом.", next: "personal" },
         { label: "О чём шепчутся в городе?", next: "rumors" },
         { label: "Твоя сталь держит удар. Это честная работа.", next: "praise", mood: "good", effects: { rep: 1, flag: "ron_praised" } },
         { label: "Твои клинки — ржавый хлам.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ron_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Моя работа.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны пал. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 4, notFlag: "story_accepted_sq_ron_mithril_ore" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Моя работа.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны пал. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Расспросить о делах", action: "open_quests", next: "story_offer", requires: { maxFloor: 4, notFlag: "story_accepted_sq_ron_mithril_ore" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Смотри, что сегодня на прилавке. Уголь горячий. Терпение — горячее.",
       options: [
         { label: "К прилавку", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "Крафт", action: "open_craft" },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -380,24 +382,21 @@ const DIALOG_TREES = {
       options: [
         { label: "А что с металлом оттуда?", next: "lore_metal" },
         { label: "А другие города?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_metal: {
       text: "Металл из Башни звенит иначе. Он помнит чужое небо. Куёшь — будто чужой голос под рукой. Если клинок запоёт — беги. Или пой. Я не судья.",
       options: [
         { label: "Страшно, когда поёт сталь.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед стоит. Пока. Остальные города — имена на пепле. Дубовый Брод... не будем.",
       options: [
         { label: "Дубовый Брод — это твой дом?", next: "family" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -405,8 +404,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Расскажи о них.", next: "family" },
         { label: "Почему ты остался в Йорстеде?", next: "forge_oath" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     family: {
@@ -414,37 +412,34 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты сделал всё, что мог.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_comforted" } },
         { label: "Соболезную.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     forge_oath: {
       text: "Я не спасаю мир. Я делаю так, чтобы тот, кто идёт спасать, вернулся. Иногда возвращается. Ради этого и стою у горна.",
       options: [
         { label: "Это больше, чем меч.", next: "praise" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Слышу редко. Сталь любит тех, кто умеет ждать. Держи совет: не бери клинок, который тяжелее тебя. И не спорь с кузнецом.",
       options: [
         { label: "Взять монету за честную работу.", next: "praise_paid", effects: { gold: 15, flag: "ron_tip_paid" }, requires: { notFlag: "ron_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Не благодари. Это не подарок. Это аванс за то, что вернёшься живым. Вернёшься — сочтёмся.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Слова дешёвые, как шлак. Я запомню. Твой заказ будет ждать. Долго.",
       options: [
         { label: "Я пошутил. Плохо.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -452,45 +447,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Взять монету.", next: "progress_1_paid", effects: { gold: 25, flag: "ron_goblin_paid" }, requires: { notFlag: "ron_goblin_paid" } },
         { label: "Оставь себе. Мне хватает.", next: "hope", mood: "good", effects: { rep: 1, flag: "ron_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Купи угля. Хорошего. Тот, что дешевле, зря переводит сталь. И тебя.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны... Значит, дно есть. Я выкую тебе клинок, который не будет петь. Пока.",
       options: [
         { label: "Почему не будет петь?", next: "lore_metal" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Элейн варит зелья из трав, которые растут в чужом мире. Не спрашивай, что она туда добавляет. Она и сама не всегда знает.",
       options: [
         { label: "А про Ивана и Тимми?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Волк и Ворон. Раньше — кровь. Сейчас — кружка на двоих. Башня уравняла. Или просто устали ненавидеть.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед ещё стоит. Пока стою я — будет кому подковать лошадь и заточить меч. Это немного. Это всё.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_offer: {
@@ -498,14 +487,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ron_mithril_ore" } },
         { label: "Не сейчас.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_taken: {
       text: "Вот это разговор. Жду руду. И не умри по дороге — мне нужен живой поставщик.",
       options: [
         { label: "Понял.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -518,24 +507,25 @@ const DIALOG_TREES = {
     start: {
       text: "Осторожно, не зацепи колбы! Я Элейн. Раны, ожоги, дурные мысли — всё сюда. Мысли — за отдельную плату.",
       options: [
-        { label: "🧪 Показать товары", next: "shop" },
+        { label: "Показать товары", action: "open_shop" },
+        { label: "Крафт", action: "open_craft" },
         { label: "Откуда ты берёшь травы?", next: "lore_tower" },
         { label: "Ты ведь не всегда была алхимиком.", next: "personal" },
         { label: "Что говорят в городе?", next: "rumors" },
         { label: "Твои зелья спасают жизни. Спасибо.", next: "praise", mood: "good", effects: { rep: 1, flag: "elain_praised" } },
         { label: "Твои отвары — просто грязная вода.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elain_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Больше не будет рваных ран.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 2, notFlag: "story_accepted_sq_elain_cave_mushroom" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Больше не будет рваных ран.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Я вернулся.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Расспросить о делах", action: "open_quests", next: "story_offer", requires: { maxFloor: 2, notFlag: "story_accepted_sq_elain_cave_mushroom" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Пузырьки не бей. Перемешивать я уже успела. Выбирай.",
       options: [
         { label: "К прилавку", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "Крафт", action: "open_craft" },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -543,24 +533,21 @@ const DIALOG_TREES = {
       options: [
         { label: "А что не так с лесом на первом этаже?", next: "lore_world" },
         { label: "А если Башня дойдёт до Йорстеда?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_world: {
       text: "Лес не подчиняется природе. Деревья растут из камня. Звери не боятся огня. А травы... травы там честнее людей.",
       options: [
         { label: "Почему честнее?", next: "recipe" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед — последняя аптека на сотни миль. Если он падёт, лечить будет некому. Так что я не закрываюсь. Даже ночью.",
       options: [
         { label: "Ты не боишься?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -568,46 +555,41 @@ const DIALOG_TREES = {
       options: [
         { label: "А сестра?", next: "sister" },
         { label: "Ты поэтому пошла в алхимию?", next: "recipe" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     sister: {
       text: "Сестра ушла в Башню за тем корнем. Не вернулась. Я не злюсь. Я жду. И варю. Одно помогает другому.",
       options: [
         { label: "Может, она ещё вернётся.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_comforted" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     recipe: {
       text: "Хороший отвар — это терпение. Поспешишь — получится компот. Вкусный, но от смерти не помогает. Обычно.",
       options: [
         { label: "Обычно?", next: "lore_world" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Приятно. Травы не терпят благодарности, а люди — терпят. Заходи, пока склероций свежий.",
       options: [
         { label: "Взять бинты и монету.", next: "praise_paid", effects: { gold: 12, flag: "elain_tip_paid" }, requires: { notFlag: "elain_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Не спорь. Это не милость. Это чтобы ты не сдох от первого пореза. Мне потом руки мыть.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Глупость не лечится отваром. Но у меня есть кое-что от головной боли. Тебе уже пора.",
       options: [
         { label: "Прости. Я не так сказал.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -615,45 +597,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Взять бинты и монету.", next: "progress_1_paid", effects: { gold: 20, flag: "elain_goblin_paid" }, requires: { notFlag: "elain_goblin_paid" } },
         { label: "Оставь бинты тем, кому хуже.", next: "hope", mood: "good", effects: { rep: 1, flag: "elain_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Монета — за работу. Бинты — за то, что вернулся. Это разные вещи. Не путай.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны мёртв. Тогда почему у меня руки дрожат? ...Наверное, от радости. Наверное.",
       options: [
         { label: "Ты боишься, что будет дальше.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Рон ворчит, но после каждого твоего похода ставит чайник. Не говори ему, что я знаю. Он станет невыносим.",
       options: [
         { label: "А про Стеллу?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Стелла знает все слухи. Иногда мне кажется, она их сама и придумывает. Но они сбываются. Это хуже.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед ещё дышит. Слышишь? Это не ветер. Это город. Пока дышит — лечим.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_offer: {
@@ -661,14 +637,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elain_cave_mushroom" } },
         { label: "Не сейчас.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_taken: {
       text: "Отлично. Только не жуй их по дороге — я говорила, что они ядовиты? Говорила.",
       options: [
         { label: "Понял.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -681,24 +657,25 @@ const DIALOG_TREES = {
     start: {
       text: "Тише. Камни не любят суеты. Говори коротко. Что тебе нужно?",
       options: [
-        { label: "💍 Показать украшения", next: "shop" },
+        { label: "Показать украшения", action: "open_shop" },
+        { label: "Крафт", action: "open_craft" },
         { label: "Откуда эти камни?", next: "lore_tower" },
         { label: "Кто ты была до лавки?", next: "personal" },
         { label: "Что шепчут камни?", next: "rumors" },
         { label: "Твоя работа — редкое искусство.", next: "praise", mood: "good", effects: { rep: 1, flag: "elize_praised" } },
         { label: "Этот блеск — дешёвая подделка.", next: "insult", mood: "bad", effects: { rep: -2, flag: "elize_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Его тесак — история.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Его трон молчит.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_elize_rune_dust" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Его тесак — история.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Его трон молчит.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Расспросить о делах", action: "open_quests", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_elize_rune_dust" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Оправы вон там. Камни — вот тут. Не дыши на витрину.",
       options: [
         { label: "К прилавку", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "Крафт", action: "open_craft" },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -706,24 +683,21 @@ const DIALOG_TREES = {
       options: [
         { label: "Что они означают?", next: "lore_stones" },
         { label: "А что с Йорстедом?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_stones: {
       text: "Каждый камень помнит свет своего мира. Лесной — зелёный. Склепный — белый. Демонический — красный. Красные я не беру в руки без перчаток.",
       options: [
         { label: "Почему без перчаток?", next: "warning" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед раньше торговал с двенадцатью городами. Теперь — с памятью о них. Память платит хуже.",
       options: [
         { label: "Но город ещё стоит.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -731,46 +705,41 @@ const DIALOG_TREES = {
       options: [
         { label: "Расскажи о наставнике.", next: "mentor" },
         { label: "Почему ты осталась?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     mentor: {
       text: "Мой наставник ушёл в Башню за камнем, которого не существует. Камень он нашёл. Наставник — нет.",
       options: [
         { label: "Ты поэтому не ходишь в Башню?", next: "warning" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     warning: {
       text: "Не носи красный камень на голой коже. Он не светится. Он смотрит.",
       options: [
         { label: "А если уже ношу?", next: "lore_stones" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Искусство не любит громких слов. Но твои слова легли ровно, как камень в оправу. Благодарю.",
       options: [
         { label: "Принять маленький камень на память.", next: "praise_paid", effects: { gold: 18, flag: "elize_tip_paid" }, requires: { notFlag: "elize_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Он ничего не стоит. Пока. Носи с собой — и однажды он тебя вспомнит.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Подделка — это когда рука спешит. Моя рука не спешит. Уходи, пока я не запомнила твой голос.",
       options: [
         { label: "Прости. Я не подумал.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -778,45 +747,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Принять осколок и монету.", next: "progress_1_paid", effects: { gold: 25, flag: "elize_goblin_paid" }, requires: { notFlag: "elize_goblin_paid" } },
         { label: "Оставь камень себе.", next: "hope", mood: "good", effects: { rep: 1, flag: "elize_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Камень будет холодным. Не пугайся. Это не смерть. Это память.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны. Его трон был из душ. Теперь души свободны, а камень... камень молчит. Впервые за годы.",
       options: [
         { label: "Это хорошая тишина?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Элейн добрая. Слишком. Такие, как она, обычно первыми уходят в Башню за кем-то. И не возвращаются.",
       options: [
         { label: "А Артур?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Артур продаёт реликвии павших городов. Он говорит, что это торговля. Я говорю — это мародёрство с поклоном.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед стоит. Камни в его стенах ещё помнят солнце. Пока помнят — город жив.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_offer: {
@@ -824,14 +787,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_elize_rune_dust" } },
         { label: "Не сейчас.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_taken: {
       text: "Хорошо. Камни запомнят твой шаг. Не заставляй их ждать.",
       options: [
         { label: "Понял.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -844,24 +807,23 @@ const DIALOG_TREES = {
     start: {
       text: "О, свежее лицо! Добро пожаловать в «Усталый путник». Согреться, отдохнуть или послушать, кто что натворил?",
       options: [
-        { label: "🛏️ Снять номер", next: "shop" },
+        { label: "Снять номер", next: "shop" },
         { label: "Что ты знаешь о Башне?", next: "lore_tower" },
         { label: "Ты ведь не всегда была хозяйкой.", next: "personal" },
         { label: "Какие слухи ходят?", next: "rumors" },
         { label: "Здесь тепло, как дома. Спасибо, хозяйка.", next: "praise", mood: "good", effects: { rep: 1, flag: "stella_praised" } },
         { label: "Твоя гостиница — дыра с тараканами.", next: "insult", mood: "bad", effects: { rep: -2, flag: "stella_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Меньше визга по ночам.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Теперь можно спать?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "📜 Расспросить о делах", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_stella_crypt_ghoul" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Меньше визга по ночам.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Теперь можно спать?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Расспросить о делах", action: "open_quests", next: "story_offer", requires: { maxFloor: 3, notFlag: "story_accepted_sq_stella_crypt_ghoul" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Номер всё тот же. Эль свежий. Простыни чистые. Постояльцы — наполовину.",
       options: [
-        { label: "Снять номер", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "Снять номер", action: "open_service" },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -869,24 +831,21 @@ const DIALOG_TREES = {
       options: [
         { label: "А куда делись остальные?", next: "lore_guests" },
         { label: "А что с городом?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_guests: {
       text: "Комнаты я не сдаю повторно, пока гость не вернётся. Глупо? Может быть. Зато у каждого ещё есть шанс.",
       options: [
         { label: "И многие возвращаются?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед — это не город. Это гостиница побольше. Все зашли переждать. Никто не ушёл.",
       options: [
         { label: "И ты держишь дверь открытой.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -894,53 +853,47 @@ const DIALOG_TREES = {
       options: [
         { label: "Расскажи о муже.", next: "husband" },
         { label: "А сын?", next: "room" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     husband: {
       text: "Он любил говорить: «Стелла, у нас всегда есть место для ещё одного». Вот я и держу. Место есть. Его нет.",
       options: [
         { label: "Ты хранишь не комнату. Ты хранишь его.", next: "praise", mood: "good", effects: { rep: 1, flag: "stella_comforted" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     room: {
       text: "Номер с видом на Башню. Вид оплачивается отдельно. Страх — бесплатно. Сын говорил, что это лучшая цена в городе.",
       options: [
         { label: "Он вернётся.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     gossip: {
       text: "Сплетни — это не ложь. Это правда, которой ещё не нашли удобную форму. И я помогаю ей найтись.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Вот это по-нашему! За такие слова налью кружку в долг. Один раз. Не привыкай.",
       options: [
         { label: "Взять сдачу за прошлую ночь.", next: "praise_paid", effects: { gold: 10, flag: "stella_tip_paid" }, requires: { notFlag: "stella_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Не благодари. Просто вернись. И желательно — не в сапогах с чужой кровью. Ковёр не казённый.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Тараканы платят вперёд и не хамят. Ты — пока нет. Дверь вон там.",
       options: [
         { label: "Прости. День был тяжёлый.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -948,45 +901,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Взять ужин за счёт заведения.", next: "progress_1_paid", effects: { gold: 10, flag: "stella_goblin_paid" }, requires: { notFlag: "stella_goblin_paid" } },
         { label: "Мне хватит кружки.", next: "hope", mood: "good", effects: { rep: 1, flag: "stella_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Ешь. И слушай: если кто-то спросит, кто убил Вождя, — я скажу, что это была я. Шучу. Может быть.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны мёртв. Значит, скоро появится новый герой. И новый слух. Садись, расскажу, пока не придумали.",
       options: [
         { label: "Слушаю.", next: "gossip" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Иван и Тимми пьют вместе. Ты видел? Волк и Ворон. Если бы их отцы это видели — перевернулись бы в гробах. Или заказали бы ещё кружку.",
       options: [
         { label: "А про Артура?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Артур говорит, что его товар из-за моря. За моря теперь только пепел. Но плащи у него хорошие, не спорю.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед ещё стоит. И пока я ставлю на стол горячее — он будет стоять. Это не надежда. Это работа.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_offer: {
@@ -994,14 +941,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_stella_crypt_ghoul" } },
         { label: "Не сейчас.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_taken: {
       text: "Спасибо. Наконец-то кто-то наведёт порядок. Комната за тобой, герой.",
       options: [
         { label: "Понял.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -1014,24 +961,22 @@ const DIALOG_TREES = {
     start: {
       text: "{gender_term:Новобранец|Новобранка}? Вижу, взгляд серьёзный. Если хочешь выжить в Башне — слушай. Если хочешь славы — иди мимо.",
       options: [
-        { label: "⚔️ Тренировки", next: "shop" },
         { label: "Что ждёт на глубине?", next: "lore_tower" },
         { label: "Кто ты был до Катаклизма?", next: "personal" },
         { label: "Что между тобой и Тимми?", next: "timmy" },
         { label: "Ты хороший командир. Люди за тобой идут.", next: "praise", mood: "good", effects: { rep: 1, flag: "ivan_praised" } },
         { label: "Твои тренировки — пустая трата времени.", next: "insult", mood: "bad", effects: { rep: -2, flag: "ivan_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Первый босс взят.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Дно достигнуто.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "📜 Расспросить о делах", next: "story_offer", requires: { notFlag: "story_accepted_sq_ivan_goblin_chief" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Первый босс взят.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Дно достигнуто.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Расспросить о делах", action: "open_quests", next: "story_offer", requires: { notFlag: "story_accepted_sq_ivan_goblin_chief" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Вот мои тренировки и контракты. Сначала выживать, потом побеждать. Порядок не переставляй.",
       options: [
-        { label: "К тренировкам", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "К тренировкам", action: "open_service" },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -1039,24 +984,21 @@ const DIALOG_TREES = {
       options: [
         { label: "А правила этажей?", next: "lore_world" },
         { label: "Почему Йорстед ещё стоит?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_world: {
       text: "На первом этаже деревья растут из камня. На третьем время идёт назад. На пятом реальность плавится. Правила меняются. Ты — нет.",
       options: [
         { label: "Значит, держаться своих правил.", next: "oath" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед — один из немногих уцелевших. Остальные пали. Мы держим стену не потому, что сильные. Потому что больше некому.",
       options: [
         { label: "Ты веришь, что город выстоит?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -1064,16 +1006,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Расскажи о доме Волка.", next: "house" },
         { label: "А семья?", next: "grief" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     house: {
       text: "Дом Волка и дом Ворона грызли друг друга десятилетиями. Сейчас это неважно. Башня не спрашивает, какой у тебя герб. Она спрашивает, сколько ты стоишь.",
       options: [
         { label: "А Тимми — Ворон.", next: "timmy" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     timmy: {
@@ -1081,45 +1021,40 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты жалеешь об этом?", next: "oath" },
         { label: "Он уважает тебя. По-своему.", next: "hope", mood: "good", effects: { rep: 1, flag: "ivan_timmy_peace" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     oath: {
       text: "Присяга — это не слова. Это когда ты стоишь, хотя можешь бежать. Я стою. Пока.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     grief: {
       text: "Мой брат погиб в войне домов. Не в Башне. В войне за герб. Я до сих пор не знаю, за что. Теперь знаю: ни за что.",
       options: [
         { label: "Поэтому ты не хочешь новой войны.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Дисциплина — это когда тебя хвалят, а ты всё равно выходишь на тренировку. Хорошо. Не расслабляйся.",
       options: [
         { label: "Взять премию Гильдии.", next: "praise_paid", effects: { gold: 20, flag: "ivan_tip_paid" }, requires: { notFlag: "ivan_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Это не награда. Это аванс. Потрать на броню, а не на эль. Я проверю.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Слова без дисциплины — шум. Ещё одно такое — и будешь бегать вокруг Зала до заката.",
       options: [
         { label: "Виноват. Больше не повторится.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -1127,45 +1062,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Взять премию за босса.", next: "progress_1_paid", effects: { gold: 40, flag: "ivan_goblin_paid" }, requires: { notFlag: "ivan_goblin_paid" } },
         { label: "Оставь в фонд Гильдии.", next: "hope", mood: "good", effects: { rep: 2, flag: "ivan_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Купи броню. Не герб. Герб не держит удар. Проверено.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны мёртв. Тогда почему я не чувствую облегчения? ...Потому что Башня не заканчивается. Она просто делает паузу.",
       options: [
         { label: "Значит, будем готовы к следующей.", next: "oath" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Рон — лучший кузнец города. Не говори ему. Он станет невыносим.",
       options: [
         { label: "А Стелла?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Стелла знает больше, чем говорит. Это её оружие. Не отбирай.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед стоит. Пока стоит — есть куда возвращаться. Это не мало. Это всё, что у нас есть.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_offer: {
@@ -1173,14 +1102,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я возьмусь.", next: "story_taken", effects: { action: "accept_story", questId: "sq_ivan_goblin_chief" } },
         { label: "Не сейчас.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     story_taken: {
       text: "Так и знал, что ты не пустозвон. Иди. И вернись с его головой.",
       options: [
         { label: "Понял.", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -1226,57 +1155,37 @@ const DIALOG_TREES = {
     start: {
       text: "О, {gender_term:новенький|новенькая}! Я Тимми. Молодой охотник, гроза гоблинов, любимец барменши. Два из трёх — правда.",
       options: [
-        { label: "💡 Дай совет", next: "give_advice" },
         { label: "Что ты знаешь об этажах?", next: "lore_tower" },
         { label: "Ты ведь из дома Ворона?", next: "personal" },
         { label: "Что у тебя с Иваном?", next: "ivan" },
         { label: "Ты храбрый. Не каждый идёт в Башню.", next: "praise", mood: "good", effects: { rep: 1, flag: "timmy_praised" } },
         { label: "Ты ещё ребёнок. Какой из тебя охотник?", next: "insult", mood: "bad", effects: { rep: -2, flag: "timmy_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Я его сделал.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Я спустился на дно.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Я его сделал.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Я спустился на дно.", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: null },
       ],
     },
     // Динамический узел: текст подставляет ui.js из randomTimmyTip().
-    give_advice: {
-      tip: "timmy",
-      text: "",
-      options: [
-        { label: "Спасибо.", next: "start" },
-        { label: "Уйти", next: null },
-      ],
-    },
-    shop: {
-      text: "Советы бесплатные. За правильные иногда платят уважением. Слушай внимательно.",
-      options: [
-        { label: "Спросить совет", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
-      ],
-    },
     lore_tower: {
       text: "Первый этаж — лес. Второй — шахты. Третий — склеп, где время идёт назад. Не пытайся понять. Просто не ложись там спать.",
       options: [
         { label: "А четвертый и пятый?", next: "lore_world" },
         { label: "А что с Йорстедом?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_world: {
       text: "Четвертый — лагерь орков из другого плана. Пятый — демонический. Там реальность плавится. Башня умеет ждать. Если этаж кажется пустым — ты просто не видишь, что там.",
       options: [
         { label: "И оно уже видит меня?", next: "scars" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед — последний город, где ещё наливают. Остальные пали. Так что пей, пока наливают. И воюй, пока стоит.",
       options: [
         { label: "Мрачно.", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -1284,8 +1193,7 @@ const DIALOG_TREES = {
       options: [
         { label: "И что теперь?", next: "ivan" },
         { label: "А твой отец?", next: "father" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     ivan: {
@@ -1293,53 +1201,47 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты его уважаешь?", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_ivan_peace" } },
         { label: "А он тебя?", next: "father" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     father: {
       text: "Отец хотел, чтобы я продолжил вражду. Я пошёл в Башню. Там врагов выбираешь не ты. Как оказалось, это легче.",
       options: [
         { label: "Ты не жалеешь?", next: "scars" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     scars: {
       text: "Мой самый большой шрам? Не от монстра. Упал с лестницы в гостинице. Стелла до сих пор смеётся. Башня — ерунда по сравнению с её языком.",
       options: [
         { label: "А остальные шрамы?", next: "joke" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     joke: {
       text: "Каждый шрам — история. Мои все врут. На самом деле я просто неуклюжий. Не говори Ивану. Он заставит отжиматься.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Правда? Спасибо! Я... я стараюсь. Вот, держи совет бесплатно: не стой под ударом. И не хвались до боя.",
       options: [
         { label: "Взять монету на стрелы.", next: "praise_paid", effects: { gold: 8, flag: "timmy_tip_paid" }, requires: { notFlag: "timmy_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Только не говори, что я добрый. У меня репутация. Ну, была. Пока ты не пришёл.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Ну и ладно. Ну и пожалуйста. Я всё равно знаю больше, чем ты думаешь. Наверное. Не проверяй.",
       options: [
         { label: "Ладно, ты не ребёнок. Прости.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -1347,45 +1249,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Взять монету. На стрелы.", next: "progress_1_paid", effects: { gold: 15, flag: "timmy_goblin_paid" }, requires: { notFlag: "timmy_goblin_paid" } },
         { label: "Оставь себе. Купи нормальный шлем.", next: "hope", mood: "good", effects: { rep: 1, flag: "timmy_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Спасибо! Я куплю... что-нибудь. Не шлем. Шлем портит причёску. Не говори Ивану.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны? Ты? ...Ладно, я официально впечатлён. Но если ты теперь будешь ходить и рассказывать это всем — я тебя поколочу. Шутка. Почти.",
       options: [
         { label: "Ты бы пошёл со мной?", next: "hope" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Рон ворчит, что молодёжь не умеет держать клинок. Потом подковывает мне сапоги бесплатно. Странный способ заботиться.",
       options: [
         { label: "А про Элизу?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Элиза говорит с камнями. Я проверял — они не отвечают. Но она всё равно выглядит так, будто знает больше.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед ещё стоит. Значит, есть куда вернуться после Башни. Выпить, поспать, соврать о подвигах. Нормальная жизнь.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -1398,23 +1294,22 @@ const DIALOG_TREES = {
     start: {
       text: "Дорогу! Торговец идёт! У меня есть то, чего нет у местных лавочников. Совесть, например. Шучу. Совесть не продаётся.",
       options: [
-        { label: "💰 Показать товары", next: "shop" },
+        { label: "Показать товары", action: "open_shop" },
         { label: "Откуда твой товар?", next: "lore_tower" },
         { label: "Ты ведь из павшего дома?", next: "personal" },
         { label: "Что говорят о других?", next: "rumors" },
         { label: "Ты умеешь вести дело. Уважаю.", next: "praise", mood: "good", effects: { rep: 1, flag: "arthur_praised" } },
         { label: "Ты торгуешь краденым.", next: "insult", mood: "bad", effects: { rep: -2, flag: "arthur_insulted" } },
-        { label: "👑 Вождь Гоблинов мёртв. Спрос на гоблинское падает.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
-        { label: "🕯 Владыка Бездны мёртв. Демонические реликвии подешевеют?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
-        { label: "Уйти", next: "leave" },
+        { label: "Вождь Гоблинов мёртв. Спрос на гоблинское падает.", next: "progress_1", requires: { bossKilled: "goblin_chief" } },
+        { label: "Владыка Бездны мёртв. Демонические реликвии подешевеют?", next: "progress_2", requires: { bossKilled: "demon_lord" } },
+        { label: "Уйти", next: null },
       ],
     },
     shop: {
       text: "Смотри, выбирай, не стесняйся. Цены — как в лучших домах. Товар — из-за моря. Какого моря — не спрашивай.",
       options: [
         { label: "К товарам", action: "open_shop" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_tower: {
@@ -1422,24 +1317,21 @@ const DIALOG_TREES = {
       options: [
         { label: "А что с павшими городами?", next: "lore_world" },
         { label: "А Йорстед?", next: "lore_city" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_world: {
       text: "Пока города падают, у торговца работа есть. Грустно? Да. Но кто-то же должен продавать павшим городам последние вещи.",
       options: [
         { label: "Это называется мародёрство.", next: "relic" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     lore_city: {
       text: "Йорстед — последний перекрёсток. Здесь сошлись те, кто раньше убивал друг друга. Теперь торгуются. Прогресс.",
       options: [
         { label: "И ты на этом прогресс зарабатываешь.", next: "deal" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     personal: {
@@ -1447,61 +1339,54 @@ const DIALOG_TREES = {
       options: [
         { label: "Расскажи о доме.", next: "house" },
         { label: "И ты не жалеешь?", next: "business" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     house: {
       text: "Мой отец проиграл всё в одну ночь. Дом, имя, даже герб. Я не проигрываю. Я продаю. Разница есть.",
       options: [
         { label: "Разница есть.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_comforted" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     business: {
       text: "Я не торгую краденым. Я торгую вещами, которые потеряли хозяев. Это разные вещи. Иногда.",
       options: [
         { label: "Иногда?", next: "relic" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     relic: {
       text: "Эта вещь из города, которого нет. Не спрашивай, откуда. Спрашивай, сколько. Это правильный вопрос.",
       options: [
         { label: "Сколько?", next: "deal" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     deal: {
       text: "Сделка — это когда оба уходят довольными. Или один довольный, а второй не заметил. Я предпочитаю первое. Обычно.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise: {
       text: "Приятно, когда ценят. За доброе слово — скидка. Почти. Ладно, просто запомню тебя добрым покупателем.",
       options: [
         { label: "Взять скидку монетой.", next: "praise_paid", effects: { gold: 15, flag: "arthur_tip_paid" }, requires: { notFlag: "arthur_tip_paid" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     praise_paid: {
       text: "Только никому. Если узнают, что я умею быть щедрым, цены упадут. А я этого не переживу.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     insult: {
       text: "Краденое? Обижаешь. Я беру только то, что плохо лежит... и хорошо платит. Шутка. Почти.",
       options: [
         { label: "Плохая шутка. Прости.", next: "start", mood: "neutral" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1: {
@@ -1509,45 +1394,39 @@ const DIALOG_TREES = {
       options: [
         { label: "Принять скидку за босса.", next: "progress_1_paid", effects: { gold: 35, flag: "arthur_goblin_paid" }, requires: { notFlag: "arthur_goblin_paid" } },
         { label: "Обойдусь без твоих реликвий.", next: "hope", mood: "good", effects: { rep: 1, flag: "arthur_refused_pay" } },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_1_paid: {
       text: "Видишь? Честная сделка. Ты убил — я продал. Все довольны. Кроме Вождя. Но он уже не клиент.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     progress_2: {
       text: "Владыка Бездны? Значит, спрос на демонические реликвии упадёт. Или взлетит. Рынок непредсказуем.",
       options: [
         { label: "Ты думаешь о ценах даже сейчас?", next: "deal" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors: {
       text: "Иван и Тимми? Волк и Ворон. Раньше они бы убили друг друга. Сейчас делят счёт. Прогресс, как я говорю.",
       options: [
         { label: "А про Элизу?", next: "rumors2" },
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     rumors2: {
       text: "Элиза не торгуется. Вообще. Это либо святая, либо очень хороший стратег. Ставлю на второе.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     hope: {
       text: "Йорстед стоит — значит, есть кому продавать. А пока есть кому продавать, есть смысл вставать утром. Почти поэзия.",
       options: [
-        { label: "Назад", next: "start" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "start" },
       ],
     },
     leave: {
@@ -1572,8 +1451,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Почему ты этим занимаешься?", next: "hire_wounded" },
         { label: "Мне нужна такая помощь.", next: "hire_price" },
-        { label: "Назад", next: "hire_mira" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_wounded: {
@@ -1581,8 +1459,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Это не твоя вина.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Ты просто не справилась.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
-        { label: "Назад", next: "hire_mira" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_song: {
@@ -1590,16 +1467,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я бы хотел услышать её снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Спой ещё. Может, я усну.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
-        { label: "Назад", next: "hire_mira" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_discount: {
       text: "«Не льсти. Но ты слушаешь. Это редкость. Ладно — скидка. Немного.»",
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
-        { label: "Назад", next: "hire_mira" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_price: {
@@ -1608,7 +1483,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_mira", effects: { action: "hire", companionId: "mira" }, requires: { minGold: 500 } },
         { label: "500? Это грабёж!", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_mira" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_angry: {
@@ -1626,12 +1501,12 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "А если умру?", next: "hire_after" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_mira" },
       ],
     },
     hire_after: {
       text: "«Тогда я приду и вытащу тебя. Умирать при мне — плохая привычка.»",
-      options: [{ label: "Уйти", next: null }],
+      options: [{ label: "← Назад", next: "hire_mira" }],
     },
     hire_leave: {
       text: "«Иди. И выспись. Это тоже лекарство.»",
@@ -1654,8 +1529,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты потеряла свой дом?", next: "hire_past" },
         { label: "Мне нужна твоя помощь.", next: "hire_price" },
-        { label: "Назад", next: "hire_alva" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_past: {
@@ -1663,8 +1537,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Твоя песня всё ещё жива.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Значит, ты никто без своего дома.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
-        { label: "Назад", next: "hire_alva" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_song: {
@@ -1672,16 +1545,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я не буду просить снова. Наняться к тебе.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Спой ещё. Я заплачу.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
-        { label: "Назад", next: "hire_alva" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_discount: {
       text: "«Ты слышишь не только ноты. Это... приятно. Ладно, скидка.»",
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
-        { label: "Назад", next: "hire_alva" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_price: {
@@ -1690,7 +1561,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_alva", effects: { action: "hire", companionId: "alva" }, requires: { minGold: 500 } },
         { label: "Петь за такие деньги? Смешно.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_alva" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_angry: {
@@ -1708,12 +1579,12 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "Что я услышу?", next: "hire_after" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_alva" },
       ],
     },
     hire_after: {
       text: "«То, что тебе нужно. Не то, что ты хочешь. Это разные песни.»",
-      options: [{ label: "Уйти", next: null }],
+      options: [{ label: "← Назад", next: "hire_alva" }],
     },
     hire_leave: {
       text: "«Иди. Тишина тоже иногда лечит.»",
@@ -1736,8 +1607,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Тогда нанимаю.", next: "hire_price", mood: "good", effects: { affinity: 2 } },
         { label: "Давай без найма, просто по морде.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
-        { label: "Назад", next: "hire_solveig" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_story: {
@@ -1745,8 +1615,7 @@ const DIALOG_TREES = {
       options: [
         { label: "Ты скучаешь по дому?", next: "hire_scar" },
         { label: "Мне нужен боец.", next: "hire_price" },
-        { label: "Назад", next: "hire_solveig" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_scar: {
@@ -1754,16 +1623,14 @@ const DIALOG_TREES = {
       options: [
         { label: "Я понимаю.", next: "hire_discount", mood: "good", effects: { affinity: 5, hireDiscount: 0.1 } },
         { label: "Жалко тебя.", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
-        { label: "Назад", next: "hire_solveig" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_discount: {
       text: "«Не жалей. Жалость — для слабаков. Но ты не отвернулся. Ладно, скидка. Один раз.»",
       options: [
         { label: "Сколько теперь?", next: "hire_price" },
-        { label: "Назад", next: "hire_solveig" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_price: {
@@ -1772,7 +1639,7 @@ const DIALOG_TREES = {
         { label: "Я согласен. Вот оплата.", next: "hired_solveig", effects: { action: "hire", companionId: "solveig" }, requires: { minGold: 500 } },
         { label: "500? За бабу с топором?", next: "hire_angry", mood: "bad", effects: { affinity: -5 } },
         { label: "Мне нужно подумать.", next: "hire_solveig" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_angry: {
@@ -1790,12 +1657,12 @@ const DIALOG_TREES = {
       options: [
         { label: "Постараюсь.", next: null },
         { label: "А щит?", next: "hire_after" },
-        { label: "Уйти", next: null },
+        { label: "← Назад", next: "hire_solveig" },
       ],
     },
     hire_after: {
       text: "«Щит — это когда я стою между тобой и чем-то большим. Не благодари. Плати.»",
-      options: [{ label: "Уйти", next: null }],
+      options: [{ label: "← Назад", next: "hire_solveig" }],
     },
     hire_leave: {
       text: "«Иди. И не забудь: если встретишь что-то большое — зови. Я не люблю пропускать веселье.»",
@@ -2766,7 +2633,7 @@ function trainingCap(level = state.level) {
 const TRAININGS = [
   { id: "obstacle_course", attr: "end", stat: "end", name: "Полоса препятствий", icon: "🏃", cap: 10, risk: 0.2, desc: "Иван гоняет вас через рвы, заборы и канаты.", effect: "+1 к выносливости за тренировку", qteType: "rhythm", reward: { maxEnergy: 10 } },
   { id: "sparring", attr: "agi", stat: "agi", name: "Спарринг на клинках", icon: "🤺", cap: 10, risk: 0.25, desc: "Учебный бой на деревянных клинках. Быстрота важнее силы — Иван бьёт по пальцам за каждый зевок.", effect: "+1 к ловкости за тренировку" },
-  { id: "heavy_lifting", attr: "str", stat: "str", name: "Тяжёлые камни", icon: "🏋️", cap: 10, risk: 0.3, desc: "Камни, мешки с песком и старые наковальни. После десятого подхода руки перестают дрожать — или отказывают.", effect: "+1 к силе за тренировку" },
+  { id: "heavy_lifting", attr: "str", stat: "str", name: "Оттачивание клинка", icon: "🏋️", cap: 10, risk: 0.3, desc: "Учебный бой с акцентом на уязвимые точки. Иван показывает, куда бить, чтобы свалить врага с одного удара.", effect: "+1 к силе за тренировку" },
 ];
 
 const TRAINING_MAP = Object.fromEntries(TRAININGS.map((t) => [t.id, t]));

@@ -1437,6 +1437,529 @@ kbd {
   .npc-inline-footer { justify-content: center; }
 }
 
+/* ── Кинематографичная сцена диалога NPC ─────────────────────── */
+.dialog-scene {
+  position: relative;
+  overflow: hidden;
+  background: #0a0807;
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 18px;
+}
+.dialog-scene-modal {
+  width: min(760px, 100%);
+  max-width: 760px;
+  margin-bottom: 0;
+  text-align: left;
+}
+.dialog-portrait {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid var(--gold);
+  flex: 0 0 200px;
+  background: #171210;
+}
+.dialog-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.dialog-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.dialog-heading .npc-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}
+.dialog-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+.dialog-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dialog-option-btn {
+  background: rgba(217, 169, 75, 0.1);
+  border: 1px solid var(--gold2);
+  color: var(--gold2);
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+.dialog-option-btn:hover {
+  background: rgba(217, 169, 75, 0.25);
+}
+.dialog-option-btn.mood-good { color: #a9d3b1; border-color: #4caf50; }
+.dialog-option-btn.mood-bad { color: #e07070; border-color: #c2483c; }
+
+@media (max-width: 680px) {
+  .dialog-scene { flex-direction: column; align-items: center; padding: 14px; gap: 12px; }
+  .dialog-portrait { width: 120px; height: 120px; flex: 0 0 120px; }
+  .dialog-content { width: 100%; }
+  .dialog-text { font-size: 15px; margin-bottom: 14px; }
+  .dialog-option-btn { width: 100%; text-align: center; }
+}
+
+/* ── Универсальный диалог и торговля в стиле Mount & Blade ─────── */
+.mnb-dialog-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  background: rgba(20, 16, 14, 0.95);
+  border: 1px solid var(--gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  color: var(--text);
+}
+.mnb-dialog-overlay {
+  padding: 18px;
+}
+.mnb-dialog-top {
+  display: flex;
+  gap: 10px;
+  height: 350px;
+}
+.mnb-portrait {
+  width: 250px;
+  height: 100%;
+  flex: 0 0 250px;
+  object-fit: cover;
+  border: 2px solid #3a2a1a;
+  background: #1a120b;
+  box-sizing: border-box;
+}
+/* Портрет героя справа: зеркальное отражение левого NPC-портрета. */
+.mnb-hero-portrait {
+  transform: scaleX(-1);
+  border-color: var(--line2);
+}
+.mnb-parchment {
+  flex: 1;
+  background: transparent;
+  color: var(--text);
+  padding: 24px 30px;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  box-sizing: border-box;
+  overflow-y: auto;
+  min-width: 0;
+}
+.mnb-npc-name {
+  color: var(--gold2);
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+.mnb-text {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-style: italic;
+}
+.mnb-dialog-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mnb-option-btn {
+  width: 100%;
+  background: rgba(217, 169, 75, 0.05);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 16px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mnb-option-btn:hover:not(:disabled) {
+  background: rgba(217, 169, 75, 0.15);
+  border-color: var(--gold);
+}
+.mnb-option-btn.mood-good {
+  border-color: #4caf50;
+}
+.mnb-option-btn.mood-bad {
+  border-color: #c2483c;
+}
+.mnb-option-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mnb-trade-page {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 20px 30px;
+  box-sizing: border-box;
+}
+.mnb-trade-page-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: #e8dcc0;
+}
+.mnb-trade-page-head h2 {
+  margin: 0;
+  color: var(--gold2);
+}
+.mnb-trade-wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
+  gap: 15px;
+  background: rgba(20, 16, 14, 0.95);
+  border: 1px solid var(--gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  color: var(--text);
+}
+.mnb-trade-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+.mnb-trade-col.center {
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+.mnb-trade-col-title {
+  font-weight: bold;
+  color: var(--gold2);
+  font-size: 15px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+.mnb-trade-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.mnb-trade-item:hover {
+  background: rgba(217, 169, 75, 0.12);
+}
+.mnb-trade-item.disabled {
+  opacity: 0.5;
+}
+.mnb-trade-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.mnb-trade-item-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mnb-trade-item-price {
+  white-space: nowrap;
+  font-weight: bold;
+}
+.mnb-portrait-small {
+  width: 150px;
+  height: 180px;
+  object-fit: cover;
+  border: 1px solid var(--gold);
+  background: #1a120b;
+  margin-bottom: 8px;
+}
+/* Наковальня в центре крафта вместо портрета NPC. */
+.trade-npc-portrait {
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6));
+  margin: 12px 0 18px;
+}
+.mnb-trade-npc-name {
+  font-weight: bold;
+  color: var(--gold2);
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.mnb-trade-gold {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.mnb-trade-close {
+  margin-top: auto;
+  width: 100%;
+  background: rgba(217, 169, 75, 0.05);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.mnb-trade-close:hover:not(:disabled) {
+  background: rgba(217, 169, 75, 0.15);
+  border-color: var(--gold);
+  color: var(--text);
+}
+.mnb-trade-empty {
+  font-style: italic;
+  opacity: 0.65;
+  padding: 8px 4px;
+}
+.mnb-trade-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+/* Вторая строка фильтров: подкатегории оружия/брони. */
+.mnb-trade-subfilters {
+  margin-top: -2px;
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line2);
+}
+.mnb-trade-subfilters .shop-tab {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+/* Полная кукла в центре торговли: как на экране Героя — слоты вокруг
+   портрета, все 16 слотов в режиме просмотра. */
+.trade-doll {
+  width: 100%;
+  margin-bottom: 4px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trade-doll .paper-doll {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 100px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 0;
+  width: 100%;
+}
+.trade-doll .doll-center {
+  gap: 6px;
+}
+.trade-doll .doll-figure {
+  max-width: 118px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.trade-doll .doll-name b { font-size: 13px; }
+.trade-doll .doll-name span { font-size: 9.5px; }
+.trade-doll .doll-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trade-doll .doll-slot-wrapper {
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+.trade-doll .slot-label {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-doll .doll-slot {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  cursor: default;
+}
+.trade-doll .doll-slot:disabled {
+  opacity: 1;
+}
+.trade-doll .doll-slot:disabled:hover {
+  transform: none;
+  border-color: var(--line);
+  background: linear-gradient(180deg, #1a1411, #100c0a);
+}
+.trade-doll .doll-slot.filled:disabled:hover {
+  border-color: #4a382c;
+}
+
+/* Список тем внутри диалогового окна. */
+.mnb-topic-reply {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.mnb-topic-reply p {
+  margin: 0 0 4px;
+  color: #e2e8f0;
+  font-style: italic;
+}
+.mnb-topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Экран лавки в режиме диалога/торговли/крафта: товарный UI не рендерится,
+   поэтому пергамент и кнопки занимают собственную изолированную область. */
+.mnb-interaction-page {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 20px 32px;
+  box-sizing: border-box;
+}
+.mnb-interaction-page .mnb-dialog-wrapper { margin-top: 8px; }
+.mnb-dialog-overlay {
+  align-items: center;
+  overflow-y: auto;
+  padding: 18px;
+}
+.mnb-dialog-overlay .mnb-dialog-wrapper {
+  width: min(1000px, 100%);
+  margin: auto;
+}
+.mnb-interaction-overlay {
+  align-items: center;
+  overflow-y: auto;
+  padding: 18px;
+}
+.mnb-interaction-modal {
+  width: min(1200px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.mnb-interaction-modal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  color: #e8dcc0;
+}
+.mnb-interaction-modal-head h2 {
+  margin: 0;
+  color: var(--gold2);
+}
+
+/* Крафт: те же три колонки, что и торговля. */
+.mnb-craft-wrapper .mnb-trade-col.right { gap: 4px; }
+.mnb-craft-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.mnb-craft-row.lack { opacity: 0.62; }
+.mnb-craft-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mnb-craft-main { min-width: 0; }
+.mnb-craft-name {
+  font-weight: bold;
+  color: var(--gold2);
+  font-size: 14px;
+  line-height: 1.25;
+}
+.mnb-craft-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.mnb-craft-materials .chip { font-size: 11px; padding: 2px 5px; }
+.mnb-craft-btn {
+  background: rgba(217, 169, 75, 0.05);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.mnb-craft-btn:hover:not(:disabled) {
+  background: rgba(217, 169, 75, 0.15);
+  border-color: var(--gold);
+  color: var(--text);
+}
+.mnb-craft-res {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .mnb-dialog-top { height: auto; flex-direction: column; }
+  .mnb-portrait,
+  .mnb-hero-portrait { width: 100%; height: 140px; flex: 0 0 140px; }
+  .mnb-parchment { order: -1; padding: 18px; }
+  .mnb-text { font-size: 16px; }
+  .mnb-trade-wrapper { grid-template-columns: 1fr; }
+  .mnb-trade-col { max-height: none; overflow-y: visible; }
+  .mnb-trade-col.center { order: -1; }
+  .mnb-trade-close { margin-top: 8px; }
+  .mnb-craft-row { grid-template-columns: 32px minmax(0, 1fr); }
+  .mnb-craft-btn { grid-column: 1 / -1; justify-self: stretch; }
+}
+
 /* Панель продажи: чекбоксы */
 .sell-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .sell-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -1506,6 +2029,37 @@ kbd {
 .result-loot li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #130f0c; }
 .result-loot li b { margin-left: auto; color: var(--gold2); }
 .result-card .btn { margin-top: 16px; min-width: 180px; }
+
+/* ── Подтверждение покупки ───────────────────────────────── */
+.confirm-modal {
+  width: min(420px, 100%);
+  padding: 24px;
+  border-color: var(--gold);
+  text-align: center;
+}
+.confirm-modal h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: var(--gold2);
+}
+.confirm-text {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.confirm-text b {
+  color: var(--gold2);
+}
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.confirm-actions .btn {
+  margin-top: 0;
+  min-width: 120px;
+}
 
 /* ── Вступительная сцена с Тимми ─────────────────────────── */
 /* Полноэкранный слой перекрывает топбар и кнопки под диалогом. */
@@ -3190,6 +3744,22 @@ kbd {
 .achievements-modal { width: min(720px, 100%); max-width: 720px; text-align: left; }
 .achievements-modal-body { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
 
+/* Модалка умений */
+.abilities-modal { width: min(560px, 100%); max-width: 560px; text-align: left; }
+.abilities-modal-body { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+.abilities-grid { display: flex; flex-direction: column; gap: 8px; }
+.ability-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--gold); border-radius: 10px;
+  background: rgba(201, 152, 78, 0.07);
+}
+.ability-card-icon { flex: 0 0 auto; font-size: 22px; line-height: 1.1; }
+.ability-card-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ability-card-name { font-size: 14px; color: var(--gold2); }
+.ability-card-desc { font-size: 12px; line-height: 1.4; color: var(--dim); }
+.ability-empty { margin: 0; padding: 16px 4px; text-align: center; }
+
 /* Модалка выбора титула */
 .title-modal { max-width: 520px; text-align: left; }
 .title-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
@@ -3241,6 +3811,19 @@ kbd {
   background: rgba(5, 3, 2, 0.82);
   backdrop-filter: blur(3px);
   animation: qte-fade-in 0.12s ease-out;
+  will-change: transform, opacity;
+}
+
+/* Шаги тренировки: обновляются точечно, без перерисовки модалки */
+.qte-steps { display: flex; justify-content: center; gap: 8px; margin: 4px 0 14px; }
+.qte-step {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.qte-step.done {
+  background: var(--gold2);
+  box-shadow: 0 0 8px rgba(217, 169, 75, 0.7);
 }
 
 .qte-card {
@@ -3416,3 +3999,26 @@ kbd {
 .custom-tooltip .tt-negative { color: #e07070; }
 .custom-tooltip .tt-set { color: var(--gold); font-style: italic; }
 .custom-tooltip .tt-set-active { color: #a9d3b1; }
+
+/* Сравнение предметов: магазинный слева, надетый справа. */
+.custom-tooltip.tooltip-wide { max-width: 560px; }
+.tooltip-compare-container {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.tooltip-item {
+  flex: 1;
+  min-width: 150px;
+}
+.tooltip-item + .tooltip-item {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+.tt-source {
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+}

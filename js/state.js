@@ -1054,6 +1054,7 @@ function createHero(biography, archetypeId, portrait = "m1", name = "", gender =
   state.day = 1;
   state.companion = null;
   state.companionDay = 0;
+  state.abilities = { parry: false, preciseStrike: false };
   state.affinity = Object.fromEntries(COMPANIONS.map((c) => [c.id, 0]));
   state.hireDiscounts = {};
   state.companionBuffs = [];
@@ -1765,9 +1766,7 @@ function hireCompanion(companionId) {
   const dialogId = companion.hireDialog || `hire_${companion.id}`;
   if (typeof view !== "undefined") {
     view.hiringCompanion = companion.id;
-    view.talkNpc = companion.id;
-    view.talkNpcText = null;
-    view.dialogNode = dialogId;
+    view.npcInteraction = { npcId: companion.id, mode: "dialog", node: dialogId };
   }
   return { ok: true, companion, openDialog: true, dialogId, cost, text: `${companion.name} готова обсудить условия.` };
 }
@@ -2340,22 +2339,23 @@ function completeTraining(success = true) {
     applyVitalsDelta(oldStats, stats());
     notes.push(`Тренировка завершена. ${training.name}: ${attrName} +1.`);
 
-    // Курс из 10 занятий даёт награду: выносливость или боевые приёмы.
-    if (state.trainingCount[trainingId] >= 10) {
-      if (trainingId === "obstacle_course") {
-        state.trainingBonus = state.trainingBonus || { maxEnergy: 0 };
-        state.trainingBonus.maxEnergy = (state.trainingBonus.maxEnergy || 0) + 10;
-        invalidateStats();
-        notes.push("Выносливость +10!");
-      }
-      if (trainingId === "heavy_lifting" && !state.abilities.preciseStrike) {
-        state.abilities.preciseStrike = true;
-        notes.push('Вы освоили "Точный удар"!');
-      }
-      if (trainingId === "sparring" && !state.abilities.parry) {
-        state.abilities.parry = true;
-        notes.push("Вы освоили Парирование!");
-      }
+    const trainingCount = state.trainingCount[trainingId] || 0;
+
+    // Курс из 10 занятий даёт выносливость, а боевые приёмы открываются
+    // после 5 успешных тренировок.
+    if (trainingId === "obstacle_course" && trainingCount >= 10) {
+      state.trainingBonus = state.trainingBonus || { maxEnergy: 0 };
+      state.trainingBonus.maxEnergy = (state.trainingBonus.maxEnergy || 0) + 10;
+      invalidateStats();
+      notes.push("Выносливость +10!");
+    }
+    if (trainingId === "heavy_lifting" && trainingCount >= 5 && !state.abilities.preciseStrike) {
+      state.abilities.preciseStrike = true;
+      notes.push('Вы освоили "Точный удар"!');
+    }
+    if (trainingId === "sparring" && trainingCount >= 5 && !state.abilities.parry) {
+      state.abilities.parry = true;
+      notes.push("Вы освоили Парирование!");
     }
   } else {
     state.hp = Math.max(1, state.hp - 20);
