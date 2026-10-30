@@ -152,6 +152,13 @@ const NPC_AFFINITY_TIERS = [
 ];
 const NPC_AFFINITY_NAMES = { ron: "Рон", elain: "Элейн", elize: "Элиза", stella: "Стелла", ivan: "Иван", timmy: "Тимми", arthur: "Артур" };
 const SHOP_AFFINITY_NPC = { forge: "ron", alchemy: "elain", jewelry: "elize" };
+// NPC, открывающий наковальню соответствующей фракции (уровень «Уважаемый» в affinity).
+const UPGRADE_NPC = { smiths: "ron", jewelers: "elize", alchemists: "elain" };
+function canUpgradeItems(factionId) {
+  const npcId = UPGRADE_NPC[factionId];
+  if (!npcId || !state || !state.npcAffinity) return false;
+  return getNpcAffinityLevel(state.npcAffinity[npcId] || 0).discount >= 0.10;
+}
 
 function getNpcAffinityLevel(affinity) {
   const value = Math.max(0, Math.floor(Number(affinity) || 0));
@@ -302,8 +309,11 @@ function upgradeItem(uid, stat = null) {
 
   const factionId = UPGRADE_FACTION[path.id];
   const faction = FACTION_MAP[factionId];
-  if (!state.factionPerksUnlocked || !state.factionPerksUnlocked[factionId]) {
-    return { ok: false, text: `${faction.name} ещё не доверяет вам — нужен тир «${FACTION_TIERS[2].name}» (${FACTION_TIERS[2].min} репутации, ежедневные заказы ${faction.npc === "elain" ? "Элейн" : faction.npc === "elize" ? "Элизы" : "Рона"}).` };
+  if (!canUpgradeItems(factionId)) {
+    const npcId = UPGRADE_NPC[factionId];
+    const npcName = (NPC_AFFINITY_NAMES && NPC_AFFINITY_NAMES[npcId]) || (faction.npc || faction.name);
+    const current = getNpcAffinityLevel(state.npcAffinity[npcId] || 0);
+    return { ok: false, text: `${npcName} ещё не доверяет вам наковальню — нужен уровень «${NPC_AFFINITY_TIERS[2].name}» (${NPC_AFFINITY_TIERS[2].min} отношения). Сейчас: ${current.affinity}.` };
   }
 
   const up = normalizeUpgrade(inst.upgrade, item) || { level: 0, stat: null };
@@ -2345,8 +2355,9 @@ function trainAttr(trainingId) {
   if (state.phase === 3) return { ok: false, text: "Иван: Я уже сплю. Приходи утром." };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, text: `Нужно ${TRAINING_ENERGY_COST} ⚡. Отдохните или сходите в Башню.` };
 
-  // Статы и фаза теперь меняются только после QTE в completeTraining().
-  state.energy -= TRAINING_ENERGY_COST;
+  // Статы, фаза и энергия меняются только после QTE в completeTraining().
+  // Сохранение здесь фиксирует только «тренировка начата» — если игрок
+  // перезагрузит страницу, он ничего не потеряет.
   view.trainingQTE = {
     trainingId,
     sequence: ["left", "right", "strike"],
@@ -2387,18 +2398,18 @@ function completeTraining(success = true) {
     const trainingCount = state.trainingCount[trainingId] || 0;
 
     // Курс из 10 занятий даёт выносливость, а боевые приёмы открываются
-    // после 5 успешных тренировок.
+    // после 10 успешных тренировок.
     if (trainingId === "obstacle_course" && trainingCount >= 10) {
       state.trainingBonus = state.trainingBonus || { maxEnergy: 0 };
       state.trainingBonus.maxEnergy = (state.trainingBonus.maxEnergy || 0) + 10;
       invalidateStats();
       notes.push("Выносливость +10!");
     }
-    if (trainingId === "heavy_lifting" && trainingCount >= 5 && !state.abilities.preciseStrike) {
+    if (trainingId === "heavy_lifting" && trainingCount >= 10 && !state.abilities.preciseStrike) {
       state.abilities.preciseStrike = true;
       notes.push('Вы освоили "Точный удар"!');
     }
-    if (trainingId === "sparring" && trainingCount >= 5 && !state.abilities.parry) {
+    if (trainingId === "sparring" && trainingCount >= 10 && !state.abilities.parry) {
       state.abilities.parry = true;
       notes.push("Вы освоили Парирование!");
     }
@@ -2409,6 +2420,9 @@ function completeTraining(success = true) {
     notes.push("Иван: Я же говорил, не лезь на рожон.");
   }
 
+  // Энергия списывается здесь, а не на старте QTE: перезагрузка посреди
+  // тренировки не должна её «съедать».
+  state.energy = Math.max(0, state.energy - TRAINING_ENERGY_COST);
   // И успех, и провал сдвигают ровно одну фазу: утро → день.
   advancePhase();
   clampVitals();

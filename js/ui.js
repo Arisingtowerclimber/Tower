@@ -72,11 +72,13 @@ function iconHtml(icon, size = 32, fit = "contain") {
 
 // По пути к иконке «assets/icons/head_iron.webp» подбираем эмодзи слота,
 // чтобы при отсутствии файла показать осмысленную заглушку.
+let ICON_ITEM_BY_PATH = null;
 function iconFallbackEmoji(resolved) {
-  const m = /([^/]+)\.(webp|png|jpe?g|svg)(\?|$)/i.exec(resolved);
-  const fileId = m ? m[1] : null;
-  const itemId = fileId && ICON_ITEM_BY_FILE[fileId] ? ICON_ITEM_BY_FILE[fileId] : fileId;
-  const item = itemId && ITEMS[itemId] ? ITEMS[itemId] : null;
+  if (!ICON_ITEM_BY_PATH) {
+    ICON_ITEM_BY_PATH = new Map();
+    for (const it of Object.values(ITEMS)) if (it.icon) ICON_ITEM_BY_PATH.set(it.icon, it);
+  }
+  const item = ICON_ITEM_BY_PATH.get(resolved) || null;
   if (item && item.iconFallback) return item.iconFallback;
   const slot = item ? item.slot : null;
   return (slot && SLOT_ICON[slot]) || "❔";
@@ -1671,7 +1673,7 @@ function upgradePanelHtml() {
     const path = UPGRADE_PATHS[pathId];
     const factionId = UPGRADE_FACTION[pathId];
     const faction = FACTION_MAP[factionId];
-    const unlocked = !!(state.factionPerksUnlocked && state.factionPerksUnlocked[factionId]);
+    const unlocked = typeof canUpgradeItems === "function" ? canUpgradeItems(factionId) : false;
     const rep = state.reputation[factionId] || 0;
 
     const cards = state.owned.filter((inst) => inst && upgradePathForItem(ITEMS[inst.id])?.id === pathId).map((inst) => {
@@ -1706,7 +1708,7 @@ function upgradePanelHtml() {
     }).join("");
 
     return `<section class="shop-group">
-      <h2 class="group-title">${path.icon} ${path.name}${unlocked ? "" : ` <span class="hint">🔒 ${faction.name}: нужен тир «${FACTION_TIERS[2].name}» (реп. ${FACTION_TIERS[2].min}, сейчас ${rep})</span>`}</h2>
+      <h2 class="group-title">${path.icon} ${path.name}${unlocked ? "" : ` <span class="hint">🔒 ${FACTION_MAP[factionId]?.npc ? NPC_NAMES[FACTION_MAP[factionId].npc] : faction.name}: нужен уровень «${NPC_AFFINITY_TIERS[2].name}» (${NPC_AFFINITY_TIERS[2].min} отношения)</span>`}</h2>
       <p class="hint">За каждый уровень улучшения: ${path.id === "weapon" ? "Атака +5" : path.id === "armor" ? "Защита +2" : "Крит +2 или Уворот +1 (на выбор)"}. Материалы — из походов на нижние этажи Башни.</p>
       <div class="item-grid">${cards || `<p class="empty">Подходящих предметов нет.</p>`}</div>
     </section>`;
@@ -4529,7 +4531,7 @@ function onClick(event) {
   
   // Вспомогательная функция для тряски экрана
   const shake = () => {
-    const screen = document.querySelector(".battle-screen");
+    const screen = document.querySelector("section.battle");
     if (screen) {
       screen.classList.add("screen-shake");
       setTimeout(() => screen.classList.remove("screen-shake"), 300);

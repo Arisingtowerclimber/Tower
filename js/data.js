@@ -2609,54 +2609,82 @@ const HUNTER_TIPS = [
 ];
 
 const ITEMS = {
-  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "assets/icons/rusty_knife.webp?v=2", atk: 4, weaponType: "sword", handed: "1h", damage: { slashing: 2, piercing: 4, bludgeoning: 0 }, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
+  // ── Оружие (27 предметов, три тира) ──────────────────────────────────────
+  // Тир 1 «Железо» — этаж 1
+  iron_long_sword: { id: "iron_long_sword", name: "Железный длинный меч", slot: "mainhand", icon: "assets/icons/iron_long_sword.png", atk: 27, weaponType: "sword", handed: "1h", damage: { slashing: 19, piercing: 8, bludgeoning: 0 }, price: 115, shopTier: 1, desc: "Длинный клинок, требующий обеих рук. Держит дистанцию и рубит широко." },
+  iron_short_sword: { id: "iron_short_sword", name: "Железный короткий меч", slot: "mainhand", icon: "assets/icons/iron_short_sword.png", atk: 22, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 13, piercing: 9, bludgeoning: 0 }, price: 85, shopTier: 1, desc: "Быстрый и точный. Оставляет вторую руку для щита." },
+  iron_rapier: { id: "iron_rapier", name: "Железная рапира", slot: "mainhand", icon: "assets/icons/iron_rapier.png", atk: 21, crit: 6, weaponType: "sword", handed: "1h", damage: { slashing: 4, piercing: 17, bludgeoning: 0 }, price: 105, shopTier: 1, desc: "Тонкий клинок для точных уколов в щели брони." },
+  iron_hatchet: { id: "iron_hatchet", name: "Железный топорик", slot: "mainhand", icon: "assets/icons/iron_hatchet.png", atk: 19, weaponType: "axe", handed: "1h", damage: { slashing: 15, piercing: 0, bludgeoning: 3 }, price: 80, shopTier: 1, desc: "Плотницкий инструмент, ставший оружием." },
+  iron_great_axe: { id: "iron_great_axe", name: "Железная секира", slot: "mainhand", icon: "assets/icons/iron_great_axe.png", atk: 29, weaponType: "axe", handed: "2h", damage: { slashing: 24, piercing: 0, bludgeoning: 5 }, price: 150, shopTier: 1, desc: "Древко подлиннее — и размах шире." },
+  iron_mace: { id: "iron_mace", name: "Железная булава", slot: "mainhand", icon: "assets/icons/iron_mace.png", atk: 21, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 0, bludgeoning: 18 }, price: 90, shopTier: 1, desc: "Грубая дробящая простота. Против кольчуги и лат." },
+  iron_maul: { id: "iron_maul", name: "Железный молот", slot: "mainhand", icon: "assets/icons/iron_maul.png", atk: 28, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 25 }, price: 155, shopTier: 1, desc: "Кузнечный молот, перепрофилированный по врагам." },
+  iron_spear: { id: "iron_spear", name: "Железное копьё", slot: "mainhand", icon: "assets/icons/iron_spear.png", atk: 23, weaponType: "spear", handed: "2h", damage: { slashing: 3, piercing: 18, bludgeoning: 0 }, price: 120, shopTier: 1, desc: "Дешёвое древко с честным жалом." },
+  iron_great_sword: { id: "iron_great_sword", name: "Железный двуручный меч", slot: "mainhand", icon: "assets/icons/iron_great_sword.png", atk: 32, weaponType: "sword", handed: "2h", damage: { slashing: 30, piercing: 6, bludgeoning: 0 }, price: 170, shopTier: 1, desc: "Тяжёлый клинок с высоким рубящим уроном. Обе руки заняты." },
+
+  // Тир 2 «Хладосталь» — этаж 2
+  coldsteel_long_sword: { id: "coldsteel_long_sword", name: "Длинный меч из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_long_sword.png", atk: 40, weaponType: "sword", handed: "1h", damage: { slashing: 28, piercing: 12, bludgeoning: 0 }, price: 260, shopTier: 2, desc: "Хладосталь держит кромку дольше железа и не тускнеет в подземелье." },
+  coldsteel_short_sword: { id: "coldsteel_short_sword", name: "Короткий меч из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_short_sword.png", atk: 33, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 20, piercing: 14, bludgeoning: 0 }, price: 210, shopTier: 2, desc: "Тот же баланс, что у железного, но сталь честнее." },
+  coldsteel_rapier: { id: "coldsteel_rapier", name: "Рапира из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_rapier.png", atk: 32, crit: 8, weaponType: "sword", handed: "1h", damage: { slashing: 6, piercing: 26, bludgeoning: 0 }, price: 240, shopTier: 2, desc: "Укол длиннее, сталь звонче." },
+  coldsteel_hatchet: { id: "coldsteel_hatchet", name: "Топорик из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_hatchet.png", atk: 29, weaponType: "axe", handed: "1h", damage: { slashing: 23, piercing: 0, bludgeoning: 4 }, price: 190, shopTier: 2, desc: "Лезвие правильной стали не вязнет в коже." },
+  coldsteel_great_axe: { id: "coldsteel_great_axe", name: "Секира из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_great_axe.png", atk: 45, weaponType: "axe", handed: "2h", damage: { slashing: 37, piercing: 0, bludgeoning: 8 }, price: 340, shopTier: 2, desc: "Каждый замах — обещание." },
+  coldsteel_mace: { id: "coldsteel_mace", name: "Булава из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_mace.png", atk: 32, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 28 }, price: 220, shopTier: 2, desc: "Ребра стали сиротливо звенят по шлемам." },
+  coldsteel_maul: { id: "coldsteel_maul", name: "Молот из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_maul.png", atk: 44, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 39 }, price: 360, shopTier: 2, desc: "Против лат — это уже не оружие, а решение." },
+  coldsteel_spear: { id: "coldsteel_spear", name: "Копьё из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_spear.png", atk: 35, weaponType: "spear", handed: "2h", damage: { slashing: 5, piercing: 28, bludgeoning: 0 }, price: 250, shopTier: 2, desc: "Жало, что держит врага на расстоянии." },
+  coldsteel_great_sword: { id: "coldsteel_great_sword", name: "Двуручный меч из хладостали", slot: "mainhand", icon: "assets/icons/coldsteel_great_sword.png", atk: 48, weaponType: "sword", handed: "2h", damage: { slashing: 45, piercing: 9, bludgeoning: 0 }, price: 390, shopTier: 2, desc: "Клинок длиной в человека. Рубящий удар пробивает кожаные доспехи." },
+
+  // Тир 3 «Руны» — этаж 3
+  runic_long_sword: { id: "runic_long_sword", name: "Рунический длинный меч", slot: "mainhand", icon: "assets/icons/runic_long_sword.png", atk: 58, weaponType: "sword", handed: "1h", damage: { slashing: 41, piercing: 17, bludgeoning: 0 }, price: 520, shopTier: 3, desc: "Руны на клинке проступают перед каждым ударом." },
+  runic_short_sword: { id: "runic_short_sword", name: "Рунический короткий меч", slot: "mainhand", icon: "assets/icons/runic_short_sword.png", atk: 47, crit: 4, weaponType: "sword", handed: "1h", damage: { slashing: 29, piercing: 20, bludgeoning: 0 }, price: 430, shopTier: 3, desc: "Короткий клинок с рунной насечкой по долу." },
+  runic_rapier: { id: "runic_rapier", name: "Руническая рапира", slot: "mainhand", icon: "assets/icons/runic_rapier.png", atk: 46, crit: 10, weaponType: "sword", handed: "1h", damage: { slashing: 8, piercing: 38, bludgeoning: 0 }, price: 480, shopTier: 3, desc: "Острие находит щель, даже если её нет." },
+  runic_hatchet: { id: "runic_hatchet", name: "Рунический топорик", slot: "mainhand", icon: "assets/icons/runic_hatchet.png", atk: 42, weaponType: "axe", handed: "1h", damage: { slashing: 33, piercing: 0, bludgeoning: 6 }, price: 390, shopTier: 3, desc: "Лёгкий топорик, чьё лезвие светится в темноте." },
+  runic_great_axe: { id: "runic_great_axe", name: "Руническая секира", slot: "mainhand", icon: "assets/icons/runic_great_axe.png", atk: 65, weaponType: "axe", handed: "2h", damage: { slashing: 54, piercing: 0, bludgeoning: 12 }, price: 650, shopTier: 3, desc: "Широкая дуга лезвия оставляет после себя тишину." },
+  runic_mace: { id: "runic_mace", name: "Руническая булава", slot: "mainhand", icon: "assets/icons/runic_mace.png", atk: 46, weaponType: "mace", handed: "1h", damage: { slashing: 4, piercing: 0, bludgeoning: 40 }, price: 420, shopTier: 3, desc: "Дробящий удар, усиленный руной на навершии." },
+  runic_maul: { id: "runic_maul", name: "Рунический молот", slot: "mainhand", icon: "assets/icons/runic_maul.png", atk: 63, weaponType: "mace", handed: "2h", damage: { slashing: 4, piercing: 0, bludgeoning: 56 }, price: 700, shopTier: 3, desc: "От его удара трескаются латы и каменные плиты." },
+  runic_spear: { id: "runic_spear", name: "Руническое копьё", slot: "mainhand", icon: "assets/icons/runic_spear.png", atk: 50, weaponType: "spear", handed: "2h", damage: { slashing: 7, piercing: 40, bludgeoning: 0 }, price: 500, shopTier: 3, desc: "Древко покрыто рунами, а жало не знает тупого края." },
+  runic_great_sword: { id: "runic_great_sword", name: "Рунический двуручный меч", slot: "mainhand", icon: "assets/icons/runic_great_sword.png", atk: 69, weaponType: "sword", handed: "2h", damage: { slashing: 65, piercing: 13, bludgeoning: 0 }, price: 760, shopTier: 3, desc: "Высокий рубящий урон. Против кожи и ткани — почти приговор." },
+
+  rusty_knife: { id: "rusty_knife", name: "Ржавый нож", slot: "mainhand", icon: "🔪", atk: 4, weaponType: "sword", handed: "1h", damage: { slashing: 2, piercing: 4, bludgeoning: 0 }, price: 0, shopTier: 0, desc: "Всё, что осталось от прошлой жизни." },
   wood_club: { id: "wood_club", name: "Дубина", slot: "mainhand", icon: "🏏", atk: 16, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 1, bludgeoning: 16 }, price: 45, shopTier: 1, desc: "Тяжёлая, но честная." },
-  short_sword: { id: "short_sword", name: "Короткий меч", slot: "mainhand", icon: "🗡️", atk: 20, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 12, piercing: 10, bludgeoning: 0 }, price: 75, shopTier: 1, desc: "Быстрый и точный." },
-  iron_sword: { id: "iron_sword", name: "Железный меч", slot: "mainhand", icon: "⚔️", atk: 36, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 12, bludgeoning: 2 }, price: 190, shopTier: 2, desc: "Работа кузнеца из нижних ярусов." },
-  dagger: { id: "dagger", name: "Гранёный кинжал", slot: "mainhand", icon: "🔪", atk: 28, crit: 12, weaponType: "sword", handed: "1h", damage: { slashing: 4, piercing: 22, bludgeoning: 0 }, price: 200, shopTier: 2, desc: "Ищет щели в чужой защите." },
-  battle_axe: { id: "battle_axe", name: "Боевой топор", slot: "mainhand", icon: "🪓", atk: 48, weaponType: "axe", handed: "1h", damage: { slashing: 34, piercing: 2, bludgeoning: 14 }, price: 280, shopTier: 2, desc: "Пробивает даже панцирь." },
-  rune_blade: { id: "rune_blade", name: "Рунный клинок", slot: "mainhand", icon: "⚔️", atk: 72, crit: 5, weaponType: "sword", handed: "2h", damage: { slashing: 40, piercing: 15, bludgeoning: 5 }, price: 560, shopTier: 3, desc: "На лезвии проступают чужие имена." },
-  great_axe: { id: "great_axe", name: "Секира палача", slot: "mainhand", icon: "🪓", atk: 96, weaponType: "axe", handed: "2h", damage: { slashing: 45, piercing: 2, bludgeoning: 20 }, price: 640, shopTier: 3, desc: "Тяжелая настолько, что бой заканчивается быстро." },
 
-  rags: { id: "rags", name: "Рваная рубаха", slot: "chest", icon: "👕", def: 0, hp: 0, armorType: "cloth", price: 0, shopTier: 0, desc: "Лучше, чем ничего." },
-  gambeson: { id: "gambeson", name: "Стёганый гамбезон", slot: "chest", icon: "🥋", def: 4, hp: 40, armorType: "cloth", mana: 5, price: 40, shopTier: 1, desc: "Мягкая броня, но держит удар." },
-  leather_armor: { id: "leather_armor", name: "Кожаный доспех", slot: "chest", icon: "🥋", def: 6, hp: 60, armorType: "leather", price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
-  chain: { id: "chain", name: "Кольчуга", slot: "chest", icon: "🥋", def: 10, hp: 90, armorType: "chain", price: 210, shopTier: 2, desc: "Тысяча колец, ни одного лишнего." },
-  scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "🥋", def: 12, hp: 110, armorType: "chain", price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
-  plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "🛡️", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
+  rags: { id: "rags", name: "Рваная рубаха", slot: "chest", icon: "assets/icons/linen_chest.png", def: 0, hp: 0, armorType: "cloth", price: 0, shopTier: 0, desc: "Лучше, чем ничего." },
+  gambeson: { id: "gambeson", name: "Стёганый гамбезон", slot: "chest", icon: "assets/icons/linen_chest.png", def: 4, hp: 40, armorType: "cloth", mana: 5, price: 40, shopTier: 1, desc: "Мягкая броня, но держит удар." },
+  leather_armor: { id: "leather_armor", name: "Кожаный доспех", slot: "chest", icon: "assets/icons/leather_chest.png", def: 6, hp: 60, armorType: "leather", price: 70, shopTier: 1, desc: "Пахнет дёгтем и старым потом." },
+  chain: { id: "chain", name: "Кольчуга", slot: "chest", icon: "assets/icons/coldsteel_chain_chest.png", def: 10, hp: 90, armorType: "chain", price: 210, shopTier: 2, desc: "Тысяча колец, ни одного лишнего." },
+  scale: { id: "scale", name: "Чешуйчатый доспех", slot: "chest", icon: "assets/icons/coldsteel_chain_chest.png", def: 12, hp: 110, armorType: "chain", price: 300, shopTier: 2, desc: "Чешуя снята с чего-то большого." },
+  plate: { id: "plate", name: "Латный доспех", slot: "chest", icon: "assets/icons/runic_plate_chest.png", def: 16, hp: 120, armorType: "plate", price: 600, shopTier: 3, desc: "В нём слышно только собственное дыхание." },
 
-  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "🛡️", def: 2, block: 1, price: 55, shopTier: 1, desc: "Третья зона блока." },
-  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "🛡️", def: 8, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
-  tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "🛡️", def: 10, block: 1, dodge: -2, price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
+  wood_shield: { id: "wood_shield", name: "Деревянный щит", slot: "offhand", icon: "assets/icons/wood_shield.webp", def: 2, block: 1, price: 55, shopTier: 1, desc: "Третья зона блока." },
+  kite_shield: { id: "kite_shield", name: "Стальной каплевидный щит", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 8, block: 1, price: 200, shopTier: 2, desc: "Прикрывает корпус целиком." },
+  tower_shield: { id: "tower_shield", name: "Укрепленный башенный щит", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 10, block: 1, dodge: -2, price: 300, shopTier: 2, desc: "Стена, которую можно носить. В уклоне почти не помогает." },
   parrying_dagger: { id: "parrying_dagger", name: "Кинжал парирования", slot: "offhand", icon: "🗡️", atk: 12, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 3, piercing: 12, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Вторая рука тоже умеет ранить." },
 
-  worn_hood: gearItem("worn_hood", "Поношенный капюшон", "head", "🧢", 0, 0, { def: 0, hp: 0 }, "Ткань, которую не жалко потерять."),
-  patched_pants: gearItem("patched_pants", "Штаны в заплатках", "legs", "👖", 0, 0, { def: 0, hp: 0 }, "Заплатка на заплатке."),
-  worn_boots: gearItem("worn_boots", "Стоптанные сапоги", "feet", "🥾", 0, 0, { def: 0, hp: 0 }, "Скрипят на каждом шагу."),
-  head_cloth: gearItem("head_cloth", "Тканевый капюшон", "head", "🧢", 25, 1, { def: 2, hp: 15 }, "Плотная ткань лучше, чем ничего."),
-  head_iron: gearItem("head_iron", "Железный шлем", "head", "assets/icons/head_iron.webp", 110, 2, { def: 6, hp: 40 }, "Простой, тяжёлый, надёжный."),
-  head_crystal: gearItem("head_crystal", "Кристальный шлем", "head", "💠", 320, 3, { def: 8, hp: 60 }, "Грани ловят свет и чужой удар."),
-  shoulder_leather: gearItem("shoulder_leather", "Кожаные наплечники", "shoulder", "🛡️", 25, 1, { def: 2, hp: 15 }, "Ремни и куски кожи."),
-  shoulder_iron: gearItem("shoulder_iron", "Железные наплечники", "shoulder", "assets/icons/shoulder_iron.webp", 100, 2, { def: 4, hp: 40 }, "Держат удар сверху."),
-  shoulder_crystal: gearItem("shoulder_crystal", "Кристальные наплечники", "shoulder", "💠", 300, 3, { def: 6, hp: 50 }, "Осколки срослись в броню."),
-  back_cloak: gearItem("back_cloak", "Рваный плащ", "back", "🧣", 20, 1, { def: 0, hp: 15 }, "Холодный ветер всё равно пробирается."),
-  back_guard: gearItem("back_guard", "Плащ караульного", "back", "🧣", 90, 2, { def: 2, hp: 30 }, "Плотная ткань с чужого плеча."),
-  back_crystal: gearItem("back_crystal", "Кристальный плащ", "back", "💠", 280, 3, { def: 4, hp: 40 }, "Ткань, будто покрытая инеем."),
-  wrist_leather: gearItem("wrist_leather", "Кожаные наручи", "wrist", "🧤", 20, 1, { def: 2, hp: 10 }, "Защищают от случайного пореза."),
-  wrist_chain: gearItem("wrist_chain", "Кольчужные наручи", "wrist", "🧤", 85, 2, { def: 4, hp: 25 }, "Мелкие кольца, плотная посадка."),
-  wrist_crystal: gearItem("wrist_crystal", "Кристальные наручи", "wrist", "💠", 260, 3, { def: 4, hp: 30 }, "Холодят руку даже через ткань."),
-  hands_gloves: gearItem("hands_gloves", "Рабочие перчатки", "hands", "🧤", 20, 1, { def: 2, hp: 10 }, "Ладони уже не горят."),
-  hands_iron: gearItem("hands_iron", "Железные рукавицы", "hands", "assets/icons/hands_iron.webp", 85, 2, { def: 4, hp: 25 }, "Кулак становится доводом."),
-  hands_crystal: gearItem("hands_crystal", "Кристальные рукавицы", "hands", "💠", 260, 3, { def: 2, hp: 6 }, "Пальцы двигаются, кристалл звенит."),
-  waist_rope: gearItem("waist_rope", "Верёвочный пояс", "waist", "🎗️", 20, 1, { def: 2, hp: 15 }, "Держит штаны и надежду."),
-  waist_plate: gearItem("waist_plate", "Пояс из пластин", "waist", "assets/icons/waist_plate.webp", 90, 2, { def: 4, hp: 30 }, "Пластины стучат при ходьбе."),
-  waist_crystal: gearItem("waist_crystal", "Кристальный пояс", "waist", "💠", 270, 3, { def: 4, hp: 40 }, "Тяжёлый, но держит спину."),
-  legs_leather: gearItem("legs_leather", "Кожаные штаны", "legs", "👖", 25, 1, { def: 2, hp: 20 }, "Мягкие, зато не рвутся сразу."),
-  legs_chain: gearItem("legs_chain", "Кольчужные штаны", "legs", "👖", 110, 2, { def: 6, hp: 40 }, "Тяжело шагать, легко стоять."),
-  legs_crystal: gearItem("legs_crystal", "Кристальные поножи", "legs", "💠", 320, 3, { def: 8, hp: 60 }, "Каждый шаг отдаётся звоном."),
-  feet_leather: gearItem("feet_leather", "Кожаные сапоги", "feet", "🥾", 25, 1, { def: 2, hp: 15 }, "Подошва ещё держится."),
-  feet_iron: gearItem("feet_iron", "Железные сапоги", "feet", "assets/icons/feet_iron.webp", 90, 2, { def: 4, hp: 30 }, "Гулкий шаг по каменным плитам."),
-  feet_crystal: gearItem("feet_crystal", "Кристальные сапоги", "feet", "💠", 270, 3, { def: 6, hp: 40 }, "Ступня вмерзает в камень."),
+  worn_hood: gearItem("worn_hood", "Поношенный капюшон", "head", "assets/icons/linen_head.png", 0, 0, { def: 0, hp: 0 }, "Ткань, которую не жалко потерять."),
+  patched_pants: gearItem("patched_pants", "Штаны в заплатках", "legs", "assets/icons/linen_legs.png", 0, 0, { def: 0, hp: 0 }, "Заплатка на заплатке."),
+  worn_boots: gearItem("worn_boots", "Стоптанные сапоги", "feet", "assets/icons/linen_feet.png", 0, 0, { def: 0, hp: 0 }, "Скрипят на каждом шагу."),
+  head_cloth: gearItem("head_cloth", "Тканевый капюшон", "head", "assets/icons/linen_head.png", 25, 1, { def: 2, hp: 15 }, "Плотная ткань лучше, чем ничего."),
+  head_iron: gearItem("head_iron", "Железный шлем", "head", "assets/icons/iron_head.webp", 110, 2, { def: 6, hp: 40 }, "Простой, тяжёлый, надёжный."),
+  head_crystal: gearItem("head_crystal", "Кристальный шлем", "head", "assets/icons/runic_head.png", 320, 3, { def: 8, hp: 60 }, "Грани ловят свет и чужой удар."),
+  shoulder_leather: gearItem("shoulder_leather", "Кожаные наплечники", "shoulder", "assets/icons/leather_shoulders.png", 25, 1, { def: 2, hp: 15 }, "Ремни и куски кожи."),
+  shoulder_iron: gearItem("shoulder_iron", "Железные наплечники", "shoulder", "assets/icons/iron_plate_shoulders.webp", 100, 2, { def: 4, hp: 40 }, "Держат удар сверху."),
+  shoulder_crystal: gearItem("shoulder_crystal", "Кристальные наплечники", "shoulder", "assets/icons/runic_shoulders.png", 300, 3, { def: 6, hp: 50 }, "Осколки срослись в броню."),
+  back_cloak: gearItem("back_cloak", "Рваный плащ", "back", "assets/icons/linen_chest.png", 20, 1, { def: 0, hp: 15 }, "Холодный ветер всё равно пробирается."),
+  back_guard: gearItem("back_guard", "Плащ караульного", "back", "assets/icons/woolen_chest.png", 90, 2, { def: 2, hp: 30 }, "Плотная ткань с чужого плеча."),
+  back_crystal: gearItem("back_crystal", "Кристальный плащ", "back", "assets/icons/runic_chest.png", 280, 3, { def: 4, hp: 40 }, "Ткань, будто покрытая инеем."),
+  wrist_leather: gearItem("wrist_leather", "Кожаные наручи", "wrist", "assets/icons/leather_wrists.png", 20, 1, { def: 2, hp: 10 }, "Защищают от случайного пореза."),
+  wrist_chain: gearItem("wrist_chain", "Кольчужные наручи", "wrist", "assets/icons/coldsteel_chain_wrists.png", 85, 2, { def: 4, hp: 25 }, "Мелкие кольца, плотная посадка."),
+  wrist_crystal: gearItem("wrist_crystal", "Кристальные наручи", "wrist", "assets/icons/runic_wrists.png", 260, 3, { def: 4, hp: 30 }, "Холодят руку даже через ткань."),
+  hands_gloves: gearItem("hands_gloves", "Рабочие перчатки", "hands", "assets/icons/leather_hands.png", 20, 1, { def: 2, hp: 10 }, "Ладони уже не горят."),
+  hands_iron: gearItem("hands_iron", "Железные рукавицы", "hands", "assets/icons/iron_plate_hands.webp", 85, 2, { def: 4, hp: 25 }, "Кулак становится доводом."),
+  hands_crystal: gearItem("hands_crystal", "Кристальные рукавицы", "hands", "assets/icons/runic_hands.webp", 260, 3, { def: 2, hp: 6 }, "Пальцы двигаются, кристалл звенит."),
+  waist_rope: gearItem("waist_rope", "Верёвочный пояс", "waist", "assets/icons/linen_waist.png", 20, 1, { def: 2, hp: 15 }, "Держит штаны и надежду."),
+  waist_plate: gearItem("waist_plate", "Пояс из пластин", "waist", "assets/icons/iron_plate_waist.png", 90, 2, { def: 4, hp: 30 }, "Пластины стучат при ходьбе."),
+  waist_crystal: gearItem("waist_crystal", "Кристальный пояс", "waist", "assets/icons/runic_waist.png", 270, 3, { def: 4, hp: 40 }, "Тяжёлый, но держит спину."),
+  legs_leather: gearItem("legs_leather", "Кожаные штаны", "legs", "assets/icons/leather_legs.png", 25, 1, { def: 2, hp: 20 }, "Мягкие, зато не рвутся сразу."),
+  legs_chain: gearItem("legs_chain", "Кольчужные штаны", "legs", "assets/icons/coldsteel_chain_pants.png", 110, 2, { def: 6, hp: 40 }, "Тяжело шагать, легко стоять."),
+  legs_crystal: gearItem("legs_crystal", "Кристальные поножи", "legs", "assets/icons/runic_legs.png", 320, 3, { def: 8, hp: 60 }, "Каждый шаг отдаётся звоном."),
+  feet_leather: gearItem("feet_leather", "Кожаные сапоги", "feet", "assets/icons/leather_feet.png", 25, 1, { def: 2, hp: 15 }, "Подошва ещё держится."),
+  feet_iron: gearItem("feet_iron", "Железные сапоги", "feet", "assets/icons/iron_plate_boots.png", 90, 2, { def: 4, hp: 30 }, "Гулкий шаг по каменным плитам."),
+  feet_crystal: gearItem("feet_crystal", "Кристальные сапоги", "feet", "assets/icons/runic_feet.png", 270, 3, { def: 6, hp: 40 }, "Ступня вмерзает в камень."),
 
   neck_bone: gearItem("neck_bone", "Грубый амулет", "neck", "📿", 30, 1, { hp: 25 }, "Грубый кусок малахита, наспех привязанный к ремешку."),
   neck_guard: gearItem("neck_guard", "Медальон караульного", "neck", "📿", 110, 2, { hp: 40, crit: 1 }, "Знак поста, который давно не сменяли."),
@@ -2669,76 +2697,54 @@ const ITEMS = {
   trinket_shard: gearItem("trinket_shard", "Кристальный осколок", "trinket", "💠", 350, 3, { dodge: 3, crit: 1 }, "Показывает, куда придётся удар."),
 
   // ── Новое оружие (weaponType/handed/damage) ──
-  rapier: { id: "rapier", name: "Рапира", slot: "mainhand", icon: "🗡️", atk: 26, crit: 6, weaponType: "sword", handed: "1h", damage: { slashing: 5, piercing: 15, bludgeoning: 1 }, price: 90, shopTier: 1, desc: "Тонкий клинок для точных уколов." },
-  mace: { id: "mace", name: "Булава", slot: "mainhand", icon: "🏏", atk: 30, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 1, bludgeoning: 14 }, price: 65, shopTier: 1, desc: "Инструмент, что правит чужие шлемы." },
-  staff: { id: "staff", name: "Посох", slot: "mainhand", icon: "🦯", atk: 18, weaponType: "mace", handed: "2h", damage: { slashing: 0, piercing: 2, bludgeoning: 12 }, price: 50, shopTier: 1, desc: "Древко для сдерживания жадной толпы." },
   claws: { id: "claws", name: "Когти", slot: "mainhand", icon: "🐾", atk: 22, crit: 5, weaponType: "claw", handed: "1h", damage: { slashing: 13, piercing: 3, bludgeoning: 0 }, price: 40, shopTier: 1, desc: "Четыре дуги ржавого металла. Не для галантности." },
-  sabre: { id: "sabre", name: "Сабля", slot: "mainhand", icon: "⚔️", atk: 34, crit: 4, weaponType: "sword", handed: "1h", damage: { slashing: 16, piercing: 6, bludgeoning: 2 }, price: 150, shopTier: 2, desc: "Тянущий рубящий удар с разворота." },
-  spear: { id: "spear", name: "Копьё", slot: "mainhand", icon: "🔱", atk: 52, weaponType: "spear", handed: "2h", damage: { slashing: 3, piercing: 18, bludgeoning: 2 }, price: 240, shopTier: 2, desc: "Держит врага на расстоянии. Страж умеет носить его со щитом." },
-  great_sword: { id: "great_sword", name: "Двуручный меч", slot: "mainhand", icon: "⚔️", atk: 68, weaponType: "sword", handed: "2h", damage: { slashing: 40, piercing: 15, bludgeoning: 5 }, price: 350, shopTier: 2, desc: "Обе руки заняты — зато дуга широка." },
-  war_hammer: { id: "war_hammer", name: "Боевой молот", slot: "mainhand", icon: "🔨", atk: 76, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 45 }, price: 590, shopTier: 3, desc: "Латы против него — просто приглашение." },
-  halberd: { id: "halberd", name: "Алебарда", slot: "mainhand", icon: "🪓", atk: 88, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 28, bludgeoning: 8 }, price: 620, shopTier: 3, desc: "Копьё, топор и крюк в одном древке." },
 
   // ── Тир 1 «Железо» (shopTier: 1, ниша 50–150) ──
-  iron_longsword: { id: "iron_longsword", name: "Железный длинный меч", slot: "mainhand", icon: "⚔️", atk: 26, weaponType: "sword", handed: "2h", damage: { slashing: 18, piercing: 8, bludgeoning: 0 }, price: 110, shopTier: 1, desc: "Длинный клинок, требующий обеих рук." },
-  iron_hatchet: { id: "iron_hatchet", name: "Железный топорик", slot: "mainhand", icon: "🪓", atk: 18, weaponType: "axe", handed: "1h", damage: { slashing: 14, piercing: 0, bludgeoning: 4 }, price: 95, shopTier: 1, desc: "Плотницкий инструмент, ставший оружием." },
-  iron_battleaxe: { id: "iron_battleaxe", name: "Железная секира", slot: "mainhand", icon: "🪓", atk: 26, weaponType: "axe", handed: "2h", damage: { slashing: 20, piercing: 0, bludgeoning: 6 }, price: 150, shopTier: 1, desc: "Древко подлиннее — и размах шире." },
-  iron_mace: { id: "iron_mace", name: "Железная булава", slot: "mainhand", icon: "🏏", atk: 18, weaponType: "mace", handed: "1h", damage: { slashing: 2, piercing: 0, bludgeoning: 16 }, price: 85, shopTier: 1, desc: "Грубая дробящая простота." },
-  iron_maul: { id: "iron_maul", name: "Железный молот", slot: "mainhand", icon: "🔨", atk: 24, weaponType: "mace", handed: "2h", damage: { slashing: 2, piercing: 0, bludgeoning: 22 }, price: 150, shopTier: 1, desc: "Кузнечный молот, перепрофилированный по врагам." },
-  iron_spear: { id: "iron_spear", name: "Железное копьё", slot: "mainhand", icon: "🔱", atk: 20, weaponType: "spear", handed: "2h", damage: { slashing: 4, piercing: 16, bludgeoning: 0 }, price: 120, shopTier: 1, desc: "Дешёвое древко с честным жалом." },
 
   // ── Щиты (offhand): активная защита, armorType не нужен — зоны тела они не закрывают ──
   iron_shield: { id: "iron_shield", name: "Железный щит", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 6, block: 1, price: 120, shopTier: 1, desc: "Тяжёлый каплевидный щит из железа. Надёжно прикрывает корпус от ударов." },
 
   // ── Тир 2 «Сталь» (shopTier: 2, ниша 150–350) ──
-  steel_short_sword: { id: "steel_short_sword", name: "Стальной короткий меч", slot: "mainhand", icon: "🗡️", atk: 33, crit: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 15, bludgeoning: 0 }, price: 160, shopTier: 2, desc: "Тот же профиль, что у железного — но сталь честнее." },
-  steel_great_sword: { id: "steel_great_sword", name: "Стальной двуручный меч", slot: "mainhand", icon: "⚔️", atk: 38, weaponType: "sword", handed: "2h", damage: { slashing: 26, piercing: 12, bludgeoning: 0 }, price: 310, shopTier: 2, desc: "Клинок длиной в человека." },
-  steel_rapier: { id: "steel_rapier", name: "Стальная рапира", slot: "mainhand", icon: "🗡️", atk: 30, crit: 6, weaponType: "sword", handed: "1h", damage: { slashing: 8, piercing: 22, bludgeoning: 0 }, price: 210, shopTier: 2, desc: "Укол длиннее, сталь звонче." },
-  steel_axe: { id: "steel_axe", name: "Стальной топор", slot: "mainhand", icon: "🪓", atk: 26, weaponType: "axe", handed: "1h", damage: { slashing: 20, piercing: 0, bludgeoning: 6 }, price: 180, shopTier: 2, desc: "Лезвие правильной стали не вязнет." },
-  steel_great_axe: { id: "steel_great_axe", name: "Стальная секира", slot: "mainhand", icon: "🪓", atk: 36, weaponType: "axe", handed: "2h", damage: { slashing: 28, piercing: 0, bludgeoning: 8 }, price: 330, shopTier: 2, desc: "Каждый замах — обещание." },
-  steel_mace: { id: "steel_mace", name: "Стальная булава", slot: "mainhand", icon: "🏏", atk: 26, weaponType: "mace", handed: "1h", damage: { slashing: 4, piercing: 0, bludgeoning: 22 }, price: 190, shopTier: 2, desc: "Ребра стали сиротливо звенят по шлемам." },
-  steel_maul: { id: "steel_maul", name: "Стальной молот", slot: "mainhand", icon: "🔨", atk: 34, weaponType: "mace", handed: "2h", damage: { slashing: 4, piercing: 0, bludgeoning: 30 }, price: 340, shopTier: 2, desc: "Против лат — это уже не оружие, а решение." },
-  steel_spear: { id: "steel_spear", name: "Стальное копьё", slot: "mainhand", icon: "🔱", atk: 30, weaponType: "spear", handed: "2h", damage: { slashing: 6, piercing: 24, bludgeoning: 0 }, price: 250, shopTier: 2, desc: "Жало, что держит врага на расстоянии." },
 
   // ── Новая броня (armorType) ──
-  wanderer_coat: gearItem("wanderer_coat", "Плащ странника", "chest", "🧥", 35, 1, { def: 3, hp: 45, mana: 8, armorType: "cloth" }, "Стёганая ткань, пахнущая дорогой и дымом."),
-  mage_robe: gearItem("mage_robe", "Мантия чародея", "chest", "🧙", 80, 1, { def: 2, hp: 30, mana: 40, armorType: "cloth" }, "Ткань хранит тепло чужих заклинаний."),
-  riveted_chain: gearItem("riveted_chain", "Клёпаная кольчуга", "chest", "🥋", 330, 3, { def: 13, hp: 100, armorType: "chain" }, "Каждое кольцо расклёпано вручную."),
-  knight_plate: gearItem("knight_plate", "Полный латный доспех", "chest", "🛡️", 620, 3, { def: 18, hp: 140, dodge: -6, armorType: "plate" }, "Вес гасит чужие удары и вашу прыть."),
-  hood_mage: gearItem("hood_mage", "Капюшон чародея", "head", "🧢", 60, 2, { def: 2, hp: 15, mana: 20, armorType: "cloth" }, "Тесьма вдоль шва отводит лишние мысли."),
-  scout_gloves: gearItem("scout_gloves", "Разведческие перчатки", "hands", "🧤", 45, 1, { def: 2, hp: 10, dodge: 2, armorType: "leather" }, "Мягкая кожа, усиленная на ладонях."),
-  scout_boots: gearItem("scout_boots", "Сапоги разведчика", "feet", "🥾", 50, 1, { def: 2, hp: 15, dodge: 2, armorType: "leather" }, "Подошва гасит звук собственных шагов."),
-  plate_gorget: gearItem("plate_gorget", "Латный воротник", "neck", "📿", 140, 2, { def: 4, hp: 25, armorType: "plate" }, "Кольцо стали, прикрывающее горло."),
+  wanderer_coat: gearItem("wanderer_coat", "Плащ странника", "chest", "assets/icons/linen_chest.png", 35, 1, { def: 3, hp: 45, mana: 8, armorType: "cloth" }, "Стёганая ткань, пахнущая дорогой и дымом."),
+  mage_robe: gearItem("mage_robe", "Мантия чародея", "chest", "assets/icons/linen_chest.png", 80, 1, { def: 2, hp: 30, mana: 40, armorType: "cloth" }, "Ткань хранит тепло чужих заклинаний."),
+  riveted_chain: gearItem("riveted_chain", "Клёпаная кольчуга", "chest", "assets/icons/runic_chain_chest.png", 330, 3, { def: 13, hp: 100, armorType: "chain" }, "Каждое кольцо расклёпано вручную."),
+  knight_plate: gearItem("knight_plate", "Полный латный доспех", "chest", "assets/icons/runic_plate_chest.png", 620, 3, { def: 18, hp: 140, dodge: -6, armorType: "plate" }, "Вес гасит чужие удары и вашу прыть."),
+  hood_mage: gearItem("hood_mage", "Капюшон чародея", "head", "assets/icons/woolen_head.png", 60, 2, { def: 2, hp: 15, mana: 20, armorType: "cloth" }, "Тесьма вдоль шва отводит лишние мысли."),
+  scout_gloves: gearItem("scout_gloves", "Разведческие перчатки", "hands", "assets/icons/leather_hands.png", 45, 1, { def: 2, hp: 10, dodge: 2, armorType: "leather" }, "Мягкая кожа, усиленная на ладонях."),
+  scout_boots: gearItem("scout_boots", "Сапоги разведчика", "feet", "assets/icons/leather_feet.png", 50, 1, { def: 2, hp: 15, dodge: 2, armorType: "leather" }, "Подошва гасит звук собственных шагов."),
+  plate_gorget: gearItem("plate_gorget", "Латный воротник", "neck", "assets/icons/coldsteel_plate_head.png", 140, 2, { def: 4, hp: 25, armorType: "plate" }, "Кольцо стали, прикрывающее горло."),
 
   // ── Броня тир 1 (Железо) ──
-  student_robe: gearItem("student_robe", "Ученическая роба", "chest", "🧥", 50, 1, { def: 2, hp: 10, mana: 10, armorType: "cloth" }, "Роба ученика алхимика — ткань теперь пахнет травами."),
-  rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "🥋", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
-  iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "🥋", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
-  dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "assets/icons/dented_plate.webp", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
+  student_robe: gearItem("student_robe", "Ученическая роба", "chest", "assets/icons/linen_chest.png", 50, 1, { def: 2, hp: 10, mana: 10, armorType: "cloth" }, "Роба ученика алхимика — ткань теперь пахнет травами."),
+  rust_chain: gearItem("rust_chain", "Ржавая кольчуга", "chest", "assets/icons/iron_chain_chest.png", 120, 1, { def: 8, hp: 30, armorType: "chain" }, "Кольца держат, пока не смотрят слишком пристально."),
+  iron_chainmail: { id: "iron_chainmail", name: "Железная кольчуга", slot: "chest", armorType: "chain", def: 9, hp: 80, price: 140, shopTier: 1, icon: "assets/icons/iron_chain_chest.png", desc: "Плотное плетение железных колец. Хорошо держит режущие удары." },
+  dented_plate: gearItem("dented_plate", "Мятые латы", "chest", "assets/icons/iron_plate_chest.webp", 150, 1, { def: 12, hp: 40, dodge: -5, armorType: "plate" }, "В наследство от чьей-то глупости. Но сталь есть сталь."),
 
   // ── Тир 1: полные комплекты брони (ткань / кожа / кольчуга / латы) ──
-  shoulder_cloth: gearItem("shoulder_cloth", "Тканевые накидки", "shoulder", "🧣", 18, 1, { def: 1, hp: 10, armorType: "cloth" }, "Несколько слоёв плотной ткани на плечах."),
-  wrist_cloth: gearItem("wrist_cloth", "Тканевые обмотки", "wrist", "🧤", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Плотно стянутая ткань вместо наручей."),
-  hands_cloth: gearItem("hands_cloth", "Тканевые перчатки", "hands", "🧤", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Тонкие, зато руки не мёрзнут."),
-  legs_cloth: gearItem("legs_cloth", "Тканевые штаны", "legs", "👖", 20, 1, { def: 1, hp: 10, armorType: "cloth" }, "Простая материя, подшитая у колен."),
-  feet_cloth: gearItem("feet_cloth", "Тканевые тапочки", "feet", "🩴", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Мягко ступают по каменным плитам."),
+  shoulder_cloth: gearItem("shoulder_cloth", "Тканевые накидки", "shoulder", "assets/icons/linen_shoulders.png", 18, 1, { def: 1, hp: 10, armorType: "cloth" }, "Несколько слоёв плотной ткани на плечах."),
+  wrist_cloth: gearItem("wrist_cloth", "Тканевые обмотки", "wrist", "assets/icons/linen_wrist.png", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Плотно стянутая ткань вместо наручей."),
+  hands_cloth: gearItem("hands_cloth", "Тканевые перчатки", "hands", "assets/icons/linen_gloves.png", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Тонкие, зато руки не мёрзнут."),
+  legs_cloth: gearItem("legs_cloth", "Тканевые штаны", "legs", "assets/icons/linen_legs.png", 20, 1, { def: 1, hp: 10, armorType: "cloth" }, "Простая материя, подшитая у колен."),
+  feet_cloth: gearItem("feet_cloth", "Тканевые тапочки", "feet", "assets/icons/linen_feet.png", 15, 1, { def: 1, hp: 10, armorType: "cloth" }, "Мягко ступают по каменным плитам."),
 
-  head_leather: gearItem("head_leather", "Кожаный капюшон", "head", "🧢", 35, 1, { def: 2, hp: 15, armorType: "leather" }, "Кожа, пахнущая дёгтем, прикрывает голову и шею."),
-  waist_leather: gearItem("waist_leather", "Кожаный ремень", "waist", "🎗️", 30, 1, { def: 2, hp: 15, armorType: "leather" }, "Широкий ремень с железной пряжкой."),
+  head_leather: gearItem("head_leather", "Кожаный капюшон", "head", "assets/icons/leather_head.png", 35, 1, { def: 2, hp: 15, armorType: "leather" }, "Кожа, пахнущая дёгтем, прикрывает голову и шею."),
+  waist_leather: gearItem("waist_leather", "Кожаный ремень", "waist", "assets/icons/leather_waist.png", 30, 1, { def: 2, hp: 15, armorType: "leather" }, "Широкий ремень с железной пряжкой."),
 
-  head_chain: gearItem("head_chain", "Кольчужный капюшон", "head", "⛑️", 90, 1, { def: 4, hp: 25, armorType: "chain" }, "Кольца прикрывают шею и затылок."),
-  shoulder_chain: gearItem("shoulder_chain", "Кольчужные наплечники", "shoulder", "🛡️", 95, 1, { def: 4, hp: 25, armorType: "chain" }, "Плечи в железных кольцах."),
-  hands_chain: gearItem("hands_chain", "Кольчужные рукавицы", "hands", "🧤", 85, 1, { def: 3, hp: 20, armorType: "chain" }, "Пальцы гнутся, удары держат."),
-  waist_chain: gearItem("waist_chain", "Кольчужный пояс", "waist", "🎗️", 80, 1, { def: 3, hp: 20, armorType: "chain" }, "Кольца свисают до бёдер."),
-  feet_chain: gearItem("feet_chain", "Кольчужные сапоги", "feet", "🥾", 100, 1, { def: 4, hp: 25, armorType: "chain" }, "Шаг тяжёлый, зато голень закрыта."),
+  head_chain: gearItem("head_chain", "Кольчужный капюшон", "head", "assets/icons/iron_chain_head.png", 90, 1, { def: 4, hp: 25, armorType: "chain" }, "Кольца прикрывают шею и затылок."),
+  shoulder_chain: gearItem("shoulder_chain", "Кольчужные наплечники", "shoulder", "assets/icons/iron_chain_shoulders.png", 95, 1, { def: 4, hp: 25, armorType: "chain" }, "Плечи в железных кольцах."),
+  hands_chain: gearItem("hands_chain", "Кольчужные рукавицы", "hands", "assets/icons/iron_chain_hands.png", 85, 1, { def: 3, hp: 20, armorType: "chain" }, "Пальцы гнутся, удары держат."),
+  waist_chain: gearItem("waist_chain", "Кольчужный пояс", "waist", "assets/icons/iron_chain_waist.png", 80, 1, { def: 3, hp: 20, armorType: "chain" }, "Кольца свисают до бёдер."),
+  feet_chain: gearItem("feet_chain", "Кольчужные сапоги", "feet", "assets/icons/iron_chain_feet.png", 100, 1, { def: 4, hp: 25, armorType: "chain" }, "Шаг тяжёлый, зато голень закрыта."),
 
-  wrist_iron: gearItem("wrist_iron", "Железные наручи", "wrist", "assets/icons/wrist_iron.webp", 160, 1, { def: 5, hp: 30, armorType: "plate" }, "Железо на предплечье гасит удар."),
-  legs_iron: gearItem("legs_iron", "Железные поножи", "legs", "assets/icons/legs_iron.webp", 190, 1, { def: 6, hp: 40, armorType: "plate" }, "Пластины на бёдрах и голенях."),
+  wrist_iron: gearItem("wrist_iron", "Железные наручи", "wrist", "assets/icons/iron_plate_wrists.webp", 160, 1, { def: 5, hp: 30, armorType: "plate" }, "Железо на предплечье гасит удар."),
+  legs_iron: gearItem("legs_iron", "Железные поножи", "legs", "assets/icons/iron_plate_legs.webp", 190, 1, { def: 6, hp: 40, armorType: "plate" }, "Пластины на бёдрах и голенях."),
 
   // ── Броня тир 2 (Сталь) ──
-  dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "🧥", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
-  steel_chainmail: { id: "steel_chainmail", name: "Стальная кольчуга", slot: "chest", armorType: "chain", def: 14, hp: 110, price: 280, shopTier: 2, icon: "🥋", desc: "Тяжёлая, но надёжная броня, способная остановить даже меч." },
-  steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "🛡️", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
+  dense_cloth: gearItem("dense_cloth", "Плотная ткань", "chest", "assets/icons/woolen_chest.png", 150, 2, { def: 4, hp: 20, mana: 20, armorType: "cloth" }, "Слои плотной ткани, между которыми скрывают браслеты ткача."),
+  steel_chainmail: { id: "steel_chainmail", name: "Стальная кольчуга", slot: "chest", armorType: "chain", def: 14, hp: 110, price: 280, shopTier: 2, icon: "assets/icons/coldsteel_chain_chest.png", desc: "Тяжёлая, но надёжная броня, способная остановить даже меч." },
+  steel_plate: gearItem("steel_plate", "Стальные латы", "chest", "assets/icons/coldsteel_plate_chest.png", 400, 2, { def: 20, hp: 80, dodge: -10, armorType: "plate" }, "Полный машинный вес стали; уклониться — долгая история."),
 
   hp_small: { id: "hp_small", name: "Малое зелье лечения", slot: "potion", icon: "🧪", type: "potion", effect: "hp", amount: 60, price: 20, shopTier: 1, desc: "Восстанавливает 60 HP." },
   hp_big:   { id: "hp_big",   name: "Большое зелье лечения", slot: "potion", icon: "⚗️", type: "potion", effect: "hp", amount: 120, price: 45, shopTier: 1, desc: "Восстанавливает 120 HP." },
@@ -2747,53 +2753,41 @@ const ITEMS = {
   fire_flask: { id: "fire_flask", name: "Греческий огонь", icon: "🔥", type: "combat", effect: "fire", damage: 20, price: 40, desc: "Наносит 20 урона, игнорируя броню.", slot: "potion" },
   poison_vial: { id: "poison_vial", name: "Флакон с ядом", icon: "🧪", type: "combat", effect: "poison", damage: 5, turns: 3, price: 35, desc: "Наносит 5 урона в течение 3 ходов.", slot: "potion", shopTier: 1 },
 // === ITEMS: Холодное железо (этаж 2) ===
-  cold_iron_sword: { id: "cold_iron_sword", name: "Меч из холодного железа", slot: "mainhand", icon: "🗡️", atk: 30, crit: 4, dodge: 2, weaponType: "sword", handed: "1h", damage: { slashing: 18, piercing: 12, bludgeoning: 0 }, price: 130, shopTier: 2, desc: "Клинок из холодного железа леденит ладонь даже через рукоять. Нежить чует его и отступает." },
-  cold_iron_axe: { id: "cold_iron_axe", name: "Топор из холодного железа", slot: "mainhand", icon: "🪓", atk: 34, crit: 2, dodge: 2, weaponType: "axe", handed: "1h", damage: { slashing: 26, piercing: 0, bludgeoning: 8 }, price: 150, shopTier: 2, desc: "Лезвие из холодного железа холодно на ощупь и входит в мёртвую плоть без сопротивления." },
-  cold_iron_mace: { id: "cold_iron_mace", name: "Булава из холодного железа", slot: "mainhand", icon: "🏏", atk: 38, crit: 2, dodge: 2, weaponType: "mace", handed: "1h", damage: { slashing: 3, piercing: 0, bludgeoning: 35 }, price: 170, shopTier: 2, desc: "Шиповатое навершие из холодного железа дробит кости и жжёт нежить холодом." },
 
   cold_iron_shield: { id: "cold_iron_shield", name: "Щит из холодного железа", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 4, block: 1, dodge: 2, price: 90, shopTier: 2, desc: "Щит из холодного железа. Металл холодит руку и не подпускает нежить вплотную." },
 
-  cold_iron_head: gearItem("cold_iron_head", "Шлем из холодного железа", "head", "assets/icons/iron_helmet.webp", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Шлем из холодного железа холодит виски — и нежить обходит его стороной."),
-  cold_iron_chest: gearItem("cold_iron_chest", "Нагрудник из холодного железа", "chest", "assets/icons/iron_breastplate.webp", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из холодного железа: лёгкий, холодный на ощупь и смертельно неприятный для нежити."),
-  cold_iron_hands: gearItem("cold_iron_hands", "Перчатки из холодного железа", "hands", "assets/icons/hands_iron.webp", 60, 2, { def: 4, hp: 40, dodge: 3, armorType: "leather" }, "Перчатки из холодного железа оставляют пальцы свободными для кирки, а металл стынет на коже."),
-  cold_iron_feet: gearItem("cold_iron_feet", "Сапоги из холодного железа", "feet", "assets/icons/iron_boots.webp", 70, 2, { def: 5, hp: 45, dodge: 3, armorType: "leather" }, "Сапоги из холодного железа: шаг тише, а нежить слышит его хуже."),
+  cold_iron_head: gearItem("cold_iron_head", "Шлем из холодного железа", "head", "assets/icons/hide_head.png", 70, 2, { def: 4, hp: 45, dodge: 2, armorType: "leather" }, "Шлем из холодного железа холодит виски — и нежить обходит его стороной."),
+  cold_iron_chest: gearItem("cold_iron_chest", "Нагрудник из холодного железа", "chest", "assets/icons/hide_chest.png", 120, 2, { def: 8, hp: 70, dodge: 1, armorType: "leather" }, "Нагрудник из холодного железа: лёгкий, холодный на ощупь и смертельно неприятный для нежити."),
+  cold_iron_hands: gearItem("cold_iron_hands", "Перчатки из холодного железа", "hands", "assets/icons/hide_hands.png", 60, 2, { def: 4, hp: 40, dodge: 3, armorType: "leather" }, "Перчатки из холодного железа оставляют пальцы свободными для кирки, а металл стынет на коже."),
+  cold_iron_feet: gearItem("cold_iron_feet", "Сапоги из холодного железа", "feet", "assets/icons/hide_feet.png", 70, 2, { def: 5, hp: 45, dodge: 3, armorType: "leather" }, "Сапоги из холодного железа: шаг тише, а нежить слышит его хуже."),
 
   cold_iron_ring: gearItem("cold_iron_ring", "Кольцо из холодного железа", "ring", "💍", 60, 2, { crit: 2 }, "Простое кольцо из холодного железа, отполированное до блеска. Нежить его не любит."),
   cold_iron_neck: gearItem("cold_iron_neck", "Амулет из холодного железа", "neck", "📿", 65, 2, { dodge: 2 }, "Амулет из холодного железа, чей тихий звон отводит беду и нежить."),
 // === ITEMS: Сталь (этаж 3) ===
-  steel_knight_sword: { id: "steel_knight_sword", name: "Рыцарский стальной меч", slot: "mainhand", icon: "⚔️", atk: 42, crit: 3, weaponType: "sword", handed: "1h", damage: { slashing: 26, piercing: 16, bludgeoning: 0 }, price: 220, shopTier: 3, desc: "Прямой рыцарский клинок из холодной стали." },
-  steel_zweihander: { id: "steel_zweihander", name: "Стальной двуручник", slot: "mainhand", icon: "⚔️", atk: 50, weaponType: "sword", handed: "2h", damage: { slashing: 34, piercing: 16, bludgeoning: 0 }, price: 320, shopTier: 3, desc: "Двуручник, чей клинок длиннее человеческой тени." },
-  steel_sledge: { id: "steel_sledge", name: "Стальная кувалда", slot: "mainhand", icon: "🔨", atk: 58, weaponType: "mace", handed: "2h", damage: { slashing: 3, piercing: 0, bludgeoning: 55 }, price: 380, shopTier: 3, desc: "Кузнечная кувалда, перекованная в орудие для черепов." },
 
-  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "🛡️", def: 6, block: 1, price: 180, shopTier: 3, desc: "Стальной щит, за которым можно переждать целый бой." },
+  steel_bulwark: { id: "steel_bulwark", name: "Стальной оплот", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 6, block: 1, price: 180, shopTier: 3, desc: "Стальной щит, за которым можно переждать целый бой." },
 
-  steel_head: gearItem("steel_head", "Стальной шлем", "head", "⛑️", 150, 3, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
-  steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "🛡️", 300, 3, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
-  steel_legs: gearItem("steel_legs", "Стальные поножи", "legs", "👖", 240, 3, { def: 12, hp: 100, armorType: "plate" }, "Стальные поножи, в которых шаг становится гулким."),
-  steel_feet: gearItem("steel_feet", "Стальные сапоги", "feet", "🥾", 200, 3, { def: 10, hp: 90, armorType: "plate" }, "Стальные сапоги, что вбивают врага в землю."),
+  steel_head: gearItem("steel_head", "Стальной шлем", "head", "assets/icons/coldsteel_plate_head.png", 150, 3, { def: 8, hp: 80, armorType: "plate" }, "Глухой стальной шлем, оставляющий лишь щель для глаз."),
+  steel_chest: gearItem("steel_chest", "Стальная кираса", "chest", "assets/icons/coldsteel_plate_chest.png", 300, 3, { def: 14, hp: 120, armorType: "plate" }, "Тяжёлая стальная кираса, что глушит и удар, и страх."),
+  steel_legs: gearItem("steel_legs", "Стальные поножи", "legs", "assets/icons/coldsteel_plate_legs.png", 240, 3, { def: 12, hp: 100, armorType: "plate" }, "Стальные поножи, в которых шаг становится гулким."),
+  steel_feet: gearItem("steel_feet", "Стальные сапоги", "feet", "assets/icons/coldsteel_plate_feet.png", 200, 3, { def: 10, hp: 90, armorType: "plate" }, "Стальные сапоги, что вбивают врага в землю."),
 
   steel_ring: gearItem("steel_ring", "Стальное кольцо", "ring", "💍", 150, 3, { crit: 3 }, "Стальное кольцо, холодящее палец перед точным ударом."),
   steel_trinket: gearItem("steel_trinket", "Стальной талисман", "trinket", "🔮", 140, 3, { hp: 60 }, "Талисман из стали, дающий телу вторую прочность."),
 // === ITEMS: Мифрил (этаж 4) ===
-  mithril_sword: { id: "mithril_sword", name: "Мифриловый меч", slot: "mainhand", icon: "🗡️", atk: 62, crit: 5, weaponType: "sword", handed: "1h", damage: { slashing: 38, piercing: 24, bludgeoning: 0 }, price: 480, shopTier: 4, desc: "Клинок из мифрила, что поёт в воздухе, предсказывая крит." },
-  mithril_halberd: { id: "mithril_halberd", name: "Мифриловая алебарда", slot: "mainhand", icon: "🪓", atk: 70, crit: 4, weaponType: "spear", handed: "2h", damage: { slashing: 30, piercing: 34, bludgeoning: 6 }, price: 560, shopTier: 4, desc: "Мифриловая алебарда — копьё и топор в одном древке." },
-  mithril_axe: { id: "mithril_axe", name: "Мифриловая секира", slot: "mainhand", icon: "🪓", atk: 78, crit: 3, weaponType: "axe", handed: "2h", damage: { slashing: 58, piercing: 0, bludgeoning: 20 }, price: 640, shopTier: 4, desc: "Двуручная секира из мифрила, рассекающая воздух и броню." },
 
-  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "🛡️", def: 8, block: 2, price: 320, shopTier: 4, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
+  mithril_shield: { id: "mithril_shield", name: "Мифриловый щит", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 8, block: 2, price: 320, shopTier: 4, desc: "Мифриловый щит, лёгкий как перо и прочный как скала." },
 
-  mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "💠", 320, 4, { def: 12, hp: 100, crit: 2, armorType: "plate" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
-  mithril_chest: gearItem("mithril_chest", "Мифриловая кираса", "chest", "🛡️", 560, 4, { def: 16, hp: 130, crit: 3, armorType: "plate" }, "Мифриловая кираса, лёгкая настолько, что не замедляет руку."),
-  mithril_hands: gearItem("mithril_hands", "Мифриловые рукавицы", "hands", "🧤", 300, 4, { def: 12, hp: 100, crit: 3, armorType: "plate" }, "Мифриловые рукавицы, в которых пальцы точны до дрожи."),
-  mithril_legs: gearItem("mithril_legs", "Мифриловые поножи", "legs", "👖", 420, 4, { def: 14, hp: 115, crit: 2, armorType: "plate" }, "Мифриловые поножи, что невесомы на ноге."),
+  mithril_head: gearItem("mithril_head", "Мифриловый шлем", "head", "assets/icons/runic_plate_head.png", 320, 4, { def: 12, hp: 100, crit: 2, armorType: "plate" }, "Мифриловый шлем, чьи грани ловят свет и чужой взгляд."),
+  mithril_chest: gearItem("mithril_chest", "Мифриловая кираса", "chest", "assets/icons/runic_plate_chest.png", 560, 4, { def: 16, hp: 130, crit: 3, armorType: "plate" }, "Мифриловая кираса, лёгкая настолько, что не замедляет руку."),
+  mithril_hands: gearItem("mithril_hands", "Мифриловые рукавицы", "hands", "assets/icons/runic_plate_hands.png", 300, 4, { def: 12, hp: 100, crit: 3, armorType: "plate" }, "Мифриловые рукавицы, в которых пальцы точны до дрожи."),
+  mithril_legs: gearItem("mithril_legs", "Мифриловые поножи", "legs", "assets/icons/runic_plate_legs.png", 420, 4, { def: 14, hp: 115, crit: 2, armorType: "plate" }, "Мифриловые поножи, что невесомы на ноге."),
 
   mithril_ring: gearItem("mithril_ring", "Мифриловое кольцо", "ring", "💍", 350, 4, { crit: 4 }, "Кольцо из мифрила, обострившее глаз до предела."),
   mithril_trinket: gearItem("mithril_trinket", "Мифриловый амулет", "trinket", "🔮", 340, 4, { crit: 3 }, "Мифриловый амулет, что шепчет, куда бить."),
 // === ITEMS: Адский камень (этаж 5) ===
-  hell_great_sword: { id: "hell_great_sword", name: "Двуручник из адского камня", slot: "mainhand", icon: "⚔️", atk: 92, dodge: -2, weaponType: "sword", handed: "2h", damage: { slashing: 58, piercing: 34, bludgeoning: 0 }, price: 780, shopTier: 5, desc: "Двуручник, выкованный из адского камня и закалённый в крови." },
-  hell_halberd: { id: "hell_halberd", name: "Алебарда из адского камня", slot: "mainhand", icon: "🪓", atk: 100, dodge: -3, weaponType: "spear", handed: "2h", damage: { slashing: 40, piercing: 50, bludgeoning: 10 }, price: 880, shopTier: 5, desc: "Адская алебарда, чей крюк рвёт и плоть, и реальность." },
-  hell_maul: { id: "hell_maul", name: "Молот из адского камня", slot: "mainhand", icon: "🔨", atk: 110, dodge: -4, weaponType: "mace", handed: "2h", damage: { slashing: 5, piercing: 0, bludgeoning: 105 }, price: 980, shopTier: 5, desc: "Молот из адского камня, от которого трещит сама земля." },
 
-  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "🛡️", def: 12, block: 2, dodge: -4, price: 600, shopTier: 5, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
+  hell_shield: { id: "hell_shield", name: "Щит из адского камня", slot: "offhand", icon: "assets/icons/iron_shield.webp", def: 12, block: 2, dodge: -4, price: 600, shopTier: 5, desc: "Щит из адского камня — стена, за которой не спрячешься от жара." },
 
   hell_ring: gearItem("hell_ring", "Кольцо из адского камня", "ring", "💍", 550, 5, { crit: 4, hp: 30 }, "Кольцо из адского камня, что питает удар жизнью."),
   hell_trinket: gearItem("hell_trinket", "Амулет из адского камня", "trinket", "🔮", 580, 5, { crit: 3, hp: 50 }, "Амулет из адского камня, что делает тело крепче и удар точнее."),
@@ -2803,25 +2797,25 @@ const ITEMS = {
   diary_hell: gearItem("diary_hell", "Дневник безумца", "trinket", "📗", 0, 0, { hp: 20, crit: 2, lore: "У Владыки есть слабое место. Не в броне — в самом сердце. Дробящий удар, точно в грудь. Запомни. Запомни. Запомни." }, "Записи, обожжённые по краям; последние страницы залиты воском."),
 // === ITEMS: Сеты (Рудокоп / Страж склепа / Адский клинок) ===
   // — Рудокоп (холодное железо, leather, этаж 2) —
-  set_miner_head: gearItem("set_miner_head", "Шлем рудокопа", "head", "⛑️", 90, 2, { def: 4, hp: 40, dodge: 2, armorType: "leather", rarity: "legendary", unique: "lucky" }, "Шлем рудокопа с тусклой лампой — говорят, он приносит удачу."),
-  set_miner_chest: gearItem("set_miner_chest", "Доспех рудокопа", "chest", "🦺", 150, 2, { def: 8, hp: 70, dodge: 2, armorType: "leather" }, "Кожаный доспех рудокопа, пропитанный рудной пылью и потом."),
-  set_miner_legs: gearItem("set_miner_legs", "Штаны рудокопа", "legs", "👖", 120, 2, { def: 6, hp: 55, dodge: 3, armorType: "leather" }, "Штаны рудокопа, усиленные на коленях для долгой работы."),
-  set_miner_hands: gearItem("set_miner_hands", "Перчатки рудокопа", "hands", "🧤", 80, 2, { def: 4, hp: 40, dodge: 4, armorType: "leather" }, "Перчатки рудокопа, в которых кирка не выскальзывает."),
-  set_miner_feet: gearItem("set_miner_feet", "Сапоги рудокопа", "feet", "🥾", 90, 2, { def: 5, hp: 45, dodge: 4, armorType: "leather" }, "Сапоги рудокопа с подошвой, что держит на осыпи."),
+  set_miner_head: gearItem("set_miner_head", "Шлем рудокопа", "head", "assets/icons/hide_head.png", 90, 2, { def: 4, hp: 40, dodge: 2, armorType: "leather", rarity: "legendary", unique: "lucky" }, "Шлем рудокопа с тусклой лампой — говорят, он приносит удачу."),
+  set_miner_chest: gearItem("set_miner_chest", "Доспех рудокопа", "chest", "assets/icons/hide_chest.png", 150, 2, { def: 8, hp: 70, dodge: 2, armorType: "leather" }, "Кожаный доспех рудокопа, пропитанный рудной пылью и потом."),
+  set_miner_legs: gearItem("set_miner_legs", "Штаны рудокопа", "legs", "assets/icons/hide_pants.png", 120, 2, { def: 6, hp: 55, dodge: 3, armorType: "leather" }, "Штаны рудокопа, усиленные на коленях для долгой работы."),
+  set_miner_hands: gearItem("set_miner_hands", "Перчатки рудокопа", "hands", "assets/icons/hide_hands.png", 80, 2, { def: 4, hp: 40, dodge: 4, armorType: "leather" }, "Перчатки рудокопа, в которых кирка не выскальзывает."),
+  set_miner_feet: gearItem("set_miner_feet", "Сапоги рудокопа", "feet", "assets/icons/hide_feet.png", 90, 2, { def: 5, hp: 45, dodge: 4, armorType: "leather" }, "Сапоги рудокопа с подошвой, что держит на осыпи."),
 
   // — Страж склепа (сталь, plate, этаж 3) —
-  set_guard_head: gearItem("set_guard_head", "Шлем стража склепа", "head", "🪖", 180, 3, { def: 12, hp: 100, block: 1, armorType: "plate" }, "Шлем стража склепа, из-под которого не видно глаз."),
-  set_guard_chest: gearItem("set_guard_chest", "Латы стража склепа", "chest", "🛡️", 360, 3, { def: 16, hp: 130, block: 1, armorType: "plate", rarity: "legendary", unique: "thorns" }, "Латы стража склепа, чьи шипы возвращают удар обидчику."),
-  set_guard_legs: gearItem("set_guard_legs", "Поножи стража склепа", "legs", "👖", 280, 3, { def: 14, hp: 115, block: 1, armorType: "plate" }, "Поножи стража склепа, кованные для вечной стражи."),
-  set_guard_hands: gearItem("set_guard_hands", "Рукавицы стража склепа", "hands", "🧤", 220, 3, { def: 10, hp: 90, block: 1, armorType: "plate" }, "Рукавицы стража склепа, что держат клинок даже после смерти."),
-  set_guard_feet: gearItem("set_guard_feet", "Сапоги стража склепа", "feet", "🥾", 240, 3, { def: 12, hp: 95, block: 1, armorType: "plate" }, "Сапоги стража склепа, что не скользят на могильных плитах."),
+  set_guard_head: gearItem("set_guard_head", "Шлем стража склепа", "head", "assets/icons/runic_plate_head.png", 180, 3, { def: 12, hp: 100, block: 1, armorType: "plate" }, "Шлем стража склепа, из-под которого не видно глаз."),
+  set_guard_chest: gearItem("set_guard_chest", "Латы стража склепа", "chest", "assets/icons/runic_plate_chest.png", 360, 3, { def: 16, hp: 130, block: 1, armorType: "plate", rarity: "legendary", unique: "thorns" }, "Латы стража склепа, чьи шипы возвращают удар обидчику."),
+  set_guard_legs: gearItem("set_guard_legs", "Поножи стража склепа", "legs", "assets/icons/runic_plate_legs.png", 280, 3, { def: 14, hp: 115, block: 1, armorType: "plate" }, "Поножи стража склепа, кованные для вечной стражи."),
+  set_guard_hands: gearItem("set_guard_hands", "Рукавицы стража склепа", "hands", "assets/icons/runic_plate_hands.png", 220, 3, { def: 10, hp: 90, block: 1, armorType: "plate" }, "Рукавицы стража склепа, что держат клинок даже после смерти."),
+  set_guard_feet: gearItem("set_guard_feet", "Сапоги стража склепа", "feet", "assets/icons/runic_plate_feet.webp", 240, 3, { def: 12, hp: 95, block: 1, armorType: "plate" }, "Сапоги стража склепа, что не скользят на могильных плитах."),
 
   // — Адский клинок (адский камень, plate, этаж 5) —
-  set_hellblade_head: gearItem("set_hellblade_head", "Шлем адского клинка", "head", "👹", 700, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate" }, "Шлем адского клинка, увенчанный рогами."),
-  set_hellblade_chest: gearItem("set_hellblade_chest", "Кираса адского клинка", "chest", "🛡️", 950, 5, { def: 20, hp: 160, dodge: -4, crit: 4, armorType: "plate", rarity: "legendary", unique: "lifesteal" }, "Кираса адского клинка, что пьёт кровь врагов, даря силу."),
-  set_hellblade_legs: gearItem("set_hellblade_legs", "Поножи адского клинка", "legs", "👖", 820, 5, { def: 18, hp: 145, dodge: -3, crit: 3, armorType: "plate" }, "Поножи адского клинка, тяжёлые, как грехи их владельца."),
-  set_hellblade_hands: gearItem("set_hellblade_hands", "Рукавицы адского клинка", "hands", "🧤", 720, 5, { def: 16, hp: 120, dodge: -2, crit: 2, armorType: "plate" }, "Рукавицы адского клинка, что зажимают клинок до хруста."),
-  set_hellblade_feet: gearItem("set_hellblade_feet", "Сапоги адского клинка", "feet", "🥾", 740, 5, { def: 16, hp: 125, dodge: -3, crit: 2, armorType: "plate" }, "Сапоги адского клинка, оставляющие в камне трещины."),
+  set_hellblade_head: gearItem("set_hellblade_head", "Шлем адского клинка", "head", "assets/icons/runic_plate_head.png", 700, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate" }, "Шлем адского клинка, увенчанный рогами."),
+  set_hellblade_chest: gearItem("set_hellblade_chest", "Кираса адского клинка", "chest", "assets/icons/runic_plate_chest.png", 950, 5, { def: 20, hp: 160, dodge: -4, crit: 4, armorType: "plate", rarity: "legendary", unique: "lifesteal" }, "Кираса адского клинка, что пьёт кровь врагов, даря силу."),
+  set_hellblade_legs: gearItem("set_hellblade_legs", "Поножи адского клинка", "legs", "assets/icons/runic_plate_legs.png", 820, 5, { def: 18, hp: 145, dodge: -3, crit: 3, armorType: "plate" }, "Поножи адского клинка, тяжёлые, как грехи их владельца."),
+  set_hellblade_hands: gearItem("set_hellblade_hands", "Рукавицы адского клинка", "hands", "assets/icons/runic_plate_hands.png", 720, 5, { def: 16, hp: 120, dodge: -2, crit: 2, armorType: "plate" }, "Рукавицы адского клинка, что зажимают клинок до хруста."),
+  set_hellblade_feet: gearItem("set_hellblade_feet", "Сапоги адского клинка", "feet", "assets/icons/runic_plate_feet.webp", 740, 5, { def: 16, hp: 125, dodge: -3, crit: 2, armorType: "plate" }, "Сапоги адского клинка, оставляющие в камне трещины."),
 
   // ══════════════════════════════════════════════════════════════════════════
   // БРОНЯ: 4 типа × 5 тиров × 8 слотов (20 сетов × 8 = 160 предметов)
@@ -2829,147 +2823,147 @@ const ITEMS = {
   // ══════════════════════════════════════════════════════════════════════════
 
   // — Тир 1. «Грубая кольчуга» (chain, этаж 1): 7 недостающих слотов к iron_chainmail —
-  set_rough_chain_head: gearItem("set_rough_chain_head", "Шлем грубой кольчуги", "head", "assets/icons/set_rough_chain_head.webp", 110, 1, { def: 3, hp: 22, armorType: "chain", iconFallback: "🪖" }, "Кольца нашиты на стёганую шапку. От стрелы убережёт, от топора — нет."),
-  set_rough_chain_shoulder: gearItem("set_rough_chain_shoulder", "Наплечники грубой кольчуги", "shoulder", "assets/icons/set_rough_chain_shoulder.webp", 105, 1, { def: 3, hp: 20, armorType: "chain", iconFallback: "🛡️" }, "Плечи в мелких кольцах, скрипящих при каждом взмахе."),
-  set_rough_chain_wrist: gearItem("set_rough_chain_wrist", "Наручи грубой кольчуги", "wrist", "assets/icons/set_rough_chain_wrist.webp", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Обрывок кольчужного рукава, стянутый ремешком."),
-  set_rough_chain_hands: gearItem("set_rough_chain_hands", "Рукавицы грубой кольчуги", "hands", "assets/icons/set_rough_chain_hands.webp", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Пальцы в кольцах гнутся плохо, зато держат удар."),
-  set_rough_chain_waist: gearItem("set_rough_chain_waist", "Пояс грубой кольчуги", "waist", "assets/icons/set_rough_chain_waist.webp", 80, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка на ремне — прикрывает бёдра."),
-  set_rough_chain_legs: gearItem("set_rough_chain_legs", "Поножи грубой кольчуги", "legs", "assets/icons/set_rough_chain_legs.webp", 120, 1, { def: 3, hp: 26, armorType: "chain", iconFallback: "👖" }, "Кольчужные чулки, тяжёлые и звонкие."),
-  set_rough_chain_feet: gearItem("set_rough_chain_feet", "Сапоги грубой кольчуги", "feet", "assets/icons/set_rough_chain_feet.webp", 105, 1, { def: 3, hp: 24, armorType: "chain", iconFallback: "🥾" }, "Кольчужные чулки вшиты в подошву — шаг гулкий."),
+  set_rough_chain_head: gearItem("set_rough_chain_head", "Шлем грубой кольчуги", "head", "assets/icons/iron_chain_head.png", 110, 1, { def: 3, hp: 22, armorType: "chain", iconFallback: "🪖" }, "Кольца нашиты на стёганую шапку. От стрелы убережёт, от топора — нет."),
+  set_rough_chain_shoulder: gearItem("set_rough_chain_shoulder", "Наплечники грубой кольчуги", "shoulder", "assets/icons/iron_chain_shoulders.png", 105, 1, { def: 3, hp: 20, armorType: "chain", iconFallback: "🛡️" }, "Плечи в мелких кольцах, скрипящих при каждом взмахе."),
+  set_rough_chain_wrist: gearItem("set_rough_chain_wrist", "Наручи грубой кольчуги", "wrist", "assets/icons/iron_chain_wrists.png", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Обрывок кольчужного рукава, стянутый ремешком."),
+  set_rough_chain_hands: gearItem("set_rough_chain_hands", "Рукавицы грубой кольчуги", "hands", "assets/icons/iron_chain_hands.png", 85, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🧤" }, "Пальцы в кольцах гнутся плохо, зато держат удар."),
+  set_rough_chain_waist: gearItem("set_rough_chain_waist", "Пояс грубой кольчуги", "waist", "assets/icons/iron_chain_waist.png", 80, 1, { def: 2, hp: 18, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка на ремне — прикрывает бёдра."),
+  set_rough_chain_legs: gearItem("set_rough_chain_legs", "Поножи грубой кольчуги", "legs", "assets/icons/iron_chain_letgs.png", 120, 1, { def: 3, hp: 26, armorType: "chain", iconFallback: "👖" }, "Кольчужные чулки, тяжёлые и звонкие."),
+  set_rough_chain_feet: gearItem("set_rough_chain_feet", "Сапоги грубой кольчуги", "feet", "assets/icons/iron_chain_feet.png", 105, 1, { def: 3, hp: 24, armorType: "chain", iconFallback: "🥾" }, "Кольчужные чулки вшиты в подошву — шаг гулкий."),
 
   // — Тир 2. «Сталь» (plate, этаж 2): 4 недостающих слота к steel_head/chest/legs/feet —
-  steel_shoulder: gearItem("steel_shoulder", "Стальные наплечники", "shoulder", "assets/icons/steel_shoulder.webp", 170, 2, { def: 7, hp: 45, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Стальные пластины на плечах — весомый довод в споре."),
-  steel_wrist: gearItem("steel_wrist", "Стальные наручи", "wrist", "assets/icons/steel_wrist.webp", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Кованые наручи с ремнями из сыромятной кожи."),
-  steel_hands: gearItem("steel_hands", "Стальные рукавицы", "hands", "assets/icons/steel_hands.webp", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Сталь на пальцах делает кулак кузнечным молотом."),
-  steel_waist: gearItem("steel_waist", "Стальной пояс", "waist", "assets/icons/steel_waist.webp", 125, 2, { def: 6, hp: 42, dodge: -1, armorType: "plate", iconFallback: "🎗️" }, "Пластинчатый пояс, что держит спину прямой."),
+  steel_shoulder: gearItem("steel_shoulder", "Стальные наплечники", "shoulder", "assets/icons/coldsteel_plate_shoulders.png", 170, 2, { def: 7, hp: 45, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Стальные пластины на плечах — весомый довод в споре."),
+  steel_wrist: gearItem("steel_wrist", "Стальные наручи", "wrist", "assets/icons/coldsteel_plate_wrists.png", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Кованые наручи с ремнями из сыромятной кожи."),
+  steel_hands: gearItem("steel_hands", "Стальные рукавицы", "hands", "assets/icons/coldsteel_plate_hands.png", 120, 2, { def: 6, hp: 40, dodge: -1, armorType: "plate", iconFallback: "🧤" }, "Сталь на пальцах делает кулак кузнечным молотом."),
+  steel_waist: gearItem("steel_waist", "Стальной пояс", "waist", "assets/icons/coldsteel_plate_waist.png", 125, 2, { def: 6, hp: 42, dodge: -1, armorType: "plate", iconFallback: "🎗️" }, "Пластинчатый пояс, что держит спину прямой."),
 
   // — Тир 2. «Стальная кольчуга» (chain, этаж 2): 7 недостающих слотов к steel_chainmail —
-  set_steel_chain_head: gearItem("set_steel_chain_head", "Шлем стальной кольчуги", "head", "assets/icons/set_steel_chain_head.webp", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🪖" }, "Плотный кольчужный капюшон под стальным обручем."),
-  set_steel_chain_shoulder: gearItem("set_steel_chain_shoulder", "Наплечники стальной кольчуги", "shoulder", "assets/icons/set_steel_chain_shoulder.webp", 185, 2, { def: 7, hp: 42, armorType: "chain", iconFallback: "🛡️" }, "Кольца ровного плетения — работа не спешная, но честная."),
-  set_steel_chain_wrist: gearItem("set_steel_chain_wrist", "Наручи стальной кольчуги", "wrist", "assets/icons/set_steel_chain_wrist.webp", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Стальные наручи с двойным плетением на предплечье."),
-  set_steel_chain_hands: gearItem("set_steel_chain_hands", "Рукавицы стальной кольчуги", "hands", "assets/icons/set_steel_chain_hands.webp", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Кольчужные рукавицы, обшитые кожей по швам."),
-  set_steel_chain_waist: gearItem("set_steel_chain_waist", "Пояс стальной кольчуги", "waist", "assets/icons/set_steel_chain_waist.webp", 135, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка до колен, тяжёлая и надёжная."),
-  set_steel_chain_legs: gearItem("set_steel_chain_legs", "Поножи стальной кольчуги", "legs", "assets/icons/set_steel_chain_legs.webp", 230, 2, { def: 8, hp: 50, armorType: "chain", iconFallback: "👖" }, "Стальные кольчужные штаны — походка становится тяжёлой."),
-  set_steel_chain_feet: gearItem("set_steel_chain_feet", "Сапоги стальной кольчуги", "feet", "assets/icons/set_steel_chain_feet.webp", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🥾" }, "Кольчуга до щиколоток, подошва — двойная кожа."),
+  set_steel_chain_head: gearItem("set_steel_chain_head", "Шлем стальной кольчуги", "head", "assets/icons/coldsteel_chain_head.png", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🪖" }, "Плотный кольчужный капюшон под стальным обручем."),
+  set_steel_chain_shoulder: gearItem("set_steel_chain_shoulder", "Наплечники стальной кольчуги", "shoulder", "assets/icons/coldsteel_chain_shoulders.png", 185, 2, { def: 7, hp: 42, armorType: "chain", iconFallback: "🛡️" }, "Кольца ровного плетения — работа не спешная, но честная."),
+  set_steel_chain_wrist: gearItem("set_steel_chain_wrist", "Наручи стальной кольчуги", "wrist", "assets/icons/coldsteel_chain_wrists.png", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Стальные наручи с двойным плетением на предплечье."),
+  set_steel_chain_hands: gearItem("set_steel_chain_hands", "Рукавицы стальной кольчуги", "hands", "assets/icons/coldsteel_chain_hands.png", 140, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🧤" }, "Кольчужные рукавицы, обшитые кожей по швам."),
+  set_steel_chain_waist: gearItem("set_steel_chain_waist", "Пояс стальной кольчуги", "waist", "assets/icons/coldsteel_chain_waist.png", 135, 2, { def: 5, hp: 38, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка до колен, тяжёлая и надёжная."),
+  set_steel_chain_legs: gearItem("set_steel_chain_legs", "Поножи стальной кольчуги", "legs", "assets/icons/coldsteel_chain_pants.png", 230, 2, { def: 8, hp: 50, armorType: "chain", iconFallback: "👖" }, "Стальные кольчужные штаны — походка становится тяжёлой."),
+  set_steel_chain_feet: gearItem("set_steel_chain_feet", "Сапоги стальной кольчуги", "feet", "assets/icons/coldsteel_chain_feet.png", 190, 2, { def: 7, hp: 45, armorType: "chain", iconFallback: "🥾" }, "Кольчуга до щиколоток, подошва — двойная кожа."),
 
   // — Тир 2. «Тёмная кожа» (leather, этаж 2): 3 недостающих слота к set_miner_* —
-  set_miner_shoulder: gearItem("set_miner_shoulder", "Наплечники рудокопа", "shoulder", "assets/icons/set_miner_shoulder.webp", 130, 2, { def: 6, hp: 45, dodge: 3, armorType: "leather", iconFallback: "🛡️" }, "Плечи рудокопа усилены кожей — туннель узкий, стены не уступают."),
-  set_miner_wrist: gearItem("set_miner_wrist", "Наручи рудокопа", "wrist", "assets/icons/set_miner_wrist.webp", 105, 2, { def: 5, hp: 35, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Мягкие наручи, чтобы кирка не натирала запястье."),
-  set_miner_waist: gearItem("set_miner_waist", "Пояс рудокопа", "waist", "assets/icons/set_miner_waist.webp", 110, 2, { def: 5, hp: 40, dodge: 3, armorType: "leather", iconFallback: "🎗️" }, "Ремень с карабинами для мешочков с рудой."),
+  set_miner_shoulder: gearItem("set_miner_shoulder", "Наплечники рудокопа", "shoulder", "assets/icons/hide_shoulders.png", 130, 2, { def: 6, hp: 45, dodge: 3, armorType: "leather", iconFallback: "🛡️" }, "Плечи рудокопа усилены кожей — туннель узкий, стены не уступают."),
+  set_miner_wrist: gearItem("set_miner_wrist", "Наручи рудокопа", "wrist", "assets/icons/hide_wrists.png", 105, 2, { def: 5, hp: 35, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Мягкие наручи, чтобы кирка не натирала запястье."),
+  set_miner_waist: gearItem("set_miner_waist", "Пояс рудокопа", "waist", "assets/icons/hide_belt.png", 110, 2, { def: 5, hp: 40, dodge: 3, armorType: "leather", iconFallback: "🎗️" }, "Ремень с карабинами для мешочков с рудой."),
 
   // — Тир 2. «Подмастерье» (cloth, этаж 2): 6 недостающих слотов к hood_mage/dense_cloth —
-  set_apprentice_cloth_shoulder: gearItem("set_apprentice_cloth_shoulder", "Накидки подмастерья", "shoulder", "assets/icons/set_apprentice_cloth_shoulder.webp", 90, 2, { def: 2, hp: 30, mana: 12, armorType: "cloth", iconFallback: "🛡️" }, "Ткань, пропитанная травяным отваром, держит слабую магию."),
-  set_apprentice_cloth_wrist: gearItem("set_apprentice_cloth_wrist", "Обмотки подмастерья", "wrist", "assets/icons/set_apprentice_cloth_wrist.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с вышитыми знаками — пальцы не мёрзнут над колбой."),
-  set_apprentice_cloth_hands: gearItem("set_apprentice_cloth_hands", "Перчатки подмастерья", "hands", "assets/icons/set_apprentice_cloth_hands.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, чтобы не оставить следов в зелье."),
-  set_apprentice_cloth_waist: gearItem("set_apprentice_cloth_waist", "Пояс подмастерья", "waist", "assets/icons/set_apprentice_cloth_waist.webp", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с карманами для реагентов и мела."),
-  set_apprentice_cloth_legs: gearItem("set_apprentice_cloth_legs", "Штаны подмастерья", "legs", "assets/icons/set_apprentice_cloth_legs.webp", 100, 2, { def: 3, hp: 35, mana: 15, armorType: "cloth", iconFallback: "👖" }, "Плотные штаны, хранящие запах дыма и пыли."),
-  set_apprentice_cloth_feet: gearItem("set_apprentice_cloth_feet", "Тапочки подмастерья", "feet", "assets/icons/set_apprentice_cloth_feet.webp", 80, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🥾" }, "Мягкие тапочки — по библиотеке ходить тихо."),
+  set_apprentice_cloth_shoulder: gearItem("set_apprentice_cloth_shoulder", "Накидки подмастерья", "shoulder", "assets/icons/woolen_shoulders.png", 90, 2, { def: 2, hp: 30, mana: 12, armorType: "cloth", iconFallback: "🛡️" }, "Ткань, пропитанная травяным отваром, держит слабую магию."),
+  set_apprentice_cloth_wrist: gearItem("set_apprentice_cloth_wrist", "Обмотки подмастерья", "wrist", "assets/icons/woolen_wrists.png", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с вышитыми знаками — пальцы не мёрзнут над колбой."),
+  set_apprentice_cloth_hands: gearItem("set_apprentice_cloth_hands", "Перчатки подмастерья", "hands", "assets/icons/woolen_hands.png", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, чтобы не оставить следов в зелье."),
+  set_apprentice_cloth_waist: gearItem("set_apprentice_cloth_waist", "Пояс подмастерья", "waist", "assets/icons/woolen_waist.png", 75, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с карманами для реагентов и мела."),
+  set_apprentice_cloth_legs: gearItem("set_apprentice_cloth_legs", "Штаны подмастерья", "legs", "assets/icons/woolen_legs.png", 100, 2, { def: 3, hp: 35, mana: 15, armorType: "cloth", iconFallback: "👖" }, "Плотные штаны, хранящие запах дыма и пыли."),
+  set_apprentice_cloth_feet: gearItem("set_apprentice_cloth_feet", "Тапочки подмастерья", "feet", "assets/icons/woolen_feet.png", 80, 2, { def: 2, hp: 30, mana: 10, armorType: "cloth", iconFallback: "🥾" }, "Мягкие тапочки — по библиотеке ходить тихо."),
 
   // — Тир 3. «Руническая сталь» (plate, этаж 3): 3 недостающих слота к set_guard_* —
-  set_guard_shoulder: gearItem("set_guard_shoulder", "Наплечники стража склепа", "shoulder", "assets/icons/set_guard_shoulder.webp", 260, 3, { def: 12, hp: 80, block: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Руны на стали тускнеют, но не гаснут."),
-  set_guard_wrist: gearItem("set_guard_wrist", "Наручи стража склепа", "wrist", "assets/icons/set_guard_wrist.webp", 220, 3, { def: 10, hp: 78, block: 1, armorType: "plate", iconFallback: "🧤" }, "Наручи, что держали клинок крепче, чем память."),
-  set_guard_waist: gearItem("set_guard_waist", "Пояс стража склепа", "waist", "assets/icons/set_guard_waist.webp", 240, 3, { def: 10, hp: 79, block: 1, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса помнят каждый удар, что приняли."),
+  set_guard_shoulder: gearItem("set_guard_shoulder", "Наплечники стража склепа", "shoulder", "assets/icons/runic_plate_shoulders.png", 260, 3, { def: 12, hp: 80, block: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Руны на стали тускнеют, но не гаснут."),
+  set_guard_wrist: gearItem("set_guard_wrist", "Наручи стража склепа", "wrist", "assets/icons/runic_plate_wrists.png", 220, 3, { def: 10, hp: 78, block: 1, armorType: "plate", iconFallback: "🧤" }, "Наручи, что держали клинок крепче, чем память."),
+  set_guard_waist: gearItem("set_guard_waist", "Пояс стража склепа", "waist", "assets/icons/runic_plate_waist.png", 240, 3, { def: 10, hp: 79, block: 1, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса помнят каждый удар, что приняли."),
 
   // — Тир 3. «Руническая кольчуга» (chain, этаж 3) —
-  set_runic_chain_head: gearItem("set_runic_chain_head", "Рунический кольчужный шлем", "head", "assets/icons/set_runic_chain_head.webp", 260, 3, { def: 11, hp: 75, armorType: "chain", iconFallback: "🪖" }, "Кольца переплетены в знак, что отводит взгляд нежити."),
-  set_runic_chain_shoulder: gearItem("set_runic_chain_shoulder", "Рунические кольчужные наплечники", "shoulder", "assets/icons/set_runic_chain_shoulder.webp", 250, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🛡️" }, "Рунные кольца нашиты поверх обычного плетения."),
-  set_runic_chain_chest: gearItem("set_runic_chain_chest", "Руническая кольчуга", "chest", "assets/icons/set_runic_chain_chest.webp", 380, 3, { def: 13, hp: 80, armorType: "chain", iconFallback: "🧥" }, "Плотная кольчуга с рунными вставками на груди."),
-  set_runic_chain_wrist: gearItem("set_runic_chain_wrist", "Рунические кольчужные наручи", "wrist", "assets/icons/set_runic_chain_wrist.webp", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Мелкие руны на каждом третьем кольце."),
-  set_runic_chain_hands: gearItem("set_runic_chain_hands", "Рунические кольчужные рукавицы", "hands", "assets/icons/set_runic_chain_hands.webp", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Кольчуга на пальцах не мешает держать клинок."),
-  set_runic_chain_waist: gearItem("set_runic_chain_waist", "Рунический кольчужный пояс", "waist", "assets/icons/set_runic_chain_waist.webp", 195, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка с рунным подолом."),
-  set_runic_chain_legs: gearItem("set_runic_chain_legs", "Рунические кольчужные поножи", "legs", "assets/icons/set_runic_chain_legs.webp", 320, 3, { def: 12, hp: 80, armorType: "chain", iconFallback: "👖" }, "Тяжёлые кольчужные штаны, звенящие на ходу."),
-  set_runic_chain_feet: gearItem("set_runic_chain_feet", "Рунические кольчужные сапоги", "feet", "assets/icons/set_runic_chain_feet.webp", 260, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🥾" }, "Кольца до щиколоток, руны на подошве."),
+  set_runic_chain_head: gearItem("set_runic_chain_head", "Рунический кольчужный шлем", "head", "assets/icons/runic_chain_head.png", 260, 3, { def: 11, hp: 75, armorType: "chain", iconFallback: "🪖" }, "Кольца переплетены в знак, что отводит взгляд нежити."),
+  set_runic_chain_shoulder: gearItem("set_runic_chain_shoulder", "Рунические кольчужные наплечники", "shoulder", "assets/icons/runic_chain_shoulders.png", 250, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🛡️" }, "Рунные кольца нашиты поверх обычного плетения."),
+  set_runic_chain_chest: gearItem("set_runic_chain_chest", "Руническая кольчуга", "chest", "assets/icons/runic_chain_chest.png", 380, 3, { def: 13, hp: 80, armorType: "chain", iconFallback: "🧥" }, "Плотная кольчуга с рунными вставками на груди."),
+  set_runic_chain_wrist: gearItem("set_runic_chain_wrist", "Рунические кольчужные наручи", "wrist", "assets/icons/runic_chain_wrists.png", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Мелкие руны на каждом третьем кольце."),
+  set_runic_chain_hands: gearItem("set_runic_chain_hands", "Рунические кольчужные рукавицы", "hands", "assets/icons/runic_chain_hands.png", 200, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🧤" }, "Кольчуга на пальцах не мешает держать клинок."),
+  set_runic_chain_waist: gearItem("set_runic_chain_waist", "Рунический кольчужный пояс", "waist", "assets/icons/runic_chain_waist.png", 195, 3, { def: 9, hp: 65, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка с рунным подолом."),
+  set_runic_chain_legs: gearItem("set_runic_chain_legs", "Рунические кольчужные поножи", "legs", "assets/icons/runic_chain_legs.png", 320, 3, { def: 12, hp: 80, armorType: "chain", iconFallback: "👖" }, "Тяжёлые кольчужные штаны, звенящие на ходу."),
+  set_runic_chain_feet: gearItem("set_runic_chain_feet", "Рунические кольчужные сапоги", "feet", "assets/icons/runic_chain_feet.png", 260, 3, { def: 10, hp: 70, armorType: "chain", iconFallback: "🥾" }, "Кольца до щиколоток, руны на подошве."),
 
   // — Тир 3. «Руническая кожа» (leather, этаж 3) —
-  set_runic_leather_head: gearItem("set_runic_leather_head", "Рунический кожаный капюшон", "head", "assets/icons/set_runic_leather_head.webp", 240, 3, { def: 8, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Кожа, тиснённая рунами, глушит чужие шёпоты."),
-  set_runic_leather_shoulder: gearItem("set_runic_leather_shoulder", "Рунические кожаные наплечники", "shoulder", "assets/icons/set_runic_leather_shoulder.webp", 230, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Мягкая кожа с костяными вставками на плечах."),
-  set_runic_leather_chest: gearItem("set_runic_leather_chest", "Рунический кожаный доспех", "chest", "assets/icons/set_runic_leather_chest.webp", 350, 3, { def: 12, hp: 70, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кожаный доспех, сшитый по рунным линиям."),
-  set_runic_leather_wrist: gearItem("set_runic_leather_wrist", "Рунические кожаные наручи", "wrist", "assets/icons/set_runic_leather_wrist.webp", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Тонкая кожа, не стесняющая запястье."),
-  set_runic_leather_hands: gearItem("set_runic_leather_hands", "Рунические кожаные перчатки", "hands", "assets/icons/set_runic_leather_hands.webp", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Перчатки с рунной строчкой по костяшкам."),
-  set_runic_leather_waist: gearItem("set_runic_leather_waist", "Рунический кожаный ремень", "waist", "assets/icons/set_runic_leather_waist.webp", 175, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень с пряжкой, на которой стёрлась руна."),
-  set_runic_leather_legs: gearItem("set_runic_leather_legs", "Рунические кожаные штаны", "legs", "assets/icons/set_runic_leather_legs.webp", 300, 3, { def: 11, hp: 65, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с вставками на коленях."),
-  set_runic_leather_feet: gearItem("set_runic_leather_feet", "Рунические кожаные сапоги", "feet", "assets/icons/set_runic_leather_feet.webp", 235, 3, { def: 9, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Мягкие сапоги — шаг тише, чем у страха."),
+  set_runic_leather_head: gearItem("set_runic_leather_head", "Рунический кожаный капюшон", "head", "assets/icons/runic_leather_head.png", 240, 3, { def: 8, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Кожа, тиснённая рунами, глушит чужие шёпоты."),
+  set_runic_leather_shoulder: gearItem("set_runic_leather_shoulder", "Рунические кожаные наплечники", "shoulder", "assets/icons/runic_leather_shoulders.png", 230, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Мягкая кожа с костяными вставками на плечах."),
+  set_runic_leather_chest: gearItem("set_runic_leather_chest", "Рунический кожаный доспех", "chest", "assets/icons/runic_leather_chest.png", 350, 3, { def: 12, hp: 70, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кожаный доспех, сшитый по рунным линиям."),
+  set_runic_leather_wrist: gearItem("set_runic_leather_wrist", "Рунические кожаные наручи", "wrist", "assets/icons/runic_leather_wrists.png", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Тонкая кожа, не стесняющая запястье."),
+  set_runic_leather_hands: gearItem("set_runic_leather_hands", "Рунические кожаные перчатки", "hands", "assets/icons/runic_leather_hands.png", 180, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Перчатки с рунной строчкой по костяшкам."),
+  set_runic_leather_waist: gearItem("set_runic_leather_waist", "Рунический кожаный ремень", "waist", "assets/icons/runic_leather_waist.png", 175, 3, { def: 8, hp: 55, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень с пряжкой, на которой стёрлась руна."),
+  set_runic_leather_legs: gearItem("set_runic_leather_legs", "Рунические кожаные штаны", "legs", "assets/icons/runic_leather_legs.png", 300, 3, { def: 11, hp: 65, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с вставками на коленях."),
+  set_runic_leather_feet: gearItem("set_runic_leather_feet", "Рунические кожаные сапоги", "feet", "assets/icons/runic_leather_feet.png", 235, 3, { def: 9, hp: 60, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Мягкие сапоги — шаг тише, чем у страха."),
 
   // — Тир 3. «Адепт» (cloth, этаж 3) —
-  set_adept_cloth_head: gearItem("set_adept_cloth_head", "Капюшон адепта", "head", "assets/icons/set_adept_cloth_head.webp", 235, 3, { def: 4, hp: 60, mana: 22, armorType: "cloth", iconFallback: "🪖" }, "Капюшон с вышитой печатью — мысли становятся тише."),
-  set_adept_cloth_shoulder: gearItem("set_adept_cloth_shoulder", "Накидки адепта", "shoulder", "assets/icons/set_adept_cloth_shoulder.webp", 220, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🛡️" }, "Слои ткани, держащие форму заклинания."),
-  set_adept_cloth_chest: gearItem("set_adept_cloth_chest", "Роба адепта", "chest", "assets/icons/set_adept_cloth_chest.webp", 340, 3, { def: 6, hp: 65, mana: 30, armorType: "cloth", iconFallback: "🧥" }, "Роба, в подкладку которой вшиты серебряные нити."),
-  set_adept_cloth_wrist: gearItem("set_adept_cloth_wrist", "Обмотки адепта", "wrist", "assets/icons/set_adept_cloth_wrist.webp", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с узлом на каждом витке — так учили."),
-  set_adept_cloth_hands: gearItem("set_adept_cloth_hands", "Перчатки адепта", "hands", "assets/icons/set_adept_cloth_hands.webp", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, в которых жест читается без слов."),
-  set_adept_cloth_waist: gearItem("set_adept_cloth_waist", "Пояс адепта", "waist", "assets/icons/set_adept_cloth_waist.webp", 170, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с гнёздами для кристаллов."),
-  set_adept_cloth_legs: gearItem("set_adept_cloth_legs", "Штаны адепта", "legs", "assets/icons/set_adept_cloth_legs.webp", 290, 3, { def: 6, hp: 60, mana: 25, armorType: "cloth", iconFallback: "👖" }, "Плотная ткань, не мешающая шагу и жесту."),
-  set_adept_cloth_feet: gearItem("set_adept_cloth_feet", "Сапоги адепта", "feet", "assets/icons/set_adept_cloth_feet.webp", 225, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с войлочной подкладкой — в склепе не холодно."),
+  set_adept_cloth_head: gearItem("set_adept_cloth_head", "Капюшон адепта", "head", "assets/icons/runic_head.png", 235, 3, { def: 4, hp: 60, mana: 22, armorType: "cloth", iconFallback: "🪖" }, "Капюшон с вышитой печатью — мысли становятся тише."),
+  set_adept_cloth_shoulder: gearItem("set_adept_cloth_shoulder", "Накидки адепта", "shoulder", "assets/icons/runic_shoulders.png", 220, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🛡️" }, "Слои ткани, держащие форму заклинания."),
+  set_adept_cloth_chest: gearItem("set_adept_cloth_chest", "Роба адепта", "chest", "assets/icons/runic_chest.png", 340, 3, { def: 6, hp: 65, mana: 30, armorType: "cloth", iconFallback: "🧥" }, "Роба, в подкладку которой вшиты серебряные нити."),
+  set_adept_cloth_wrist: gearItem("set_adept_cloth_wrist", "Обмотки адепта", "wrist", "assets/icons/runic_wrists.png", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Обмотки с узлом на каждом витке — так учили."),
+  set_adept_cloth_hands: gearItem("set_adept_cloth_hands", "Перчатки адепта", "hands", "assets/icons/runic_hands.webp", 175, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🧤" }, "Тонкие перчатки, в которых жест читается без слов."),
+  set_adept_cloth_waist: gearItem("set_adept_cloth_waist", "Пояс адепта", "waist", "assets/icons/runic_waist.png", 170, 3, { def: 4, hp: 50, mana: 18, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с гнёздами для кристаллов."),
+  set_adept_cloth_legs: gearItem("set_adept_cloth_legs", "Штаны адепта", "legs", "assets/icons/runic_legs.png", 290, 3, { def: 6, hp: 60, mana: 25, armorType: "cloth", iconFallback: "👖" }, "Плотная ткань, не мешающая шагу и жесту."),
+  set_adept_cloth_feet: gearItem("set_adept_cloth_feet", "Сапоги адепта", "feet", "assets/icons/runic_feet.png", 225, 3, { def: 4, hp: 55, mana: 20, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с войлочной подкладкой — в склепе не холодно."),
 
   // — Тир 4. «Мифрил» (plate, этаж 4): 4 недостающих слота к mithril_head/chest/hands/legs —
-  mithril_shoulder: gearItem("mithril_shoulder", "Мифриловые наплечники", "shoulder", "assets/icons/mithril_shoulder.webp", 300, 4, { def: 14, hp: 105, crit: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Мифрил почти невесом — плечи не устают до вечера."),
-  mithril_wrist: gearItem("mithril_wrist", "Мифриловые наручи", "wrist", "assets/icons/mithril_wrist.webp", 260, 4, { def: 12, hp: 95, crit: 1, armorType: "plate", iconFallback: "🧤" }, "Мифриловые наручи гнутся там, где сталь бы лопнула."),
-  mithril_waist: gearItem("mithril_waist", "Мифриловый пояс", "waist", "assets/icons/mithril_waist.webp", 270, 4, { def: 12, hp: 100, crit: 1, armorType: "plate", iconFallback: "🎗️" }, "Пояс, отлитый из одного куска мифрила."),
-  mithril_feet: gearItem("mithril_feet", "Мифриловые сапоги", "feet", "assets/icons/mithril_feet.webp", 310, 4, { def: 14, hp: 110, crit: 1, armorType: "plate", iconFallback: "🥾" }, "Мифриловые сапоги: тихий шаг, гулкий удар."),
+  mithril_shoulder: gearItem("mithril_shoulder", "Мифриловые наплечники", "shoulder", "assets/icons/runic_plate_shoulders.png", 300, 4, { def: 14, hp: 105, crit: 1, dodge: -1, armorType: "plate", iconFallback: "🛡️" }, "Мифрил почти невесом — плечи не устают до вечера."),
+  mithril_wrist: gearItem("mithril_wrist", "Мифриловые наручи", "wrist", "assets/icons/runic_plate_wrists.png", 260, 4, { def: 12, hp: 95, crit: 1, armorType: "plate", iconFallback: "🧤" }, "Мифриловые наручи гнутся там, где сталь бы лопнула."),
+  mithril_waist: gearItem("mithril_waist", "Мифриловый пояс", "waist", "assets/icons/runic_plate_waist.png", 270, 4, { def: 12, hp: 100, crit: 1, armorType: "plate", iconFallback: "🎗️" }, "Пояс, отлитый из одного куска мифрила."),
+  mithril_feet: gearItem("mithril_feet", "Мифриловые сапоги", "feet", "assets/icons/runic_plate_feet.webp", 310, 4, { def: 14, hp: 110, crit: 1, armorType: "plate", iconFallback: "🥾" }, "Мифриловые сапоги: тихий шаг, гулкий удар."),
 
   // — Тир 4. «Мифриловая кольчуга» (chain, этаж 4) —
-  set_mithril_chain_head: gearItem("set_mithril_chain_head", "Мифриловый кольчужный шлем", "head", "assets/icons/set_mithril_chain_head.webp", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🪖" }, "Мифриловая сетка под стальным обручем — легче шёпота."),
-  set_mithril_chain_shoulder: gearItem("set_mithril_chain_shoulder", "Мифриловые кольчужные наплечники", "shoulder", "assets/icons/set_mithril_chain_shoulder.webp", 360, 4, { def: 12, hp: 95, crit: 1, armorType: "chain", iconFallback: "🛡️" }, "Кольца мифрила блестят даже в темноте склепа."),
-  set_mithril_chain_chest: gearItem("set_mithril_chain_chest", "Мифриловая кольчуга", "chest", "assets/icons/set_mithril_chain_chest.webp", 620, 4, { def: 16, hp: 120, crit: 3, armorType: "chain", iconFallback: "🧥" }, "Мифриловая кольчуга, что поёт под ударом."),
-  set_mithril_chain_wrist: gearItem("set_mithril_chain_wrist", "Мифриловые кольчужные наручи", "wrist", "assets/icons/set_mithril_chain_wrist.webp", 270, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🧤" }, "Плетение такой плотности, что вода не проходит."),
-  set_mithril_chain_hands: gearItem("set_mithril_chain_hands", "Мифриловые кольчужные рукавицы", "hands", "assets/icons/set_mithril_chain_hands.webp", 300, 4, { def: 12, hp: 90, crit: 2, armorType: "chain", iconFallback: "🧤" }, "Пальцы в мифриле чувствуют биение чужой крови."),
-  set_mithril_chain_waist: gearItem("set_mithril_chain_waist", "Мифриловый кольчужный пояс", "waist", "assets/icons/set_mithril_chain_waist.webp", 275, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка из мифрила — звенит, но не тянет."),
-  set_mithril_chain_legs: gearItem("set_mithril_chain_legs", "Мифриловые кольчужные поножи", "legs", "assets/icons/set_mithril_chain_legs.webp", 480, 4, { def: 15, hp: 110, crit: 2, armorType: "chain", iconFallback: "👖" }, "Лёгкие поножи, в которых можно бежать по осыпи."),
-  set_mithril_chain_feet: gearItem("set_mithril_chain_feet", "Мифриловые кольчужные сапоги", "feet", "assets/icons/set_mithril_chain_feet.webp", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🥾" }, "Мифриловая сетка на подошве — шаг как у кошки."),
+  set_mithril_chain_head: gearItem("set_mithril_chain_head", "Мифриловый кольчужный шлем", "head", "assets/icons/runic_chain_head.png", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🪖" }, "Мифриловая сетка под стальным обручем — легче шёпота."),
+  set_mithril_chain_shoulder: gearItem("set_mithril_chain_shoulder", "Мифриловые кольчужные наплечники", "shoulder", "assets/icons/runic_chain_shoulders.png", 360, 4, { def: 12, hp: 95, crit: 1, armorType: "chain", iconFallback: "🛡️" }, "Кольца мифрила блестят даже в темноте склепа."),
+  set_mithril_chain_chest: gearItem("set_mithril_chain_chest", "Мифриловая кольчуга", "chest", "assets/icons/runic_chain_chest.png", 620, 4, { def: 16, hp: 120, crit: 3, armorType: "chain", iconFallback: "🧥" }, "Мифриловая кольчуга, что поёт под ударом."),
+  set_mithril_chain_wrist: gearItem("set_mithril_chain_wrist", "Мифриловые кольчужные наручи", "wrist", "assets/icons/runic_chain_wrists.png", 270, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🧤" }, "Плетение такой плотности, что вода не проходит."),
+  set_mithril_chain_hands: gearItem("set_mithril_chain_hands", "Мифриловые кольчужные рукавицы", "hands", "assets/icons/runic_chain_hands.png", 300, 4, { def: 12, hp: 90, crit: 2, armorType: "chain", iconFallback: "🧤" }, "Пальцы в мифриле чувствуют биение чужой крови."),
+  set_mithril_chain_waist: gearItem("set_mithril_chain_waist", "Мифриловый кольчужный пояс", "waist", "assets/icons/runic_chain_waist.png", 275, 4, { def: 12, hp: 90, crit: 1, armorType: "chain", iconFallback: "🎗️" }, "Кольчужная юбка из мифрила — звенит, но не тянет."),
+  set_mithril_chain_legs: gearItem("set_mithril_chain_legs", "Мифриловые кольчужные поножи", "legs", "assets/icons/runic_chain_legs.png", 480, 4, { def: 15, hp: 110, crit: 2, armorType: "chain", iconFallback: "👖" }, "Лёгкие поножи, в которых можно бежать по осыпи."),
+  set_mithril_chain_feet: gearItem("set_mithril_chain_feet", "Мифриловые кольчужные сапоги", "feet", "assets/icons/runic_chain_feet.png", 380, 4, { def: 13, hp: 100, crit: 2, armorType: "chain", iconFallback: "🥾" }, "Мифриловая сетка на подошве — шаг как у кошки."),
 
   // — Тир 4. «Кожа с костяными пластинами» (leather, этаж 4) —
-  set_bone_leather_head: gearItem("set_bone_leather_head", "Шлем из костяной кожи", "head", "assets/icons/set_bone_leather_head.webp", 340, 4, { def: 12, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Костяные пластины вшиты в кожу, как рёбра в плоть."),
-  set_bone_leather_shoulder: gearItem("set_bone_leather_shoulder", "Костяные наплечники", "shoulder", "assets/icons/set_bone_leather_shoulder.webp", 320, 4, { def: 12, hp: 85, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Оркские клыки держат кожу на плечах."),
-  set_bone_leather_chest: gearItem("set_bone_leather_chest", "Костяная кираса", "chest", "assets/icons/set_bone_leather_chest.webp", 600, 4, { def: 16, hp: 105, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кираса из кожи и рёбер — гнётся там, где сталь звенит."),
-  set_bone_leather_wrist: gearItem("set_bone_leather_wrist", "Костяные наручи", "wrist", "assets/icons/set_bone_leather_wrist.webp", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Наручи с костяными шипами на внешней стороне."),
-  set_bone_leather_hands: gearItem("set_bone_leather_hands", "Костяные перчатки", "hands", "assets/icons/set_bone_leather_hands.webp", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Костяные пластины на костяшках — удар тяжелее."),
-  set_bone_leather_waist: gearItem("set_bone_leather_waist", "Костяной ремень", "waist", "assets/icons/set_bone_leather_waist.webp", 255, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень, увешанный костяными пластинами."),
-  set_bone_leather_legs: gearItem("set_bone_leather_legs", "Костяные штаны", "legs", "assets/icons/set_bone_leather_legs.webp", 450, 4, { def: 15, hp: 100, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с костяными наколенниками."),
-  set_bone_leather_feet: gearItem("set_bone_leather_feet", "Костяные сапоги", "feet", "assets/icons/set_bone_leather_feet.webp", 350, 4, { def: 13, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Сапоги с костяной стелькой — по камню идти легче."),
+  set_bone_leather_head: gearItem("set_bone_leather_head", "Шлем из костяной кожи", "head", "assets/icons/runic_leather_head.png", 340, 4, { def: 12, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🪖" }, "Костяные пластины вшиты в кожу, как рёбра в плоть."),
+  set_bone_leather_shoulder: gearItem("set_bone_leather_shoulder", "Костяные наплечники", "shoulder", "assets/icons/runic_leather_shoulders.png", 320, 4, { def: 12, hp: 85, dodge: 4, armorType: "leather", iconFallback: "🛡️" }, "Оркские клыки держат кожу на плечах."),
+  set_bone_leather_chest: gearItem("set_bone_leather_chest", "Костяная кираса", "chest", "assets/icons/runic_leather_chest.png", 600, 4, { def: 16, hp: 105, dodge: 3, armorType: "leather", iconFallback: "🧥" }, "Кираса из кожи и рёбер — гнётся там, где сталь звенит."),
+  set_bone_leather_wrist: gearItem("set_bone_leather_wrist", "Костяные наручи", "wrist", "assets/icons/runic_leather_wrists.png", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Наручи с костяными шипами на внешней стороне."),
+  set_bone_leather_hands: gearItem("set_bone_leather_hands", "Костяные перчатки", "hands", "assets/icons/runic_leather_hands.png", 250, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🧤" }, "Костяные пластины на костяшках — удар тяжелее."),
+  set_bone_leather_waist: gearItem("set_bone_leather_waist", "Костяной ремень", "waist", "assets/icons/runic_leather_waist.png", 255, 4, { def: 12, hp: 80, dodge: 4, armorType: "leather", iconFallback: "🎗️" }, "Ремень, увешанный костяными пластинами."),
+  set_bone_leather_legs: gearItem("set_bone_leather_legs", "Костяные штаны", "legs", "assets/icons/runic_leather_legs.png", 450, 4, { def: 15, hp: 100, dodge: 3, armorType: "leather", iconFallback: "👖" }, "Кожаные штаны с костяными наколенниками."),
+  set_bone_leather_feet: gearItem("set_bone_leather_feet", "Костяные сапоги", "feet", "assets/icons/runic_leather_feet.png", 350, 4, { def: 13, hp: 90, dodge: 4, armorType: "leather", iconFallback: "🥾" }, "Сапоги с костяной стелькой — по камню идти легче."),
 
   // — Тир 4. «Маг» (cloth, этаж 4) —
-  set_mage_cloth_head: gearItem("set_mage_cloth_head", "Капюшон мага", "head", "assets/icons/set_mage_cloth_head.webp", 330, 4, { def: 7, hp: 85, mana: 30, armorType: "cloth", iconFallback: "🪖" }, "Капюшон мага хранит чужие заклятия, как ткань — дым."),
-  set_mage_cloth_shoulder: gearItem("set_mage_cloth_shoulder", "Накидка мага", "shoulder", "assets/icons/set_mage_cloth_shoulder.webp", 305, 4, { def: 7, hp: 80, mana: 28, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, расшитая созвездиями чужого неба."),
-  set_mage_cloth_chest: gearItem("set_mage_cloth_chest", "Мантия мага", "chest", "assets/icons/set_mage_cloth_chest.webp", 580, 4, { def: 9, hp: 90, mana: 40, armorType: "cloth", iconFallback: "🧥" }, "Мантия мага: ткань легче, чем кажется, и тёплее, чем должна."),
-  set_mage_cloth_wrist: gearItem("set_mage_cloth_wrist", "Наручи мага", "wrist", "assets/icons/set_mage_cloth_wrist.webp", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Наручи с кристальной иглой, что не даёт жесту дрожать."),
-  set_mage_cloth_hands: gearItem("set_mage_cloth_hands", "Перчатки мага", "hands", "assets/icons/set_mage_cloth_hands.webp", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Ткань перчаток помнит тепло последнего заклинания."),
-  set_mage_cloth_waist: gearItem("set_mage_cloth_waist", "Пояс мага", "waist", "assets/icons/set_mage_cloth_waist.webp", 240, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с ячейками для свитков."),
-  set_mage_cloth_legs: gearItem("set_mage_cloth_legs", "Штаны мага", "legs", "assets/icons/set_mage_cloth_legs.webp", 440, 4, { def: 9, hp: 85, mana: 32, armorType: "cloth", iconFallback: "👖" }, "Штаны, подшитые нитью, что не рвётся от жара."),
-  set_mage_cloth_feet: gearItem("set_mage_cloth_feet", "Сапоги мага", "feet", "assets/icons/set_mage_cloth_feet.webp", 330, 4, { def: 7, hp: 85, mana: 28, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с пылью, что не оседает на подошве."),
+  set_mage_cloth_head: gearItem("set_mage_cloth_head", "Капюшон мага", "head", "assets/icons/runic_head.png", 330, 4, { def: 7, hp: 85, mana: 30, armorType: "cloth", iconFallback: "🪖" }, "Капюшон мага хранит чужие заклятия, как ткань — дым."),
+  set_mage_cloth_shoulder: gearItem("set_mage_cloth_shoulder", "Накидка мага", "shoulder", "assets/icons/runic_shoulders.png", 305, 4, { def: 7, hp: 80, mana: 28, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, расшитая созвездиями чужого неба."),
+  set_mage_cloth_chest: gearItem("set_mage_cloth_chest", "Мантия мага", "chest", "assets/icons/runic_chest.png", 580, 4, { def: 9, hp: 90, mana: 40, armorType: "cloth", iconFallback: "🧥" }, "Мантия мага: ткань легче, чем кажется, и тёплее, чем должна."),
+  set_mage_cloth_wrist: gearItem("set_mage_cloth_wrist", "Наручи мага", "wrist", "assets/icons/runic_wrists.png", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Наручи с кристальной иглой, что не даёт жесту дрожать."),
+  set_mage_cloth_hands: gearItem("set_mage_cloth_hands", "Перчатки мага", "hands", "assets/icons/runic_hands.webp", 235, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🧤" }, "Ткань перчаток помнит тепло последнего заклинания."),
+  set_mage_cloth_waist: gearItem("set_mage_cloth_waist", "Пояс мага", "waist", "assets/icons/runic_waist.png", 240, 4, { def: 7, hp: 80, mana: 25, armorType: "cloth", iconFallback: "🎗️" }, "Пояс с ячейками для свитков."),
+  set_mage_cloth_legs: gearItem("set_mage_cloth_legs", "Штаны мага", "legs", "assets/icons/runic_legs.png", 440, 4, { def: 9, hp: 85, mana: 32, armorType: "cloth", iconFallback: "👖" }, "Штаны, подшитые нитью, что не рвётся от жара."),
+  set_mage_cloth_feet: gearItem("set_mage_cloth_feet", "Сапоги мага", "feet", "assets/icons/runic_feet.png", 330, 4, { def: 7, hp: 85, mana: 28, armorType: "cloth", iconFallback: "🥾" }, "Сапоги с пылью, что не оседает на подошве."),
 
   // — Тир 5. «Бездна» (plate, этаж 5): 3 недостающих слота к set_hellblade_* —
-  set_hellblade_shoulder: gearItem("set_hellblade_shoulder", "Наплечники адского клинка", "shoulder", "assets/icons/set_hellblade_shoulder.webp", 780, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate", iconFallback: "🛡️" }, "Шипы наплечников тлеют даже под дождём."),
-  set_hellblade_wrist: gearItem("set_hellblade_wrist", "Наручи адского клинка", "wrist", "assets/icons/set_hellblade_wrist.webp", 700, 5, { def: 16, hp: 115, dodge: -2, crit: 2, armorType: "plate", iconFallback: "🧤" }, "Наручи, что жгут холодом, а не жаром."),
-  set_hellblade_waist: gearItem("set_hellblade_waist", "Пояс адского клинка", "waist", "assets/icons/set_hellblade_waist.webp", 720, 5, { def: 16, hp: 120, dodge: -3, crit: 2, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса скреплены цепью из Бездны."),
+  set_hellblade_shoulder: gearItem("set_hellblade_shoulder", "Наплечники адского клинка", "shoulder", "assets/icons/runic_plate_shoulders.png", 780, 5, { def: 18, hp: 140, dodge: -4, crit: 3, armorType: "plate", iconFallback: "🛡️" }, "Шипы наплечников тлеют даже под дождём."),
+  set_hellblade_wrist: gearItem("set_hellblade_wrist", "Наручи адского клинка", "wrist", "assets/icons/runic_plate_wrists.png", 700, 5, { def: 16, hp: 115, dodge: -2, crit: 2, armorType: "plate", iconFallback: "🧤" }, "Наручи, что жгут холодом, а не жаром."),
+  set_hellblade_waist: gearItem("set_hellblade_waist", "Пояс адского клинка", "waist", "assets/icons/runic_plate_waist.png", 720, 5, { def: 16, hp: 120, dodge: -3, crit: 2, armorType: "plate", iconFallback: "🎗️" }, "Пластины пояса скреплены цепью из Бездны."),
 
   // — Тир 5. «Кольчуга Бездны» (chain, этаж 5) —
-  set_abyss_chain_head: gearItem("set_abyss_chain_head", "Кольчужный шлем Бездны", "head", "assets/icons/set_abyss_chain_head.webp", 700, 5, { def: 17, hp: 130, armorType: "chain", iconFallback: "🪖" }, "Кольца плавятся и снова твердеют — но не рвутся."),
-  set_abyss_chain_shoulder: gearItem("set_abyss_chain_shoulder", "Кольчужные наплечники Бездны", "shoulder", "assets/icons/set_abyss_chain_shoulder.webp", 670, 5, { def: 16, hp: 120, armorType: "chain", iconFallback: "🛡️" }, "Тёмные кольца, что не блестят даже в огне."),
-  set_abyss_chain_chest: gearItem("set_abyss_chain_chest", "Кольчуга Бездны", "chest", "assets/icons/set_abyss_chain_chest.webp", 900, 5, { def: 20, hp: 150, armorType: "chain", iconFallback: "🧥" }, "Кольчуга Бездны: холодная, тяжёлая, чужая."),
-  set_abyss_chain_wrist: gearItem("set_abyss_chain_wrist", "Кольчужные наручи Бездны", "wrist", "assets/icons/set_abyss_chain_wrist.webp", 560, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Кольца наручей шепчут чужими голосами."),
-  set_abyss_chain_hands: gearItem("set_abyss_chain_hands", "Кольчужные рукавицы Бездны", "hands", "assets/icons/set_abyss_chain_hands.webp", 570, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Рукавицы, в которых клинок держится сам."),
-  set_abyss_chain_waist: gearItem("set_abyss_chain_waist", "Кольчужный пояс Бездны", "waist", "assets/icons/set_abyss_chain_waist.webp", 580, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🎗️" }, "Пояс, к которому липнет пепел."),
-  set_abyss_chain_legs: gearItem("set_abyss_chain_legs", "Кольчужные поножи Бездны", "legs", "assets/icons/set_abyss_chain_legs.webp", 800, 5, { def: 18, hp: 140, armorType: "chain", iconFallback: "👖" }, "Поножи Бездны: каждый шаг — как по углям."),
-  set_abyss_chain_feet: gearItem("set_abyss_chain_feet", "Кольчужные сапоги Бездны", "feet", "assets/icons/set_abyss_chain_feet.webp", 680, 5, { def: 16, hp: 125, armorType: "chain", iconFallback: "🥾" }, "Сапоги, что не плавятся на раскалённом камне."),
+  set_abyss_chain_head: gearItem("set_abyss_chain_head", "Кольчужный шлем Бездны", "head", "assets/icons/runic_chain_head.png", 700, 5, { def: 17, hp: 130, armorType: "chain", iconFallback: "🪖" }, "Кольца плавятся и снова твердеют — но не рвутся."),
+  set_abyss_chain_shoulder: gearItem("set_abyss_chain_shoulder", "Кольчужные наплечники Бездны", "shoulder", "assets/icons/runic_chain_shoulders.png", 670, 5, { def: 16, hp: 120, armorType: "chain", iconFallback: "🛡️" }, "Тёмные кольца, что не блестят даже в огне."),
+  set_abyss_chain_chest: gearItem("set_abyss_chain_chest", "Кольчуга Бездны", "chest", "assets/icons/runic_chain_chest.png", 900, 5, { def: 20, hp: 150, armorType: "chain", iconFallback: "🧥" }, "Кольчуга Бездны: холодная, тяжёлая, чужая."),
+  set_abyss_chain_wrist: gearItem("set_abyss_chain_wrist", "Кольчужные наручи Бездны", "wrist", "assets/icons/runic_chain_wrists.png", 560, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Кольца наручей шепчут чужими голосами."),
+  set_abyss_chain_hands: gearItem("set_abyss_chain_hands", "Кольчужные рукавицы Бездны", "hands", "assets/icons/runic_chain_hands.png", 570, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🧤" }, "Рукавицы, в которых клинок держится сам."),
+  set_abyss_chain_waist: gearItem("set_abyss_chain_waist", "Кольчужный пояс Бездны", "waist", "assets/icons/runic_chain_waist.png", 580, 5, { def: 15, hp: 105, armorType: "chain", iconFallback: "🎗️" }, "Пояс, к которому липнет пепел."),
+  set_abyss_chain_legs: gearItem("set_abyss_chain_legs", "Кольчужные поножи Бездны", "legs", "assets/icons/runic_chain_legs.png", 800, 5, { def: 18, hp: 140, armorType: "chain", iconFallback: "👖" }, "Поножи Бездны: каждый шаг — как по углям."),
+  set_abyss_chain_feet: gearItem("set_abyss_chain_feet", "Кольчужные сапоги Бездны", "feet", "assets/icons/runic_chain_feet.png", 680, 5, { def: 16, hp: 125, armorType: "chain", iconFallback: "🥾" }, "Сапоги, что не плавятся на раскалённом камне."),
 
   // — Тир 5. «Кожа Бездны» (leather, этаж 5) —
-  set_abyss_leather_head: gearItem("set_abyss_leather_head", "Кожаный шлем Бездны", "head", "assets/icons/set_abyss_leather_head.webp", 640, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🪖" }, "Кожа, снятая с чего-то, что не имело имени."),
-  set_abyss_leather_shoulder: gearItem("set_abyss_leather_shoulder", "Кожаные наплечники Бездны", "shoulder", "assets/icons/set_abyss_leather_shoulder.webp", 610, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🛡️" }, "Наплечники, что двигаются вместе с тенью."),
-  set_abyss_leather_chest: gearItem("set_abyss_leather_chest", "Кожаный доспех Бездны", "chest", "assets/icons/set_abyss_leather_chest.webp", 850, 5, { def: 17, hp: 115, dodge: 4, armorType: "leather", iconFallback: "🧥" }, "Доспех Бездны: кожа теплее воздуха и тише шага."),
-  set_abyss_leather_wrist: gearItem("set_abyss_leather_wrist", "Кожаные наручи Бездны", "wrist", "assets/icons/set_abyss_leather_wrist.webp", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Наручи с прожилками, что светятся в темноте."),
-  set_abyss_leather_hands: gearItem("set_abyss_leather_hands", "Кожаные перчатки Бездны", "hands", "assets/icons/set_abyss_leather_hands.webp", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Перчатки, в которых пальцы не чувствуют жара."),
-  set_abyss_leather_waist: gearItem("set_abyss_leather_waist", "Кожаный ремень Бездны", "waist", "assets/icons/set_abyss_leather_waist.webp", 530, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🎗️" }, "Ремень, стянутый пряжкой из чёрного камня."),
-  set_abyss_leather_legs: gearItem("set_abyss_leather_legs", "Кожаные штаны Бездны", "legs", "assets/icons/set_abyss_leather_legs.webp", 750, 5, { def: 17, hp: 110, dodge: 4, armorType: "leather", iconFallback: "👖" }, "Штаны, что не пропускают ни жар, ни холод."),
-  set_abyss_leather_feet: gearItem("set_abyss_leather_feet", "Кожаные сапоги Бездны", "feet", "assets/icons/set_abyss_leather_feet.webp", 620, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🥾" }, "Сапоги, оставляющие следы, что остывают медленно."),
+  set_abyss_leather_head: gearItem("set_abyss_leather_head", "Кожаный шлем Бездны", "head", "assets/icons/runic_leather_head.png", 640, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🪖" }, "Кожа, снятая с чего-то, что не имело имени."),
+  set_abyss_leather_shoulder: gearItem("set_abyss_leather_shoulder", "Кожаные наплечники Бездны", "shoulder", "assets/icons/runic_leather_shoulders.png", 610, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🛡️" }, "Наплечники, что двигаются вместе с тенью."),
+  set_abyss_leather_chest: gearItem("set_abyss_leather_chest", "Кожаный доспех Бездны", "chest", "assets/icons/runic_leather_chest.png", 850, 5, { def: 17, hp: 115, dodge: 4, armorType: "leather", iconFallback: "🧥" }, "Доспех Бездны: кожа теплее воздуха и тише шага."),
+  set_abyss_leather_wrist: gearItem("set_abyss_leather_wrist", "Кожаные наручи Бездны", "wrist", "assets/icons/runic_leather_wrists.png", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Наручи с прожилками, что светятся в темноте."),
+  set_abyss_leather_hands: gearItem("set_abyss_leather_hands", "Кожаные перчатки Бездны", "hands", "assets/icons/runic_leather_hands.png", 520, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🧤" }, "Перчатки, в которых пальцы не чувствуют жара."),
+  set_abyss_leather_waist: gearItem("set_abyss_leather_waist", "Кожаный ремень Бездны", "waist", "assets/icons/runic_leather_waist.png", 530, 5, { def: 15, hp: 100, dodge: 5, armorType: "leather", iconFallback: "🎗️" }, "Ремень, стянутый пряжкой из чёрного камня."),
+  set_abyss_leather_legs: gearItem("set_abyss_leather_legs", "Кожаные штаны Бездны", "legs", "assets/icons/runic_leather_legs.png", 750, 5, { def: 17, hp: 110, dodge: 4, armorType: "leather", iconFallback: "👖" }, "Штаны, что не пропускают ни жар, ни холод."),
+  set_abyss_leather_feet: gearItem("set_abyss_leather_feet", "Кожаные сапоги Бездны", "feet", "assets/icons/runic_leather_feet.png", 620, 5, { def: 15, hp: 105, dodge: 5, armorType: "leather", iconFallback: "🥾" }, "Сапоги, оставляющие следы, что остывают медленно."),
 
   // — Тир 5. «Архимаг» (cloth, этаж 5) —
-  set_archmage_cloth_head: gearItem("set_archmage_cloth_head", "Капюшон архимага", "head", "assets/icons/set_archmage_cloth_head.webp", 610, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🪖" }, "Капюшон архимага: под тканью — звёздная пустота."),
-  set_archmage_cloth_shoulder: gearItem("set_archmage_cloth_shoulder", "Накидка архимага", "shoulder", "assets/icons/set_archmage_cloth_shoulder.webp", 570, 5, { def: 9, hp: 100, mana: 38, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, что гасит искры заклинаний."),
-  set_archmage_cloth_chest: gearItem("set_archmage_cloth_chest", "Мантия архимага", "chest", "assets/icons/set_archmage_cloth_chest.webp", 860, 5, { def: 11, hp: 110, mana: 50, armorType: "cloth", iconFallback: "🧥" }, "Мантия архимага помнит всех, кто её носил. И всех, кто нет."),
-  set_archmage_cloth_wrist: gearItem("set_archmage_cloth_wrist", "Наручи архимага", "wrist", "assets/icons/set_archmage_cloth_wrist.webp", 480, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Наручи с печатями, что нельзя прочесть дважды."),
-  set_archmage_cloth_hands: gearItem("set_archmage_cloth_hands", "Перчатки архимага", "hands", "assets/icons/set_archmage_cloth_hands.webp", 490, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Перчатки, в которых жест стоит дороже золота."),
-  set_archmage_cloth_waist: gearItem("set_archmage_cloth_waist", "Пояс архимага", "waist", "assets/icons/set_archmage_cloth_waist.webp", 500, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🎗️" }, "Пояс, к которому прикованы пустые ножны для свитков."),
-  set_archmage_cloth_legs: gearItem("set_archmage_cloth_legs", "Штаны архимага", "legs", "assets/icons/set_archmage_cloth_legs.webp", 760, 5, { def: 11, hp: 105, mana: 45, armorType: "cloth", iconFallback: "👖" }, "Штаны, подол которых не касается пола."),
-  set_archmage_cloth_feet: gearItem("set_archmage_cloth_feet", "Сапоги архимага", "feet", "assets/icons/set_archmage_cloth_feet.webp", 600, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🥾" }, "Сапоги архимага ступают бесшумно по любому камню."),
+  set_archmage_cloth_head: gearItem("set_archmage_cloth_head", "Капюшон архимага", "head", "assets/icons/runic_head.png", 610, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🪖" }, "Капюшон архимага: под тканью — звёздная пустота."),
+  set_archmage_cloth_shoulder: gearItem("set_archmage_cloth_shoulder", "Накидка архимага", "shoulder", "assets/icons/runic_shoulders.png", 570, 5, { def: 9, hp: 100, mana: 38, armorType: "cloth", iconFallback: "🛡️" }, "Накидка, что гасит искры заклинаний."),
+  set_archmage_cloth_chest: gearItem("set_archmage_cloth_chest", "Мантия архимага", "chest", "assets/icons/runic_chest.png", 860, 5, { def: 11, hp: 110, mana: 50, armorType: "cloth", iconFallback: "🧥" }, "Мантия архимага помнит всех, кто её носил. И всех, кто нет."),
+  set_archmage_cloth_wrist: gearItem("set_archmage_cloth_wrist", "Наручи архимага", "wrist", "assets/icons/runic_wrists.png", 480, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Наручи с печатями, что нельзя прочесть дважды."),
+  set_archmage_cloth_hands: gearItem("set_archmage_cloth_hands", "Перчатки архимага", "hands", "assets/icons/runic_hands.webp", 490, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🧤" }, "Перчатки, в которых жест стоит дороже золота."),
+  set_archmage_cloth_waist: gearItem("set_archmage_cloth_waist", "Пояс архимага", "waist", "assets/icons/runic_waist.png", 500, 5, { def: 9, hp: 100, mana: 35, armorType: "cloth", iconFallback: "🎗️" }, "Пояс, к которому прикованы пустые ножны для свитков."),
+  set_archmage_cloth_legs: gearItem("set_archmage_cloth_legs", "Штаны архимага", "legs", "assets/icons/runic_legs.png", 760, 5, { def: 11, hp: 105, mana: 45, armorType: "cloth", iconFallback: "👖" }, "Штаны, подол которых не касается пола."),
+  set_archmage_cloth_feet: gearItem("set_archmage_cloth_feet", "Сапоги архимага", "feet", "assets/icons/runic_feet.png", 600, 5, { def: 9, hp: 105, mana: 40, armorType: "cloth", iconFallback: "🥾" }, "Сапоги архимага ступают бесшумно по любому камню."),
 
   // ══════════════════════════════════════════════════════════════════════════
   // ПАРНЫЕ КОЛЬЦА И АКСЕССУАРЫ: 10 пар = 20 предметов (порог 2/2)
@@ -3020,61 +3014,6 @@ const ARMOR_TYPE_BY_ID = {
 };
 for (const [id, armorType] of Object.entries(ARMOR_TYPE_BY_ID)) {
   if (ITEMS[id] && !ITEMS[id].armorType) ITEMS[id].armorType = armorType;
-}
-
-// Автопути иконок всех предметов 1-го тира: assets/icons/<id>.webp.
-// Прежний эмодзи сохраняем запасным вариантом — если файла ещё нет,
-// iconHtml покажет его вместо пустого слота.
-for (const item of Object.values(ITEMS)) {
-  if (item.shopTier !== 1) continue;
-  if (item.slot === "potion") continue; // зелья остаются на эмодзи
-  if (typeof item.icon === "string" && item.icon.startsWith("assets/")) continue;
-  if (!item.iconFallback) item.iconFallback = item.icon || "";
-  item.icon = `assets/icons/${item.id}.webp`;
-}
-
-// Часть иконок сгенерирована под другими именами файлов (латы, кольчуга).
-// Сопоставляем id предмета с реальным именем файла в assets/icons/.
-// Записи, где ключ совпадает со значением, нужны предметам вне 1-го тира:
-// файл для них уже есть, а путь ещё не был прописан.
-const ICON_ALIASES = {
-  head_iron: "iron_helmet",
-  leather_armor: "leather",
-  dented_plate: "iron_breastplate",
-  feet_iron: "iron_boots",
-  legs_iron: "iron_greaves",
-  shoulder_chain: "shoulders_chain",
-  wrist_chain: "wrist_chain",
-  legs_chain: "legs_chain",
-};
-
-for (const [itemId, fileId] of Object.entries(ICON_ALIASES)) {
-  const item = ITEMS[itemId];
-  if (!item) continue;
-  if (!item.iconFallback) {
-    item.iconFallback = typeof item.icon === "string" && !item.icon.startsWith("assets/")
-      ? item.icon
-      : SLOT_ICON[item.slot] || "❔";
-  }
-  item.icon = `assets/icons/${fileId}.webp`;
-}
-
-// Обратный поиск «имя файла → id предмета» — чтобы эмодзи-заглушка
-// находилась и для иконок с несовпадающим именем файла.
-// Если имя файла совпадает с id реального предмета (iron_shield), файл
-// принадлежит этому предмету, а не алиасу.
-const ICON_ITEM_BY_FILE = Object.fromEntries(
-  Object.entries(ICON_ALIASES)
-    .filter(([, fileId]) => !ITEMS[fileId])
-    .map(([itemId, fileId]) => [fileId, itemId])
-);
-
-// Текстовая (эмодзи) иконка предмета — для тостов и строк лога.
-function itemEmoji(item) {
-  if (!item) return "";
-  if (item.iconFallback) return item.iconFallback;
-  if (typeof item.icon === "string" && !item.icon.startsWith("assets/")) return item.icon;
-  return SLOT_ICON[item.slot] || "";
 }
 
 const MOB_ICONS = {
@@ -3153,23 +3092,23 @@ const FLOORS = [
     cardImg: "assets/backgrounds/duskwood.webp",
     bg: "assets/backgrounds/duskwood.webp",
     mobs: [
-      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 126, atk: 24, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "short_sword", "wood_club", "battle_axe"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
+      enemy({ id: "goblin_scout", name: "Гоблин-разведчик", icon: "goblin_scout", hp: 126, atk: 24, def: 3, gold: 25, xp: 40, armorType: "leather", weapons: ["rusty_knife", "iron_short_sword", "wood_club", "iron_hatchet"], prefers: ["legs", "belly"], desc: "Мелкий и юркий. Пытается зайти со спины и пырнуть ножом в бок.",
         drops: [
           { id: "rust", chance: 0.35, min: 1, max: 2 },
           { id: "cloth", chance: 0.25, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 189, atk: 31, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "short_sword", "battle_axe"], prefers: ["head", "chest"], canUseHeavyStrike: true, desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
+      enemy({ id: "hobgoblin", name: "Хобгоблин", icon: "hobgoblin", hp: 189, atk: 31, def: 6, gold: 35, xp: 55, armorType: "leather", weapons: ["wood_club", "iron_short_sword", "iron_great_axe"], prefers: ["head", "chest"], canUseHeavyStrike: true, desc: "Крупнее и злее своих сородичей. Носит грубые кожаные доспехи и машет дубиной.",
         drops: [
           { id: "leather", chance: 0.30, min: 1, max: 2 },
           { id: "wood", chance: 0.20, min: 1, max: 2 },
         ] }),
-      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 279, atk: 41, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "battle_axe"], prefers: ["chest", "belly"], canUseHeavyStrike: true, desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
+      enemy({ id: "bugbear", name: "Багбир", icon: "bugbear", hp: 279, atk: 41, def: 10, gold: 50, xp: 75, armorType: "leather", weapons: ["wood_club", "iron_great_axe"], prefers: ["chest", "belly"], canUseHeavyStrike: true, desc: "Медлительный и уродливый гигант. Каждый его удар проламывает кости.",
         drops: [
           { id: "bone", chance: 0.35, min: 1, max: 3 },
           { id: "iron_ore", chance: 0.20, min: 1, max: 1 },
         ] }),
     ],
-    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1080, atk: 54, def: 14, gold: 250, xp: 300, armorType: "plate", prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
+    boss: enemy({ id: "goblin_chief", name: "Вождь Гоблинов", icon: "goblin_chief", hp: 1080, atk: 54, def: 14, gold: 250, xp: 300, armorType: "plate", weapons: ["iron_great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true, desc: "Огромный, покрытый шрамами гоблин. Вооружен ржавым тесаком. В ярости его удары сокрушают всё.",
       drops: [
         { id: "gambeson", chance: 1.0, min: 1, max: 1, kind: "item" },
         { id: "malachite", chance: 0.60, min: 2, max: 3 },
@@ -3181,14 +3120,14 @@ const FLOORS = [
     cardImg: "assets/backgrounds/mines.webp",
     bg: "assets/backgrounds/mines.webp",
     mobs: [
-      enemy({ id: "kobold_servant", name: "Кобольд-слуга", icon: "kobold_servant", hp: 320, atk: 42, def: 8, gold: 55, xp: 75, armorType: "cloth", weapons: ["rusty_knife", "wood_club", "short_sword"], prefers: ["waist", "legs"],
+      enemy({ id: "kobold_servant", name: "Кобольд-слуга", icon: "kobold_servant", hp: 320, atk: 42, def: 8, gold: 55, xp: 75, armorType: "cloth", weapons: ["rusty_knife", "wood_club", "iron_short_sword"], prefers: ["waist", "legs"],
         desc: "Тощий кобольд в грязном тряпье, вечно таскающий инструменты за старшими. В драку лезет неохотно, но бьёт низко — в пояс и ноги, норовя подрезать сухожилия.",
         drops: [
           { id: "copper_ore", chance: 0.35, min: 1, max: 2 },
           { id: "cave_mushroom", chance: 0.3, min: 1, max: 2 },
           { id: "kobold_gear", chance: 0.25, min: 1, max: 1 },
         ] }),
-      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 400, atk: 48, def: 12, gold: 68, xp: 90, armorType: "leather", weapons: ["mace", "short_sword", "rusty_knife"], prefers: ["waist", "legs"],
+      enemy({ id: "kobold_miner", name: "Кобольд-рудокоп", icon: "kobold_miner", hp: 400, atk: 48, def: 12, gold: 68, xp: 90, armorType: "leather", weapons: ["iron_mace", "iron_short_sword", "rusty_knife"], prefers: ["waist", "legs"],
         desc: "Маленький, горбатый от многолетней работы в забое. Размахивает киркой, целясь в ноги и пояс — туда, где металл не прикрывает тело.",
         drops: [
           { id: "copper_ore", chance: 0.4, min: 1, max: 2 },
@@ -3196,7 +3135,7 @@ const FLOORS = [
           { id: "cold_iron_ingot", chance: 0.2, min: 1, max: 1 },
           { id: "kobold_gear", chance: 0.2, min: 1, max: 1 },
         ] }),
-      enemy({ id: "kobold_overseer", name: "Кобольд-надсмотрщик", icon: "kobold_overseer", hp: 500, atk: 56, def: 18, gold: 82, xp: 110, armorType: "chain", weapons: ["mace", "short_sword", "battle_axe"], prefers: ["belly", "chest"], blocks: 2,
+      enemy({ id: "kobold_overseer", name: "Кобольд-надсмотрщик", icon: "kobold_overseer", hp: 500, atk: 56, def: 18, gold: 82, xp: 110, armorType: "chain", weapons: ["iron_mace", "iron_short_sword", "iron_great_axe"], prefers: ["belly", "chest"], blocks: 2,
         desc: "Широкоплечий кобольд в кольчуге, с плетью на поясе и тяжёлой булавой в лапе. Гоняет сородичей в забой и бьёт в живот и грудь, не давая опомниться.",
         drops: [
           { id: "cold_iron_ingot", chance: 0.3, min: 1, max: 2 },
@@ -3204,7 +3143,7 @@ const FLOORS = [
           { id: "kobold_gear", chance: 0.3, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "dragonborn", name: "Драконид", icon: "dragonborn", hp: 1728, atk: 92, def: 26, gold: 660, xp: 880, armorType: "plate", weapons: ["steel_great_sword"], prefers: ["chest", "head"], blocks: 3, boss: true, enrage: true,
+    boss: enemy({ id: "dragonborn", name: "Драконид", icon: "dragonborn", hp: 1728, atk: 92, def: 26, gold: 660, xp: 880, armorType: "plate", weapons: ["coldsteel_great_sword"], prefers: ["chest", "head"], blocks: 3, boss: true, enrage: true,
       desc: "Чешуйчатый гигант в тяжёлых латах, поднявшийся из глубин вместе с кобольдами. Двуручный клинок в его лапах описывает широкую дугу, доставая сразу две зоны.",
       drops: [
         { id: "cold_iron_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -3218,14 +3157,14 @@ const FLOORS = [
     cardImg: "assets/backgrounds/crypt.webp",
     bg: "assets/backgrounds/crypt.webp",
     mobs: [
-      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 504, atk: 62, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["short_sword", "spear", "battle_axe"], prefers: ["chest", "legs"],
+      enemy({ id: "skeleton_warrior", name: "Скелет-воин", icon: "skeleton_warrior", hp: 504, atk: 62, def: 22, gold: 96, xp: 136, armorType: "chain", weapons: ["runic_short_sword", "runic_spear", "runic_great_axe"], prefers: ["chest", "legs"],
         desc: "Восставший из старой могилы скелет, стиснувший ржавый клинок. Бьёт по корпусу и ногам, не зная ни боли, ни усталости.",
         drops: [
           { id: "bone", chance: 0.4, min: 1, max: 2 },
           { id: "grave_iron", chance: 0.25, min: 1, max: 2 },
           { id: "copper_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 567, atk: 66, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["staff"], prefers: ["head", "belly"],
+      enemy({ id: "unquiet_ghost", name: "Неупокоенный призрак", icon: "unquiet_ghost", hp: 567, atk: 66, def: 18, gold: 108, xp: 150, armorType: "cloth", weapons: ["runic_maul"], prefers: ["head", "belly"],
         desc: "Полупрозрачный силуэт, что тянет к вам ледяные пальцы. Его шёпот ввинчивается в голову, а удары проходят сквозь броню.",
         drops: [
           { id: "rune_dust", chance: 0.35, min: 1, max: 2 },
@@ -3240,7 +3179,7 @@ const FLOORS = [
           { id: "kobold_gear", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2520, atk: 115, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "dark_knight", name: "Тёмный Рыцарь", icon: "dark_knight", hp: 2520, atk: 115, def: 34, gold: 960, xp: 1280, armorType: "plate", weapons: ["runic_great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Павший паладин, чьи латы покрыты пеплом и копотью. В ярости его клинок крошит камень и кости.",
       drops: [
         { id: "steel_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -3254,21 +3193,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/orc_camp.webp",
     bg: "assets/backgrounds/orc_camp.webp",
     mobs: [
-      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["battle_axe", "mace", "short_sword"], prefers: ["head", "chest"],
+      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, def: 32, gold: 145, xp: 205, armorType: "chain", weapons: ["runic_great_axe", "runic_mace", "runic_short_sword"], prefers: ["head", "chest"],
         desc: "Свирепый налётчик, чья секира помнит десятки черепов. Рубит сверху, целясь в голову и грудь.",
         drops: [
           { id: "iron_chain", chance: 0.35, min: 1, max: 2 },
           { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
           { id: "bone", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["staff"], prefers: ["belly", "waist"],
+      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, def: 30, gold: 158, xp: 215, armorType: "cloth", weapons: ["runic_maul"], prefers: ["belly", "waist"],
         desc: "Шаман, обвешанный костями и амулетами. Его проклятия бьют в живот и пояс, пока он бормочет боевые молитвы.",
         drops: [
           { id: "blood_herb", chance: 0.35, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.25, min: 1, max: 2 },
           { id: "rune_dust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["war_hammer", "battle_axe", "great_axe"], prefers: ["chest", "legs"],
+      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, def: 40, gold: 170, xp: 230, armorType: "plate", weapons: ["runic_maul", "runic_great_axe", "runic_great_sword"], prefers: ["chest", "legs"],
         desc: "Гора мяса и шрамов, вооружённая вырванным из земли валуном. Бьёт по груди и ногам — медленно, но смертельно.",
         drops: [
           { id: "mithril_ore", chance: 0.35, min: 1, max: 2 },
@@ -3276,7 +3215,7 @@ const FLOORS = [
           { id: "silver", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 3960, atk: 163, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["war_hammer"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "orc_warlord", name: "Вождь орков", icon: "🐗", hp: 3960, atk: 163, def: 56, gold: 1360, xp: 1840, armorType: "plate", weapons: ["runic_maul"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Вождь, чьи латы кованы из обломков осадных машин. В ярости он сминает строй одним ударом.",
       drops: [
         { id: "mithril_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -3290,21 +3229,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/hell_plane.webp",
     bg: "assets/backgrounds/hell_plane.webp",
     mobs: [
-      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["dagger", "staff"], prefers: ["belly", "waist"],
+      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, def: 26, gold: 184, xp: 274, armorType: "cloth", weapons: ["runic_rapier", "runic_maul"], prefers: ["belly", "waist"],
         desc: "Мелкий бес, объятый пламенем, что хихикает из дыма. Жалит в живот и пояс, пока вы ищете его в огне.",
         drops: [
           { id: "brimstone", chance: 0.35, min: 1, max: 2 },
           { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "dagger"], unarmedStyle: "piercing", prefers: ["head", "chest"],
+      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, def: 33, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "runic_rapier"], unarmedStyle: "piercing", prefers: ["head", "chest"],
         desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
         drops: [
           { id: "hellstone", chance: 0.35, min: 1, max: 2 },
           { id: "demon_horn", chance: 0.25, min: 1, max: 2 },
           { id: "iron_chain", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["war_hammer", "great_sword", "halberd"], prefers: ["chest", "head"],
+      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, def: 40, gold: 200, xp: 290, armorType: "plate", weapons: ["runic_maul", "runic_great_sword", "runic_spear"], prefers: ["chest", "head"],
         desc: "Рогатый дьявол в багровых латах, вооружённый чёрным клинком. Бьёт в грудь и голову, наслаждаясь чужой болью.",
         drops: [
           { id: "demon_horn", chance: 0.35, min: 1, max: 2 },
@@ -3312,7 +3251,7 @@ const FLOORS = [
           { id: "mithril_ore", chance: 0.2, min: 1, max: 2 },
         ] }),
     ],
-    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4320, atk: 221, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["halberd"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
+    boss: enemy({ id: "demon_lord", name: "Владыка Бездны", icon: "👹", hp: 4320, atk: 221, def: 56, gold: 1600, xp: 2320, armorType: "plate", weapons: ["runic_great_sword"], prefers: ["head", "chest", "belly"], boss: true, enrage: true,
       desc: "Владыка Бездны, чей трон выкован из проклятых душ. В ярости его удары рвут саму реальность.",
       drops: [
         { id: "set_hellblade_chest", chance: 1.0, min: 1, max: 1, kind: "item" },
@@ -3347,7 +3286,7 @@ const STORY_QUESTS = [
     title: "Мифрил для Рона",
     text: "Слышал, в Лагере Орков жилы мифрила блестят на солнце. Принеси 5 мифриловой руды — я сакую из неё что-то стоящее и заплачу щедро.",
     objectives: { res: "mithril_ore", count: 5 },
-    reward: { gold: 1000, xp: 400, rep: 5, recipe: "recipe_mithril_sword" },
+    reward: { gold: 1000, xp: 400, rep: 5, recipe: "recipe_runic_great_sword" },
   },
   {
     id: "sq_elain_cave_mushroom",
@@ -4306,6 +4245,38 @@ const NPCS = {
 };
 
 const RECIPES = [
+  // ── ОРУЖИЕ: 27 предметов (только материалы своего этажа) ──
+  // Тир 1 «Железо» (этаж 1)
+  { id: "recipe_iron_long_sword", station: "forge", result: "iron_long_sword", desc: "Железный длинный меч", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, wood: 2, leather: 1 } },
+  { id: "recipe_iron_short_sword", station: "forge", result: "iron_short_sword", desc: "Железный короткий меч", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, wood: 1, leather: 1 } },
+  { id: "recipe_iron_rapier", station: "forge", result: "iron_rapier", desc: "Железная рапира", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, wood: 1, rust: 2 } },
+  { id: "recipe_iron_hatchet", station: "forge", result: "iron_hatchet", desc: "Железный топорик", floor: 1, dropChance: 0.05, materials: { iron_ore: 2, wood: 4, rust: 2 } },
+  { id: "recipe_iron_great_axe", station: "forge", result: "iron_great_axe", desc: "Железная секира", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, wood: 4, leather: 1 } },
+  { id: "recipe_iron_mace", station: "forge", result: "iron_mace", desc: "Железная булава", floor: 1, dropChance: 0.05, materials: { iron_ore: 5, wood: 2 } },
+  { id: "recipe_iron_maul", station: "forge", result: "iron_maul", desc: "Железный молот", floor: 1, dropChance: 0.05, materials: { iron_ore: 8, wood: 4 } },
+  { id: "recipe_iron_spear", station: "forge", result: "iron_spear", desc: "Железное копьё", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, wood: 5 } },
+  { id: "recipe_iron_great_sword", station: "forge", result: "iron_great_sword", desc: "Железный двуручный меч", floor: 1, dropChance: 0.05, materials: { iron_ore: 9, wood: 3, leather: 2 } },
+  // Тир 2 «Хладосталь» (этаж 2)
+  { id: "recipe_coldsteel_long_sword", station: "forge", result: "coldsteel_long_sword", desc: "Длинный меч из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, steel: 2, leather: 1 } },
+  { id: "recipe_coldsteel_short_sword", station: "forge", result: "coldsteel_short_sword", desc: "Короткий меч из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, steel: 1, leather: 1 } },
+  { id: "recipe_coldsteel_rapier", station: "forge", result: "coldsteel_rapier", desc: "Рапира из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, tin_ore: 2, leather: 1 } },
+  { id: "recipe_coldsteel_hatchet", station: "forge", result: "coldsteel_hatchet", desc: "Топорик из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, wood: 4, copper_ore: 2 } },
+  { id: "recipe_coldsteel_great_axe", station: "forge", result: "coldsteel_great_axe", desc: "Секира из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 5, steel: 2, wood: 4 } },
+  { id: "recipe_coldsteel_mace", station: "forge", result: "coldsteel_mace", desc: "Булава из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, copper_ore: 3 } },
+  { id: "recipe_coldsteel_maul", station: "forge", result: "coldsteel_maul", desc: "Молот из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 6, steel: 3, wood: 3 } },
+  { id: "recipe_coldsteel_spear", station: "forge", result: "coldsteel_spear", desc: "Копьё из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, wood: 5 } },
+  { id: "recipe_coldsteel_great_sword", station: "forge", result: "coldsteel_great_sword", desc: "Двуручный меч из хладостали", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 6, steel: 4, leather: 2 } },
+  // Тир 3 «Руны» (этаж 3)
+  { id: "recipe_runic_long_sword", station: "forge", result: "runic_long_sword", desc: "Рунический длинный меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, rune_dust: 2, bone: 1 } },
+  { id: "recipe_runic_short_sword", station: "forge", result: "runic_short_sword", desc: "Рунический короткий меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, rune_dust: 1, bone: 1 } },
+  { id: "recipe_runic_rapier", station: "forge", result: "runic_rapier", desc: "Руническая рапира", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, rune_dust: 2, silver: 1 } },
+  { id: "recipe_runic_hatchet", station: "forge", result: "runic_hatchet", desc: "Рунический топорик", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 4, rune_dust: 1 } },
+  { id: "recipe_runic_great_axe", station: "forge", result: "runic_great_axe", desc: "Руническая секира", floor: 3, dropChance: 0.05, materials: { grave_iron: 7, bone: 4 } },
+  { id: "recipe_runic_mace", station: "forge", result: "runic_mace", desc: "Руническая булава", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 2, rune_dust: 1 } },
+  { id: "recipe_runic_maul", station: "forge", result: "runic_maul", desc: "Рунический молот", floor: 3, dropChance: 0.05, materials: { grave_iron: 7, bone: 4, rune_dust: 2 } },
+  { id: "recipe_runic_spear", station: "forge", result: "runic_spear", desc: "Руническое копьё", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, silver: 1, bone: 4 } },
+  { id: "recipe_runic_great_sword", station: "forge", result: "runic_great_sword", desc: "Рунический двуручный меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 8, rune_dust: 3, silver: 2 } },
+
   // ── 1-Й ЭТАЖ (Тир 0 и Железо/Тир 1) ──
   { id: "recipe_gambeson", station: "forge", result: "gambeson", desc: "Стёганый гамбезон", floor: 1, dropChance: 0.05, materials: { cloth: 4, malachite: 2 } },
   { id: "recipe_iron_chainmail", station: "forge", result: "iron_chainmail", desc: "Железная кольчуга", floor: 1, dropChance: 0.05, materials: { iron_ore: 6, rust: 4 } },
@@ -4317,18 +4288,11 @@ const RECIPES = [
   { id: "recipe_hands_gloves", station: "forge", result: "hands_gloves", desc: "Рабочие перчатки", floor: 1, dropChance: 0.05, materials: { leather: 2, cloth: 2 } },
   { id: "recipe_waist_rope", station: "forge", result: "waist_rope", desc: "Верёвочный пояс", floor: 1, dropChance: 0.05, materials: { cloth: 3, wood: 2 } },
   { id: "recipe_student_robe", station: "forge", result: "student_robe", desc: "Ученическая роба", floor: 1, dropChance: 0.05, materials: { cloth: 5, malachite: 2 } },
-  { id: "recipe_iron_hatchet", station: "forge", result: "iron_hatchet", desc: "Железный топорик", floor: 1, dropChance: 0.05, materials: { iron_ore: 2, wood: 4, rust: 2 } },
-  { id: "recipe_iron_battleaxe", station: "forge", result: "iron_battleaxe", desc: "Железная секира", floor: 1, dropChance: 0.05, materials: { iron_ore: 4, wood: 4 } },
   { id: "recipe_ring_copper", station: "jewelry", result: "ring_copper", desc: "Медное кольцо", floor: 1, dropChance: 0.05, materials: { malachite: 1, rust: 1 } },
   { id: "recipe_neck_bone", station: "jewelry", result: "neck_bone", desc: "Грубый амулет", floor: 1, dropChance: 0.05, materials: { malachite: 2, rust: 2 } },
   { id: "recipe_trinket_coin", station: "jewelry", result: "trinket_coin", desc: "Счастливая монета", floor: 1, dropChance: 0.05, materials: { malachite: 2, rust: 2 } },
 
   // ── 2-Й ЭТАЖ (Железо высшего тира и Сталь/Тир 2) ──
-  { id: "recipe_short_sword", station: "forge", result: "short_sword", desc: "Короткий меч", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 2, leather: 1 } },
-  { id: "recipe_iron_longsword", station: "forge", result: "iron_longsword", desc: "Железный длинный меч", floor: 2, dropChance: 0.05, materials: { iron_ore: 6, wood: 2, leather: 1 } },
-  { id: "recipe_iron_mace", station: "forge", result: "iron_mace", desc: "Железная булава", floor: 2, dropChance: 0.05, materials: { iron_ore: 5, wood: 2 } },
-  { id: "recipe_iron_maul", station: "forge", result: "iron_maul", desc: "Железный молот", floor: 2, dropChance: 0.05, materials: { iron_ore: 8, wood: 4 } },
-  { id: "recipe_iron_spear", station: "forge", result: "iron_spear", desc: "Железное копьё", floor: 2, dropChance: 0.05, materials: { iron_ore: 4, wood: 5 } },
   { id: "recipe_parrying_dagger", station: "forge", result: "parrying_dagger", desc: "Кинжал парирования", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, leather: 2, steel: 1 } },
   
   { id: "recipe_leather", station: "forge", result: "leather_armor", desc: "Кожаный доспех", floor: 2, dropChance: 0.05, materials: { leather: 6, cloth: 3, iron_ore: 1 } },
@@ -4343,13 +4307,6 @@ const RECIPES = [
   { id: "recipe_dense_cloth", station: "forge", result: "dense_cloth", desc: "Плотная ткань", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 5, tin_ore: 2 } },
   { id: "recipe_steel_chainmail", station: "forge", result: "steel_chainmail", desc: "Стальная кольчуга", floor: 2, dropChance: 0.05, materials: { steel: 5, copper_ore: 4, leather: 2 } },
   { id: "recipe_steel_plate", station: "forge", result: "steel_plate", desc: "Стальные латы", floor: 2, dropChance: 0.05, materials: { steel: 8, copper_ore: 5, leather: 2 } },
-  { id: "recipe_steel_short_sword", station: "forge", result: "steel_short_sword", desc: "Стальной короткий меч", floor: 2, dropChance: 0.05, materials: { steel: 4, copper_ore: 2, leather: 1 } },
-  { id: "recipe_steel_great_sword", station: "forge", result: "steel_great_sword", desc: "Стальной двуручный меч", floor: 2, dropChance: 0.05, materials: { steel: 8, copper_ore: 4, leather: 2 } },
-  { id: "recipe_steel_rapier", station: "forge", result: "steel_rapier", desc: "Стальная рапира", floor: 2, dropChance: 0.05, materials: { steel: 5, cold_iron_ingot: 2, leather: 1 } },
-  { id: "recipe_steel_axe", station: "forge", result: "steel_axe", desc: "Стальной топор", floor: 2, dropChance: 0.05, materials: { steel: 5, copper_ore: 3 } },
-  { id: "recipe_steel_mace", station: "forge", result: "steel_mace", desc: "Стальная булава", floor: 2, dropChance: 0.05, materials: { steel: 6, copper_ore: 3 } },
-  { id: "recipe_steel_maul", station: "forge", result: "steel_maul", desc: "Стальной молот", floor: 2, dropChance: 0.05, materials: { steel: 10, wood: 2 } },
-  { id: "recipe_steel_spear", station: "forge", result: "steel_spear", desc: "Стальное копьё", floor: 2, dropChance: 0.05, materials: { steel: 6, wood: 5 } },
   { id: "recipe_tower_shield", station: "forge", result: "tower_shield", desc: "Укрепленный башенный щит", floor: 2, dropChance: 0.05, materials: { steel: 6, copper_ore: 4, leather: 2 } },
   { id: "recipe_hood_mage", station: "forge", result: "hood_mage", desc: "Капюшон чародея", floor: 2, dropChance: 0.05, materials: { steel: 2, cloth: 4, tin_ore: 2 } },
   { id: "recipe_scout_gloves", station: "forge", result: "scout_gloves", desc: "Разведческие перчатки", floor: 2, dropChance: 0.05, materials: { iron_ore: 2, leather: 5 } },
@@ -4361,9 +4318,6 @@ const RECIPES = [
   { id: "recipe_plate_gorget", station: "jewelry", result: "plate_gorget", desc: "Латный воротник", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 3, steel: 4, leather: 2 } },
 
   // ── 2-Й ЭТАЖ (Холодное железо/сет «Рудокоп») ──
-  { id: "recipe_cold_iron_sword", station: "forge", result: "cold_iron_sword", desc: "Меч из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 2, cold_iron_ingot: 2 } },
-  { id: "recipe_cold_iron_axe", station: "forge", result: "cold_iron_axe", desc: "Топор из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 4, tin_ore: 3, cold_iron_ingot: 2 } },
-  { id: "recipe_cold_iron_mace", station: "forge", result: "cold_iron_mace", desc: "Булава из холодного железа", floor: 2, dropChance: 0.05, materials: { copper_ore: 5, tin_ore: 2, cold_iron_ingot: 3 } },
   { id: "recipe_cold_iron_shield", station: "forge", result: "cold_iron_shield", desc: "Щит из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 3, tin_ore: 1 } },
   { id: "recipe_cold_iron_head", station: "forge", result: "cold_iron_head", desc: "Шлем из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 2, copper_ore: 2 } },
   { id: "recipe_cold_iron_chest", station: "forge", result: "cold_iron_chest", desc: "Нагрудник из холодного железа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 4, copper_ore: 3, tin_ore: 2 } },
@@ -4379,9 +4333,6 @@ const RECIPES = [
   { id: "recipe_set_miner_feet", station: "forge", result: "set_miner_feet", desc: "Сапоги рудокопа", floor: 2, dropChance: 0.05, materials: { cold_iron_ingot: 1, copper_ore: 2, tin_ore: 2 } },
 
   // ── 3-Й ЭТАЖ (Сталь/сет «Страж склепа») ──
-  { id: "recipe_steel_knight_sword", station: "forge", result: "steel_knight_sword", desc: "Рыцарский стальной меч", floor: 3, dropChance: 0.05, materials: { grave_iron: 4, bone: 2, silver: 1 } },
-  { id: "recipe_steel_zweihander", station: "forge", result: "steel_zweihander", desc: "Стальной двуручник", floor: 3, dropChance: 0.05, materials: { grave_iron: 6, bone: 3 } },
-  { id: "recipe_steel_sledge", station: "forge", result: "steel_sledge", desc: "Стальная кувалда", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 4 } },
   { id: "recipe_steel_bulwark", station: "forge", result: "steel_bulwark", desc: "Стальной оплот", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, silver: 1 } },
   { id: "recipe_steel_head", station: "forge", result: "steel_head", desc: "Стальной шлем", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2 } },
   { id: "recipe_steel_chest", station: "forge", result: "steel_chest", desc: "Стальная кираса", floor: 3, dropChance: 0.05, materials: { grave_iron: 5, bone: 3, cursed_cloth: 1 } },
@@ -4397,9 +4348,6 @@ const RECIPES = [
   { id: "recipe_set_guard_feet", station: "forge", result: "set_guard_feet", desc: "Сапоги стража склепа", floor: 3, dropChance: 0.05, materials: { grave_iron: 3, bone: 2, cursed_cloth: 1 } },
 
   // ── 4-Й ЭТАЖ (Мифрил) ──
-  { id: "recipe_mithril_sword", station: "forge", result: "mithril_sword", desc: "Мифриловый меч", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, blood_herb: 2, war_crystal: 1 } },
-  { id: "recipe_mithril_halberd", station: "forge", result: "mithril_halberd", desc: "Мифриловая алебарда", floor: 4, dropChance: 0.05, materials: { mithril_ore: 5, orc_tusk: 2, war_crystal: 1 } },
-  { id: "recipe_mithril_axe", station: "forge", result: "mithril_axe", desc: "Мифриловая секира", floor: 4, dropChance: 0.05, materials: { mithril_ore: 6, orc_tusk: 3, blood_herb: 2 } },
   { id: "recipe_mithril_shield", station: "forge", result: "mithril_shield", desc: "Мифриловый щит", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, war_crystal: 2 } },
   { id: "recipe_mithril_head", station: "forge", result: "mithril_head", desc: "Мифриловый шлем", floor: 4, dropChance: 0.05, materials: { mithril_ore: 4, orc_tusk: 2 } },
   { id: "recipe_mithril_chest", station: "forge", result: "mithril_chest", desc: "Мифриловая кольчуга", floor: 4, dropChance: 0.05, materials: { mithril_ore: 6, blood_herb: 3, war_crystal: 1 } },
@@ -4409,9 +4357,6 @@ const RECIPES = [
   { id: "recipe_mithril_trinket", station: "jewelry", result: "mithril_trinket", desc: "Мифриловый амулет", floor: 4, dropChance: 0.05, materials: { mithril_ore: 2, blood_herb: 2, war_crystal: 2 } },
 
   // ── 5-Й ЭТАЖ (Адский камень/сет «Адский клинок») ──
-  { id: "recipe_hell_great_sword", station: "forge", result: "hell_great_sword", desc: "Двуручник из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, demon_horn: 2, void_crystal: 1 } },
-  { id: "recipe_hell_halberd", station: "forge", result: "hell_halberd", desc: "Алебарда из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 6, demon_horn: 3, brimstone: 2 } },
-  { id: "recipe_hell_maul", station: "forge", result: "hell_maul", desc: "Молот из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 7, brimstone: 3, demon_horn: 2 } },
   { id: "recipe_hell_shield", station: "forge", result: "hell_shield", desc: "Щит из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 5, brimstone: 2, void_crystal: 1 } },
   { id: "recipe_hell_ring", station: "jewelry", result: "hell_ring", desc: "Кольцо из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 3, demon_horn: 1, void_crystal: 2 } },
   { id: "recipe_hell_trinket", station: "jewelry", result: "hell_trinket", desc: "Амулет из адского камня", floor: 5, dropChance: 0.05, materials: { hellstone: 2, brimstone: 2, void_crystal: 2 } },

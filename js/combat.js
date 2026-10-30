@@ -303,6 +303,8 @@ function playHitSound(style, { isCrit = false } = {}) {
 
 function exchange(state, battle, action, weaponInst = null) {
   if (!battle || battle.over) return { error: "Бой уже закончился." };
+  const wasStaggered = battle.staggered;
+  battle.staggered = false;
 
   const st = stats();
   const e = battle.enemy;
@@ -450,7 +452,7 @@ function exchange(state, battle, action, weaponInst = null) {
     const zoneName = zone.name;
     const skillEffect = skillInfo ? skillInfo.talent.skill.effect : null;
     const skillUnblockable = skillEffect === "fury" || skillEffect === "aim"; // «в 2 зоны»: блок не помогает
-    const blocked = !tech && !skillUnblockable && !battle.staggered && enemyAction.blocks.includes(action.zone);
+    const blocked = !tech && !skillUnblockable && !wasStaggered && enemyAction.blocks.includes(action.zone);
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
@@ -541,8 +543,6 @@ function exchange(state, battle, action, weaponInst = null) {
     battle.lastPlayerAttack = action.zone;
     } // конец ветки удара (обычная атака / приём / навык-удар)
   }
-
-  battle.staggered = false;
 
   // ── Действия компаньона (раз в ход) ──────────────────────────────────────
   const companion = activeCompanion();

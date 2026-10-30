@@ -141,6 +141,12 @@ function init() {
     }
   }
 
+  // Восстановление вступительной сцены Тимми после перезагрузки: если
+  // игрок обновил страницу посреди интро — открываем её снова.
+  if (state.created && state.introPending && !view.npcInteraction) {
+    view.npcInteraction = { npcId: "timmy", mode: "dialog", node: "intro_start" };
+  }
+
   render();
 }
 
