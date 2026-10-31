@@ -32,7 +32,7 @@ const EVENT_OPTION_KEYS = {
 function handleEventHotkey(event) {
   if (typeof state === "undefined" || !state) return false;
   const hasActiveEvent = state.activeEvent || state.activeFloorEvent || state.activeSceneId
-    || (typeof view !== "undefined" && view && view.exploreResult);
+    || (typeof view !== "undefined" && view && (view.exploreResult || view.eventResult));
   if (!hasActiveEvent) return false;
   if (event.target?.closest?.("input, textarea, select")) return false;
 

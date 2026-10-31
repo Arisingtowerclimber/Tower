@@ -1333,6 +1333,11 @@ function renderBattle() {
       || `<div class="log-line info">Бой начинается — напечатайте слово для удара.</div>`;
     logEl.scrollTop = logEl.scrollHeight;
   }
+  const sidebarLogEl = document.querySelector('[data-role="battle-log-sidebar-body"]');
+  if (sidebarLogEl) {
+    sidebarLogEl.innerHTML = battleLogLinesHtml(battle.log) || `<div class="log-line info">Бой начинается — напечатайте слово для удара.</div>`;
+    sidebarLogEl.scrollTop = sidebarLogEl.scrollHeight;
+  }
   view.prevLog = battle.log.length;
 
   document.querySelector(".dmg-overlay")?.remove();
@@ -1415,7 +1420,10 @@ function render() {
 
   // События и сцены — единая нижняя панель (Bottom Sheet) с журналом.
   // Рисуются в самом конце, поверх интерфейса, но без затемнения экрана.
-  if (!state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += eventSheetHtml();
+  const hasEventSheet = Boolean(state.activeEvent || state.activeFloorEvent || view.eventResult);
+  if (hasEventSheet && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") {
+    html += state.activeFloorEvent ? renderFloorEventModal() : renderEventModal();
+  }
   if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
 
   // Фон экрана переживает перерисовку: если URL и классы не изменились,
@@ -1447,6 +1455,11 @@ function render() {
   }
 
   updateLocationAudio(view.screen, view.currentFloor, view.battle);
+
+  // Боковые журналы живут поверх экрана и пересоздаются в самом конце,
+  // после подстановки основного HTML: оба журнала справа, на всех экранах.
+  screen.insertAdjacentHTML("beforeend", renderBattleLogSidebar());
+  screen.insertAdjacentHTML("beforeend", renderEventLogSidebar());
 }
 
 // Музыка/амбиент по текущему экрану. Вызывается из render(); смена трека
@@ -2007,7 +2020,7 @@ function onClick(event) {
       if (!event || event.id !== el.dataset.event) break;
       const st = stats();
       const result = resolveEventAction(el.dataset.option, event, state, st);
-      if (!result.ok) { toast(result.text, "warn"); render(); break; }
+      if (!result.ok) { pushEventLog("Исход события", result.text); render(); break; }
       const floorId = Number(event.floorId) || Number(event.floor) || 1;
       const gained = applyEventEffects(result.effects, state, st, floorId);
       state.activeEvent = null;
@@ -2717,12 +2730,13 @@ function handleKey(event) {
     }
   }
 
-  // ── Экран этажа: стрелки вверх/вниз переключают выбранную зону ──────────
-  if (view.screen === "floor" && !anyModalOpen()
-      && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+  // ── Экран этажа: стрелки/W/S переключают выбранную зону ─────────────────
+  const zonePrev = event.key === "ArrowUp" || event.code === "KeyW";
+  const zoneNext = event.key === "ArrowDown" || event.code === "KeyS";
+  if (view.screen === "floor" && !anyModalOpen() && (zonePrev || zoneNext)) {
     event.preventDefault();
     const cur = Math.max(1, Math.min(5, Number(view.selectedZone) || 1));
-    const next = event.key === "ArrowDown" ? Math.min(5, cur + 1) : Math.max(1, cur - 1);
+    const next = zoneNext ? Math.min(5, cur + 1) : Math.max(1, cur - 1);
     if (next !== cur) { view.selectedZone = next; render(); }
     return;
   }
@@ -2798,8 +2812,27 @@ function handleKey(event) {
     if (view.talentsModal) { closeModal(() => { view.talentsModal = false; }); return; }
     if (view.questsOpen) { closeModal(() => { view.questsOpen = false; }); return; }
     if (view.bestiaryOpen) { closeModal(() => { view.bestiaryOpen = false; }); return; }
+    if (view.abilitiesOpen) { closeModal(() => { view.abilitiesOpen = false; }); return; }
+    if (view.companionInfo) { closeModal(() => { view.companionInfo = null; }); return; }
+    if (view.purchaseConfirm) { closeModal(() => { view.purchaseConfirm = null; }); return; }
+    if (view.chestResults) { closeModal(() => { view.chestResults = null; }); return; }
+    if (view.npcInteraction) {
+      closeModal(() => {
+        if (typeof closeNpcInteraction === "function") closeNpcInteraction();
+        else view.npcInteraction = null;
+      });
+      return;
+    }
     if (view.weaponSlotPicker !== null && view.weaponSlotPicker !== undefined) { closeModal(() => { view.weaponSlotPicker = null; }); return; }
     if (view.dollSlot || view.invItemUid) { closeModal(() => { view.dollSlot = null; view.invItemUid = null; }); return; }
+    // Ничего не открыто и игрок вне боя — Esc открывает настройки.
+    if (!anyModalOpen() && view.screen !== "battle") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      view.settingsOpen = true;
+      render();
+      return;
+    }
   }
 
   // ── Уровень 2: глобальная навигация вне боя ───────────────────────────

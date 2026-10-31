@@ -502,8 +502,8 @@ function resolveSceneAction(type) {
   // inBattle — результат сразу уступает место бою, поэтому только история.
   const logOutcome = (text, tone = "ok", inBattle = false) => {
     const title = scene.title || "Исход события";
-    pushEventLog(title, text);
-    if (!inBattle) pushEventResult(scene.icon, title, text, tone);
+    if (inBattle) pushEventLog(title, text);
+    else pushEventResult(scene.icon, title, text, tone);
   };
 
   if (type === "stealth") {

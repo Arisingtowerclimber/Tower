@@ -77,6 +77,34 @@ function lastBattleLogHtml() {
     </div>`;
 }
 
+// Общий рендер строк боевого лога: нижняя панель и левый журнал используют
+// один и тот же набор классов, чтобы цвета ударов совпадали.
+function battleLogLinesHtml(log, limit = 40) {
+  const entries = Array.isArray(log) ? log.slice(-limit) : [];
+  return entries.map((entry) =>
+    `<div class="log-line ${entry.cls || "info"}">${esc(entry.text || "")}</div>`
+  ).join("");
+}
+
+// Левый выезжающий журнал боя — зеркало правого журнала событий.
+// В бою показывает текущий лог, вне боя — последний сохранённый.
+function battleLogSidebarRowsHtml() {
+  const current = view.battle && Array.isArray(view.battle.log) ? view.battle.log : [];
+  const log = current.length ? current : (Array.isArray(view.lastBattleLog) ? view.lastBattleLog : []);
+  return battleLogLinesHtml(log) || `<div class="journal-sidebar-empty">Лог боя пока пуст.</div>`;
+}
+
+function renderBattleLogSidebar() {
+  return `
+    <div class="battle-log-sidebar" role="complementary" aria-label="Логи боя">
+      <div class="journal-sidebar-spine log-vertical-title" aria-hidden="true">${journalSpineHtml("ЛОГИ")}</div>
+      <div class="journal-sidebar-panel">
+        <div class="journal-sidebar-title log-header">ЛОГИ БОЯ</div>
+        <div class="journal-sidebar-scroll" data-role="battle-log-sidebar-body">${battleLogSidebarRowsHtml()}</div>
+      </div>
+    </div>`;
+}
+
 // Слово печати над портретом: набранные буквы зелёные, оставшиеся — белые.
 // Полоска таймера и подпись окрашены в цвет фазы (атака — зелёный, защита — красный).
 // Подсказка типа атаки: цвет и текст зависят от стиля текущего оружия.
@@ -878,7 +906,6 @@ function battleHtml(st) {
 
 
       <!-- НИЗ: компактный лог боя (3–4 строки) -->
-      ${battleLogToggleHtml()}
       <div class="battle-log${view.logExpanded === false ? " collapsed" : ""}" id="battle-log" data-role="battle-log" style="height: 92px; min-height: 92px !important; max-height: 92px !important; flex: 0 0 auto !important; margin-bottom: 0 !important; overflow-y: auto;">
         ${battleReaction ? `<div class="companion-reaction" style="margin-bottom: 8px;">${esc(battleReaction)}</div>` : ""}
         ${log || `<div class="log-line info">Бой начинается — напечатайте слово для удара.</div>`}

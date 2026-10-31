@@ -671,6 +671,12 @@ function pushEventResult(icon, title, text, tone = "ok") {
   view.eventJournal = Array.isArray(view.eventJournal) ? view.eventJournal : [];
   view.eventJournal.push(entry);
   if (view.eventJournal.length > 40) view.eventJournal.splice(0, view.eventJournal.length - 40);
+  // Результат события дублируем в историю журнала: нижняя панель и левый
+  // журнал показывают один и тот же исход, а не только всплывающий тост.
+  view.eventLog = Array.isArray(view.eventLog) ? view.eventLog : [];
+  view.eventLog.push({ title: "Исход события", text: entry.text });
+  if (view.eventLog.length > 20) view.eventLog.splice(0, view.eventLog.length - 20);
+  view.eventLogIndex = -1;
   view.eventResult = entry;
   view.eventSelectedIndex = 0;
   return entry;
@@ -739,19 +745,19 @@ function renderEventLogCarousel() {
   const inHistory = historyIndex >= 0 && log.length > 0;
   const index = inHistory ? Math.min(historyIndex, log.length - 1) : -1;
 
-  const head = () => `
+  const head = (withNav = true) => withNav ? `
     <div class="event-log-head">
       <button class="event-log-nav" data-act="log-prev" type="button" aria-label="Предыдущее событие">←</button>
       <span class="event-log-head-gap" aria-hidden="true"></span>
       <button class="event-log-nav" data-act="log-next" type="button" aria-label="Следующее событие">→</button>
     </div>
-  `;
+  ` : "";
 
   // Заголовок выносим в отдельную рамку над панелью, тело — в прокручиваемую область.
   // Тело панели всегда состоит из двух зон: текст (скроллится) и кнопки (прижаты к низу).
-  const layout = (title, body = "", actions = "") => ({
+  const layout = (title, body = "", actions = "", withNav = true) => ({
     title: title || "Журнал событий",
-    html: `<div class="event-scroll">${head()}${body}</div>` +
+    html: `<div class="event-scroll">${head(withNav)}${body}</div>` +
       `<div class="event-footer">${actions}</div>`,
   });
 
@@ -824,18 +830,52 @@ function renderEventLogCarousel() {
   if (result) {
     return layout(result.title,
       `<p class="event-result-text ${result.tone === "warn" ? "event-fail" : "event-success"}">${esc(result.text)}</p>`,
-      `<div class="event-actions"><button class="btn primary" data-act="event-continue" type="button">Продолжить</button></div>`);
+      `<div class="event-actions"><button class="btn primary" data-act="event-continue" type="button">Продолжить</button></div>`,
+      false);
   }
 
   return layout("Журнал событий");
 }
 
+// Вертикальная подпись на корешке бокового журнала: буквы столбиком.
+function journalSpineHtml(label) {
+  return String(label || "ЖУРНАЛ").trim().split(/\s+/).map((word) =>
+    `<span class="journal-spine-word">${Array.from(word).map((ch) => `<span>${esc(ch)}</span>`).join("")}</span>`
+  ).join(`<span class="journal-spine-gap" aria-hidden="true"></span>`);
+}
+
+// История для правого выезжающего журнала. Сначала результаты событий,
+// затем — история исследований, если журнал событий ещё пуст.
+function eventLogSidebarRowsHtml() {
+  const journal = Array.isArray(view.eventJournal) ? view.eventJournal : [];
+  const log = Array.isArray(view.eventLog) ? view.eventLog : [];
+  const source = journal.length ? journal : log;
+  if (!source.length) return `<div class="journal-sidebar-empty">Пока пусто</div>`;
+  return source.slice(-40).reverse().map((entry) => `
+    <div class="journal-sidebar-entry ${entry.tone === "warn" ? "warn" : "ok"}">
+      <div class="journal-sidebar-entry-title">${entry.icon ? `<span class="journal-sidebar-entry-icon">${esc(entry.icon)}</span>` : ""}${esc(entry.title || "Событие")}</div>
+      <div class="journal-sidebar-entry-text">${esc(entry.text || "")}</div>
+    </div>`).join("");
+}
+
+// Правый журнал событий: в свёрнутом виде — корешок 44px,
+// при наведении выезжает и показывает историю.
+function renderEventLogSidebar() {
+  return `
+    <div class="event-log-sidebar" role="complementary" aria-label="Журнал событий">
+      <div class="journal-sidebar-spine" aria-hidden="true">${journalSpineHtml("ЖУРНАЛ")}</div>
+      <div class="journal-sidebar-panel">
+        <div class="journal-sidebar-title">Журнал событий</div>
+        <div class="journal-sidebar-scroll" data-role="event-log-sidebar-body">${eventLogSidebarRowsHtml()}</div>
+      </div>
+    </div>`;
+}
+
 function eventSheetHtml() {
-  const onExploreScreen = view.screen === "floor" || view.screen === "tower";
   const hasContent = Boolean(state.activeEvent || state.activeFloorEvent || view.eventResult);
-  // На экранах исследования панель присутствует всегда (пустая или с историей),
-  // чтобы её появление не сдвигало интерфейс.
-  if (!hasContent && !onExploreScreen) return "";
+  // Нижняя панель существует только для активного события/сцены или его итога.
+  // Без события снизу ничего не рисуется — журнал событий живёт справа.
+  if (!hasContent) return "";
   const carousel = renderEventLogCarousel();
   return `
     <div class="event-bottom-sheet${view.eventResult && Number(view.eventLogIndex) < 0 ? " event-result-sheet" : ""}">
@@ -844,6 +884,11 @@ function eventSheetHtml() {
     </div>
   `;
 }
+
+// Псевдонимы для единой нижней панели событий: процедурные события и
+// события этажа используют один и тот же Bottom Sheet без затемнения экрана.
+function renderEventModal() { return eventSheetHtml(); }
+function renderFloorEventModal() { return eventSheetHtml(); }
 
 // Диалог встречи с охотником Гильдии: помочь / убить / оставить в покое.
 function renderHunterEncounterModal(fe) {
