@@ -16,9 +16,47 @@ const WEAPON_SLOT_KEYS = {
   Numpad1: 0, Numpad2: 1, Numpad3: 2,
 };
 
-document.addEventListener("keydown", (event) => {
+// Shift + 1–4: наложение масел (доступно после открытия аффиксов).
+const OIL_SLOT_KEYS = {
+  Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3,
+  Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3,
+};
+const OIL_ITEM_IDS = ["oil_fire", "oil_ice", "oil_poison", "oil_blood"];
+
+function applyBattleOil(index) {
+  const oilId = OIL_ITEM_IDS[index];
+  if (!oilId) return;
+  const byId = document.querySelector(`[data-act="apply-oil"][data-id="${oilId}"]`);
+  if (byId) { byId.click(); return; }
+  const buttons = document.querySelectorAll('[data-act="apply-oil"]');
+  if (buttons[index]) { buttons[index].click(); return; }
+  if (typeof toast === "function") toast("Масло недоступно.", "warn");
+}
+
+// Единственный глобальный обработчик боевых клавиш (буквы KeyA–KeyZ,
+// цифры слотов, Escape). Защита от повторной подписки при двойной загрузке.
+function handleBattleKeydown(event) {
   if (event.target?.closest?.("input, textarea, select")) return;
   if (typeof view === "undefined") return;
+
+  if (view.tutorialQte) {
+    if (event.key && event.key.length === 1 && event.key !== " ") {
+      const ch = event.key.toUpperCase();
+      const nextChar = view.tutorialQte.word[view.tutorialQte.typed.length];
+      if (ch === nextChar) {
+        view.tutorialQte.typed += ch;
+        if (view.tutorialQte.typed === view.tutorialQte.word) {
+          // Успех!
+          view.tutorialQte = null;
+          completeTutorial();
+          render();
+          return;
+        }
+      }
+      render();
+      return;
+    }
+  }
 
   const inBattle = view.screen === "battle" && view.battle && !view.battle.over && !view.summary;
 
@@ -27,7 +65,7 @@ document.addEventListener("keydown", (event) => {
     if (event.code === "Enter" || event.code === "Space" || event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       view.preBattle = false;
-      startCombo("attack");
+      startDuel();
       render();
       return;
     }
@@ -42,24 +80,97 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  // Escape в любой момент боя: прервать QTE, удар в спину, −5 энергии, конец боя.
-  // Открытые модалки закрывает handleKey(), бой при этом не прерываем.
-  if (inBattle && (event.code === "Escape" || event.key === "Escape")) {
-    if (view.settingsOpen || view.questsOpen || view.titleModal || view.achievementsOpen || view.talentsModal) return;
+  // Escape в бою — тактическая пауза: закрывает/открывает окно расходников.
+  // Остальные модалки закрывает handleKey(), бой при этом не прерываем.
+  const arenaBattle = Boolean(view.arenaState && view.arenaState.active && view.screen === "battle");
+  if ((inBattle || arenaBattle) && (event.code === "Escape" || event.key === "Escape")) {
+    if (view.settingsOpen || view.questsOpen || view.titleModal || view.achievementsOpen || view.talentsModal || view.bestiaryOpen) return;
     event.preventDefault();
-    view.comboState = null;
-    view.comboPaused = null;
-    doExchange({ type: "flee" });
+    // Esc — тактическая пауза: закрывает открытое окно расходников,
+    // а если оно закрыто — открывает его.
+    if (view.battleModal) {
+      view.battleModal = null;
+      resumeCombo();
+      Sfx.play("chest_close");
+      render();
+      return;
+    }
+    view.battleModal = "potions";
+    pauseCombo();
     render();
     return;
   }
 
-  // 1/2/3: смена оружия только в фазе атаки.
-  if (inBattle && view.comboState && view.comboState.mode === "attack") {
+  // Shift + 1–4: наложение масел (после открытия аффиксов).
+  if (inBattle && event.shiftKey && typeof state !== "undefined" && state.affixesUnlocked === true) {
+    const oilIndex = OIL_SLOT_KEYS[event.code];
+    if (oilIndex !== undefined) {
+      event.preventDefault();
+      applyBattleOil(oilIndex);
+      return;
+    }
+  }
+
+  // 1/2/3 без Shift: смена оружия в Real-Time дуэли.
+  if (inBattle && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
     const slot = WEAPON_SLOT_KEYS[event.code];
     if (slot !== undefined) {
       event.preventDefault();
       switchBattleWeapon(slot);
+      return;
+    }
+  }
+
+  // Real-Time дуэль: буква уходит в слот атаки или защиты по «умному вводу».
+  if (inBattle && view.duelActive && view.battle && !view.preBattle && !view.summary) {
+    let letter = null;
+    if (event.key && event.key.length === 1 && event.key !== " ") {
+      letter = event.key.toUpperCase();
+    } else if (event.code && /^Key[A-Z]$/.test(event.code)) {
+      letter = event.code.slice(3);
+    }
+    if (letter) {
+      event.preventDefault();
+      if (event.repeat) return;
+      duelTypeLetter(letter);
+      return;
+    }
+  }
+
+  // Старая «Боевая печать» оставлена только для совместимости навыков.
+  if (inBattle && view.typingState) {
+    let letter = null;
+    if (event.code && /^Key[A-Z]$/.test(event.code)) letter = event.code.slice(3);
+    else if (event.key && /^[a-zA-Z]$/.test(event.key)) letter = event.key.toUpperCase();
+    if (letter) {
+      event.preventDefault();
+      if (event.repeat) return;
+      const typing = view.typingState;
+      // После опечатки ввод игнорируется до завершения провала.
+      if (typing.failed) return;
+      const expected = typing.word[typing.typed.length];
+      if (letter === expected) {
+        typing.typed += letter;
+        if (typing.typed.length >= typing.word.length) resolveTyping(true);
+        else updateTypingDisplay();
+      } else {
+        // Буква не подошла к слову атаки — проверяем, не начало ли это
+        // слова приёма из блока «ДОСТУПНЫЕ ПРИЁМЫ».
+        if (typing.mode === "attack") {
+          const candidate = String(typing.typed || "") + letter;
+          const entry = matchSkillTyping(candidate);
+          if (entry && startSkillTypingFromAttack(entry, candidate)) {
+            render();
+            return;
+          }
+        }
+        // Неверная буква — показываем её красной и проваливаем слово.
+        typing.failed = true;
+        typing.wrongIndex = typing.typed.length;
+        typing.typed += letter;
+        typing.failDelay = 0.15;
+        updateTypingDisplay();
+      }
       return;
     }
   }
@@ -106,7 +217,12 @@ document.addEventListener("keydown", (event) => {
 
   if (combo.current.length >= combo.target.length) { resolveCombo(true); return; }
   updateComboArrows();
-});
+}
+
+if (!window.__towerBattleKeydownBound) {
+  window.__towerBattleKeydownBound = true;
+  document.addEventListener("keydown", handleBattleKeydown);
+}
 
 // ── УПРАВЛЕНИЕ МУЗЫКОЙ И АМБИЕНТОМ ─────────────────────────
 const MUSIC_VOLUME_KEY = "tower_music_volume";

@@ -34,6 +34,7 @@ function defaultState() {
   return {
     version: SAVE_VERSION, created: false, name: "Странник", portrait: "m1", gender: "male", archetype: null,
     introPending: false,
+    tutorialProgress: 0, // 0 - не начат, 1 - в процессе, 2 - завершен
     level: 1, xp: 0, points: 0, attrs: { str: 1, agi: 1, end: 1, int: 1 },
     gold: 60, hp: BASE_STATS.hp + 2, mana: BASE_STATS.mana + 2, energy: EXPLORATION_MAX,
     phase: 0, day: 1, companion: null, companionDay: 0,
@@ -41,6 +42,9 @@ function defaultState() {
     hireDiscounts: {},
     companionBuffs: [],
     potions: { hp_small: 2, hp_big: 0, mana_small: 1 },
+    // Сундуки (Гача): счётчики типов + pity-счётчик «пустых» открытий.
+    chests: { common: 0, elite: 0, abyss: 0 },
+    chestPity: 0,
     equipped: { 
       head: uidOf("worn_hood"), neck: null, shoulder: null, back: null, 
       chest: uidOf("rags"), wrist: null, hands: null, waist: null, 
@@ -296,6 +300,7 @@ function dialogRequiresMet(requires) {
   if (requires.flag && !flags[requires.flag]) return false;
   if (requires.notFlag && flags[requires.notFlag]) return false;
   if (requires.anyBossKilled && !Object.keys(state.cleared || {}).length) return false;
+  if (Number.isFinite(requires.tutorialProgress) && (Number(state.tutorialProgress) || 0) !== requires.tutorialProgress) return false;
   return true;
 }
 
@@ -379,7 +384,7 @@ function loadState() {
     const potions = { ...defaults.potions, ...(saved.potions || {}) };
     if (potions.energy_small) { potions.mana_small = (potions.mana_small || 0) + potions.energy_small; delete potions.energy_small; }
 
-    state = { ...defaults, ...saved, version: SAVE_VERSION, attrs: { ...defaults.attrs, ...(saved.attrs || {}) }, potions, equipped, cleared: saved.cleared || {}, floorProgress: saved.floorProgress || {}, resources: saved.resources || {} };
+    state = { ...defaults, ...saved, version: SAVE_VERSION, attrs: { ...defaults.attrs, ...(saved.attrs || {}) }, potions, equipped, cleared: saved.cleared || {}, floorProgress: saved.floorProgress || {}, resources: saved.resources || {}, chests: { common: 0, elite: 0, abyss: 0, ...(saved.chests || {}) }, chestPity: Number.isFinite(saved.chestPity) ? saved.chestPity : 0, };
     
     const sceneFloor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
     const sceneOk = sceneFloor && (FLOOR_SCENES[sceneFloor.id] || []).some((s) => s.id === state.activeSceneId);
@@ -456,6 +461,7 @@ function loadState() {
     for (const id of Object.keys(defaults.abilities)) state.abilities[id] = state.abilities[id] === true;
 
     state.npcDialogueIndex = state.npcDialogueIndex && typeof state.npcDialogueIndex === "object" ? state.npcDialogueIndex : {};
+    state.tutorialProgress = Number.isFinite(Number(state.tutorialProgress)) ? Math.max(0, Math.min(2, Math.floor(Number(state.tutorialProgress)))) : 0;
 
     normalizeFactionFields();
     state.dialogTopicsSeen = state.dialogTopicsSeen && typeof state.dialogTopicsSeen === "object" && !Array.isArray(state.dialogTopicsSeen) ? state.dialogTopicsSeen : {};
@@ -978,6 +984,19 @@ function checkAchievements(target = state) {
   return newly;
 }
 
+function completeTutorial() {
+  state.tutorialProgress = 2;
+  state.tutorialDone = true;
+  state.dialogFlags["tutorial_done"] = true;
+  state.gold += 50;
+  state.potions["hp_small"] = (state.potions["hp_small"] || 0) + 2;
+
+  checkAchievements(state); // Выдаст ачивку "Курс молодого бойца"
+  invalidateStats();
+  saveState();
+  if (typeof toast === "function") toast("Обучение пройдено! Иван доволен: +50 💰, +2 🧪", "ok");
+}
+
 function activeArchetype() {
   return state?.archetype ? ARCHETYPE_MAP[state.archetype] || null : null;
 }
@@ -1372,7 +1391,50 @@ function claimNpcQuest(id) {
 
   saveState();
   const levelText = up.levels.length ? ` Новый уровень: ${up.levels.join(", ")}!` : "";
-  return { ok: true, text: `Задание сдано: +${q.gold} 💰, +${q.xp} ✦${q.potions > 0 ? `, +${q.potions} 🧪` : ""}.${levelText}${repNote}`, factionLevelUp };
+  // Сундуки за тип задания: охота с доски и сбор ресурсов — Обычный,
+  // недельный заказ Ивана — Элитный.
+  const chestType = q.type === "kill" ? "elite" : (q.type === "hunt" || q.type === "resource") ? "common" : null;
+  const chestGranted = chestType ? grantChest(chestType, 1) : 0;
+  const chestText = chestGranted ? `, +${chestGranted} ${CHEST_TYPES[chestType].name}` : "";
+  return { ok: true, text: `Задание сдано: +${q.gold} 💰, +${q.xp} ✦${q.potions > 0 ? `, +${q.potions} 🧪` : ""}${chestText}.${levelText}${repNote}`, factionLevelUp,
+    goldTotal: q.gold, xpTotal: q.xp, potionsTotal: q.potions || 0, chestsTotal: chestGranted };
+}
+
+// ── Массовое принятие/сдача на Доске объявлений ─────────────────────────────
+function acceptAllQuests() {
+  ensureWeekQuests();
+  let taken = 0;
+  for (const q of state.weekQuests.list) {
+    if (q.status === "offered") { q.status = "active"; taken += 1; }
+  }
+  if (taken) saveState();
+  return { ok: taken > 0, text: taken ? `Принято заданий: ${taken}.` : "Нет заданий, доступных к принятию." };
+}
+
+function claimAllQuests() {
+  ensureWeekQuests();
+  const ready = state.weekQuests.list.filter((q) => q.status === "done");
+  if (!ready.length) return { ok: false, text: "Нет готовых заданий к сдаче." };
+  let gold = 0, xp = 0, potions = 0, chests = 0, claimed = 0, failed = 0;
+  for (const q of ready) {
+    const res = claimNpcQuest(q.id);
+    if (res.ok) {
+      claimed += 1;
+      gold += res.goldTotal || 0;
+      xp += res.xpTotal || 0;
+      potions += res.potionsTotal || 0;
+      chests += res.chestsTotal || 0;
+    } else {
+      failed += 1;
+    }
+  }
+  const parts = [`Сдано заданий: ${claimed}`];
+  if (gold) parts.push(`+${gold} 💰`);
+  if (xp) parts.push(`+${xp} ✦`);
+  if (potions) parts.push(`+${potions} 🧪`);
+  if (chests) parts.push(`+${chests} 📦`);
+  if (failed) parts.push(`${failed} ещё не готовы`);
+  return { ok: claimed > 0, text: `${parts.join(" · ")}.` };
 }
 
 function weekQuestResourceGain(resId, amount) {
@@ -1549,6 +1611,9 @@ function claimStoryQuest(qId) {
     state.knownRecipes.push(reward.recipe);
     texts.push(`📜 Рецепт: ${RECIPE_MAP[reward.recipe].desc}`);
   }
+  // Сюжетные задания всегда дают Элитный сундук.
+  const storyChest = grantChest("elite", 1);
+  if (storyChest) texts.push(`+${storyChest} ${CHEST_TYPES.elite.name}`);
 
   // Отношение с NPC, выдавшим сюжетное задание.
   const faction = factionForNpc(def.npc);
@@ -1696,7 +1761,8 @@ function exploreFloor(floorId) {
   }
 
   if (state.floorProgress[floor.id] >= 100 && progressBefore < 100) {
-    text += " Этаж исследован полностью — босс пробудился!";
+    const bonus = grantChest("common", 1 + (Math.random() < 0.5 ? 1 : 0));
+    text += ` Этаж исследован полностью — босс пробудился! Гильдия собрала трофеи: сундуки ×${bonus} 📦.`;
   }
 
   saveState();
@@ -1707,6 +1773,8 @@ function getTraderInventory() {
   const stock = [
     { kind: "potion", id: "hp_small", name: ITEMS.hp_small.name, icon: itemEmoji(ITEMS.hp_small), price: Math.round(ITEMS.hp_small.price * TRADER_PRICE_MULT) },
     { kind: "potion", id: "mana_small", name: ITEMS.mana_small.name, icon: itemEmoji(ITEMS.mana_small), price: Math.round(ITEMS.mana_small.price * TRADER_PRICE_MULT) },
+    // Гача: запечатанный ларец Артура — обычный сундук за фиксированную цену.
+    { kind: "chest", id: "common", name: CHEST_TRADER.name, icon: CHEST_TRADER.icon, price: CHEST_TRADER.price },
   ];
   
   // Берем только оружие и броню, доступные на текущем максимальном этаже
@@ -1930,9 +1998,111 @@ function rollRecipeDrop(floorId, isBoss = false, chance = 0.05) {
   return recipe;
 }
 
+// ── Сундуки (Гача) ─────────────────────────────────────────────────────────
+// state.chests — счётчики типов; state.chestPity — сколько сундуков подряд
+// открыто без редкого+ снаряжения. От 10 «пустых» подряд следующий открытый
+// гарантирует редкий/эпический предмет.
+function normalizeChests() {
+  state.chests = { common: 0, elite: 0, abyss: 0, ...(state.chests || {}) };
+  if (!Number.isFinite(state.chestPity)) state.chestPity = 0;
+}
+
+function grantChest(type, amount = 1) {
+  normalizeChests();
+  if (!CHEST_TYPES[type] || amount <= 0) return 0;
+  state.chests[type] += amount;
+  return amount;
+}
+
+function chestLootEntry(type, amount = 1) {
+  const def = CHEST_TYPES[type] || CHEST_TYPES.common;
+  return { id: `chest_${type}`, name: def.name, icon: def.icon, amount, kind: "chest" };
+}
+
+// Дроп сундуков за победы: обычные мобы 5% common, элитные 20% elite,
+// босс — 100% (elite; на 5-м этаже — abyss).
+function rollChestDrop(enemyDef) {
+  normalizeChests();
+  if (enemyDef?.boss) {
+    const type = (enemyDef.floorId || 1) >= 5 ? "abyss" : "elite";
+    return chestLootEntry(type, grantChest(type, 1));
+  }
+  if (enemyDef?.rarity === "elite" && Math.random() < 0.20) {
+    return chestLootEntry("elite", grantChest("elite", 1));
+  }
+  if (Math.random() < 0.05) {
+    return chestLootEntry("common", grantChest("common", 1));
+  }
+  return null;
+}
+
+// Пул снаряжения: предметы с shopTier не выше state.maxFloor.
+function chestGearPool() {
+  return Object.values(ITEMS).filter((i) => i.slot && i.slot !== "potion" && Number.isFinite(i.price) && shopFloorFor(i) <= (state.maxFloor || 1));
+}
+
+// Диапазон редкости сундука: от common до maxRarity включительно.
+function chestRarityPool(type) {
+  const max = Math.max(1, RARITY_ORDER.indexOf(type.maxRarity) + 1);
+  return RARITY_ORDER.slice(0, Math.max(1, Math.min(max, RARITY_ORDER.length)));
+}
+
+// Прокрутка одного сундука: массив лутовых карточек.
+function rollChestContents(type, forceRare = false) {
+  normalizeChests();
+  const def = CHEST_TYPES[type] || CHEST_TYPES.common;
+  const guaranteed = forceRare ? (Math.random() < 0.5 ? "rare" : "epic") : null;
+  const entries = [];
+
+  for (let roll = 0; roll < def.rolls; roll += 1) {
+    const gearPool = chestGearPool();
+    if (!gearPool.length) break;
+    const item = gearPool[Math.floor(Math.random() * gearPool.length)];
+    let rarity;
+    if (guaranteed && roll === 0) {
+      rarity = guaranteed;
+    } else {
+      rarity = rollRarity(def.rarityBonus);
+      if (def.maxRarity === "legendary" && Math.random() < (def.legendaryChance || 0)) {
+        rarity = "legendary";
+      } else if (RARITY_ORDER.indexOf(rarity) > RARITY_ORDER.indexOf(def.maxRarity)) {
+        rarity = def.maxRarity;
+      }
+    }
+    const inst = addItemInstance(item.id, DURABILITY_MAX, rarity);
+    if (rarity === "legendary" && item.unique) inst.unique = item.unique;
+    state._invRev = (state._invRev || 0) + 1;
+    entries.push({ id: item.id, name: getItemDisplayName(inst), icon: item.icon, amount: 1, kind: "equipment", uid: inst.uid });
+  }
+  return entries;
+}
+
+// Открыть amount сундуков type (amount "all" — все имеющиеся). Возвращает
+// { opened, results: [{ type, entries }], pitySpent, pityLeft }.
+function openChests(type, amount = 1) {
+  normalizeChests();
+  if (!CHEST_TYPES[type]) return { ok: false, opened: 0, results: [] };
+  let count = amount === "all" ? state.chests[type] : Math.max(1, Number(amount) || 1);
+  count = Math.min(count, state.chests[type]);
+  if (count <= 0) return { ok: false, opened: 0, results: [] };
+  const results = [];
+  let opened = 0;
+  for (let n = 0; n < count; n += 1) {
+    // Хватит 9 «пустых» подряд: 10-е открытие гарантированно редкое+.
+    const forceRare = state.chestPity >= CHEST_PITY_LIMIT - 1;
+    const entries = rollChestContents(type, forceRare);
+    const hasRarePlus = entries.some((e) => e.kind === "equipment" && RARITY_ORDER.indexOf(getInstance(e.uid)?.rarity) >= RARITY_ORDER.indexOf("rare"));
+    state.chests[type] -= 1;
+    state.chestPity = hasRarePlus ? 0 : Math.min(CHEST_PITY_LIMIT, (state.chestPity || 0) + 1);
+    opened += 1;
+    results.push({ type, entries });
+  }
+  saveState();
+  return { ok: opened > 0, opened, results };
+}
+
 function rollDrops(enemyDef) {
-  const loot = [];
-  const floorId = enemyDef.floorId || state.maxFloor;
+  const loot = [];  const floorId = enemyDef.floorId || state.maxFloor;
   const floorResources = FLOOR_RESOURCES[floorId] || [];
   let drops = Array.isArray(enemyDef?.drops) ? enemyDef.drops : [];
   const mobRarity = enemyDef?.rarity || "common";
@@ -2010,8 +2180,10 @@ function rollDrops(enemyDef) {
     }
 
     for (let n = 0; n < amount; n++) {
-      const itemRarity = rollRarity(mobRarity === "elite" ? ELITE_RARITY_BONUS : 0);
+      const isLegendaryDrop = drop.rarity === "legendary";
+      const itemRarity = isLegendaryDrop ? "legendary" : rollRarity(mobRarity === "elite" ? ELITE_RARITY_BONUS : 0);
       const inst = addItemInstance(drop.id, DURABILITY_MAX, itemRarity);
+      if (isLegendaryDrop && item.unique) inst.unique = item.unique;
       loot.push({
         uid: inst.uid,
         id: drop.id,
@@ -2034,6 +2206,10 @@ function rollDrops(enemyDef) {
       kind: "recipe",
     });
   }
+
+  // Сундуки (Гача): дроп за убийство.
+  const chestDrop = rollChestDrop(enemyDef);
+  if (chestDrop) loot.push(chestDrop);
 
   return loot;
 }
@@ -2116,9 +2292,31 @@ function priceFor(item, shop = "forge") {
   return { price, old: item.price, hasDiscount: discount > 0, discount };
 }
 
-function buyItem(id, shop = "forge") {
+function generatePremiumStock(floorId = state.maxFloor) {
+  const gearSlots = new Set(["mainhand", "offhand", "head", "shoulder", "back", "chest", "wrist", "hands", "waist", "legs", "feet"]);
+  const maxFloor = Number(floorId) || state.maxFloor || 1;
+  const pool = Object.values(ITEMS).filter((i) =>
+    gearSlots.has(i.slot) && Number.isFinite(i.price) && i.price > 0 && shopFloorFor(i) <= maxFloor
+  );
+  const bag = pool.slice();
+  const picked = [];
+  while (picked.length < 3 && bag.length) {
+    const idx = Math.floor(Math.random() * bag.length);
+    picked.push(bag.splice(idx, 1)[0]);
+  }
+  return picked.map((item) => ({
+    item,
+    rarity: rollRarity(0.2),
+    price: Math.max(1, Math.round(item.price * 3)),
+  }));
+}
+
+function buyItem(id, shop = "forge", customPrice = null, customRarity = null) {
   const item = ITEMS[id]; if (!item) return { ok: false, text: "Товар не найден." };
-  const p = priceFor(item, shop);
+  const isCustom = customPrice !== null && customRarity !== null;
+  const p = isCustom
+    ? { price: Math.max(0, Math.round(Number(customPrice) || 0)), discount: 0 }
+    : priceFor(item, shop);
   const discount = p.discount;
   const price = p.price;
   if (state.gold < price) return { ok: false, text: "Не хватает золота." };
@@ -2130,7 +2328,7 @@ function buyItem(id, shop = "forge") {
   }
 
   const oldStats = stats(); state.gold -= price;
-  const inst = addItemInstance(id, DURABILITY_MAX, "common");
+  const inst = addItemInstance(id, DURABILITY_MAX, isCustom ? customRarity : "common");
   const slot = targetSlotFor(item, inst);
   const eqInst = slot && state.equipped[slot] ? getInstance(state.equipped[slot]) : null;
   const better = slot && itemScore(item, slot, inst) > itemScore(eqInst ? ITEMS[eqInst.id] : null, slot, eqInst);
@@ -2197,6 +2395,29 @@ function craftItem(recipeId) {
 
   const rarityNote = inst.rarity !== "common" ? ` (${RARITY_TIERS[inst.rarity].name})` : "";
   return { ok: true, text: better ? `Создано и надето: ${getItemDisplayName(inst)}${rarityNote} (${SLOT_NAME[slot]}).` : `Создано: ${getItemDisplayName(inst)}${rarityNote}. Наденьте в разделе «Герой».` };
+}
+
+// Особый крафт Рона: 100 базовых ресурсов (ржавчина + ткань) → Обычный сундук.
+// Идёт мимо RECIPES/knownRecipes: доступен всегда, без чертежа.
+const CHEST_SCRAP_CRAFT_ID = "chest_scrap";
+function craftChestFromScrap() {
+  state.resources = state.resources || {};
+  normalizeChests();
+  const missing = [];
+  for (const [resId, need] of Object.entries(CHEST_SCRAP_COST)) {
+    const have = state.resources[resId] || 0;
+    if (have < need) {
+      const res = ALL_RESOURCES.find((r) => r.id === resId);
+      missing.push(`${res ? res.name : resId} ${have}/${need}`);
+    }
+  }
+  if (missing.length) return { ok: false, text: `Не хватает материалов: ${missing.join(", ")}.` };
+  for (const [resId, need] of Object.entries(CHEST_SCRAP_COST)) {
+    state.resources[resId] = Math.max(0, (state.resources[resId] || 0) - need);
+  }
+  grantChest("common", 1);
+  saveState();
+  return { ok: true, text: "Рон сколотил ларец из обрезков. Открыт: Обычный сундук (+1 📦)." };
 }
 
 function equipItem(uid) {

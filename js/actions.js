@@ -15,81 +15,263 @@ function startBattle(floorId, mobKey) {
   }
 }
 
+// ── Арена: бесконечная орда ───────────────────────────────────────────────
+// Первая волна стоит энергию, дальнейшие — бесплатны. Прогресс исследования
+// этажа не меняется.
+
+function arenaFloor(floorId) {
+  return FLOORS.find((f) => f.id === Number(floorId))
+    || FLOORS.find((f) => f.id === state.maxFloor)
+    || FLOORS[0];
+}
+
+function beginArenaWave(floor, wave) {
+  if (!floor || !Array.isArray(floor.mobs) || !floor.mobs.length) return false;
+  const def = floor.mobs[Math.floor(Math.random() * floor.mobs.length)];
+  if (!def) return false;
+  view.currentFloor = floor.id;
+  view.arenaNotice = null;
+  beginBattle(def, floor.id, { arenaWave: wave });
+  // Арена не показывает экран подготовки — бой начинается сразу.
+  view.preBattle = false;
+  startDuel();
+  render();
+  return true;
+}
+
+// Автоматический запуск следующей волны после плашки «Волна пройдена».
+function startArenaWave(floorId) {
+  view.arenaTimer = null;
+  const arena = view.arenaState;
+  if (!arena || !arena.active) return;
+  const floor = arenaFloor(floorId || arena.floorId);
+  const wave = Math.max(1, Number(arena.wave) || 1);
+  if (!beginArenaWave(floor, wave)) {
+    arena.active = false;
+    view.screen = "floor";
+    render();
+    toast("Арена опустела — противников больше нет.", "warn");
+  }
+}
+
+// Добровольный выход с Арены: добыча предыдущих волн уже сохранена.
+function leaveArena() {
+  const arena = view.arenaState;
+  if (!arena || !arena.active) return;
+  if (view.arenaTimer) {
+    clearTimeout(view.arenaTimer);
+    view.arenaTimer = null;
+  }
+  const floorId = arena.floorId || view.currentFloor || state.maxFloor;
+  arena.active = false;
+  arena.wave = 1;
+  view.arenaNotice = null;
+  view.summary = null;
+  if (typeof duelStopTimer === "function") duelStopTimer();
+  view.duelActive = false;
+  view.battle = null;
+  view.battleModal = null;
+  view.preBattle = false;
+  view.comboState = null;
+  view.comboPaused = null;
+  view.typingState = null;
+  view.typingPaused = null;
+  view.typingPausedAt = 0;
+  if (typeof stopQteLoop === "function") stopQteLoop();
+  view.currentFloor = floorId;
+  view.screen = "floor";
+  saveState();
+  render();
+  toast("Вы покинули Арену. Добыча сохранена.", "ok");
+}
+
+// «Искать бой»: запуск Арены с первой волны.
+function startQuickFight(floorId) {
+  const floor = arenaFloor(floorId);
+  if (!floor || !Array.isArray(floor.mobs) || !floor.mobs.length) {
+    toast("На этом этаже некого искать.", "warn");
+    render();
+    return;
+  }
+
+  const spend = spendFightEnergy();
+  if (!spend.ok) { toast(spend.text, "warn"); render(); return; }
+
+  if (view.arenaTimer) {
+    clearTimeout(view.arenaTimer);
+    view.arenaTimer = null;
+  }
+  view.arenaState = { active: true, wave: 1, floorId: floor.id };
+  view.arenaNotice = null;
+  Sfx.play("footstep_jump");
+  if (!beginArenaWave(floor, 1)) {
+    view.arenaState.active = false;
+    toast("На этом этаже некого искать.", "warn");
+    render();
+  }
+}
+
+// Единая обработка исхода боя: арена, лут, дроп охотника, звуки и экран итогов.
+// Вызывается и из doExchange(), и из Real-Time дуэли (ui.js).
+function finalizeBattleResult(summary) {
+  if (!summary) return;
+  if (typeof duelStopTimer === "function") duelStopTimer();
+  view.duelActive = false;
+  view.comboState = null;
+  view.comboPaused = null;
+  view.typingState = null;
+  view.typingPaused = null;
+  view.typingPausedAt = 0;
+
+  // ── Арена: победа не показывает стандартный экран, а запускает волну. ──
+  const arena = view.arenaState;
+  if (arena && arena.active && summary.victory === true) {
+    const clearedWave = Math.max(1, Number(arena.wave) || 1);
+    arena.wave = clearedWave + 1;
+    view.summary = null;
+    view.battleModal = null;
+    view.arenaNotice = {
+      wave: clearedWave,
+      text: `Волна ${clearedWave} пройдена! Следующий противник...`,
+    };
+    captureLastBattleLog();
+    if (view.arenaTimer) clearTimeout(view.arenaTimer);
+    const arenaFloorId = arena.floorId;
+    view.arenaTimer = setTimeout(() => startArenaWave(arenaFloorId), 2500);
+    Sfx.play("victory");
+    if (Array.isArray(summary.loot) && summary.loot.length) Sfx.play("chest");
+    if (Array.isArray(summary.levels) && summary.levels.length) Sfx.play("levelup");
+    render();
+    return;
+  }
+
+  // ── Арена: поражение выбрасывает в хаб и сбрасывает режим. ────────────
+  if (arena && arena.active && summary.defeat === true) {
+    const endedWave = Math.max(1, Number(arena.wave) || 1);
+    arena.active = false;
+    arena.wave = 1;
+    if (view.arenaTimer) {
+      clearTimeout(view.arenaTimer);
+      view.arenaTimer = null;
+    }
+    view.arenaNotice = null;
+    view.summary = null;
+    view.battle = null;
+    view.battleModal = null;
+    view.preBattle = false;
+    if (typeof stopQteLoop === "function") stopQteLoop();
+    view.screen = "hub";
+    view.currentFloor = null;
+    state.phase = TIME_PHASES.length - 1;
+    endTrip();
+    const afterDeath = stats();
+    state.hp = afterDeath.maxHp;
+    state.mana = afterDeath.maxMana;
+    state.energy = afterDeath.maxEnergy;
+    Sfx.play("defeat");
+    saveState();
+    render();
+    toast(`Арена окончена на волне ${endedWave}. Вы возвращаетесь в Йорстед.`, "warn");
+    return;
+  }
+
+  // Выход с Арены через побег тоже не показывает экран итогов.
+  if (arena && arena.active && summary.fled === true) {
+    leaveArena();
+    return;
+  }
+
+  view.summary = summary;
+  captureLastBattleLog();
+  // Дроп дневника с убитого охотника (Блок 6): при победе с state._hunterBattle.
+  // Не победа (поражение/бегство) — флаг продратившегося боя сбрасываем.
+  if (!summary.victory) state._hunterBattle = null;
+  if (summary.victory && state._hunterBattle) {
+    const enc = HUNTER_ENCOUNTERS.find((h) => h.id === state._hunterBattle.encId);
+    const dropId = enc ? enc.killDrop : null;
+    if (dropId) {
+      const already = state.owned.some((it) => it && (typeof it === "object" ? it.id === dropId : it === dropId));
+      if (already) {
+        state.gold += 25;
+        toast(`Из вещей охотника — дневник этого этажа, он у вас уже есть. Продан за 25 💰.`, "ok");
+      } else {
+        addItemInstance(dropId, DURABILITY_MAX, "common");
+        toast(`Из вещей охотника выпадает «${ITEMS[dropId].name}».`, "ok");
+      }
+    }
+    state._hunterBattle = null;
+  }
+  // Звуковые эффекты исхода боя (Этап 4): победа/поражение + лут/уровень.
+  if (summary.victory) {
+    Sfx.play("victory");
+    if (Array.isArray(summary.loot) && summary.loot.length) Sfx.play("chest");
+    if (Array.isArray(summary.levels) && summary.levels.length) Sfx.play("levelup");
+  } else {
+    Sfx.play("defeat");
+  }
+  render();
+}
+
 function doExchange(type, potionId) {
   if (!view.battle || view.battle.over) return;
 
-  const logBefore = view.battle.log.length;
+  // Мгновенный звук удара уже мог прозвучать на вводе слова атаки —
+  // флаги silent* в action не дадут exchange() проиграть его повторно.
+  view.pendingHitSfx = null;
+  view.typingState = null;
+  view.typingPaused = null;
+  view.typingPausedAt = 0;
+  view.comboState = null;
+  view.comboPaused = null;
+  if (!view.attackZone || !ZONE_NAME[view.attackZone]) view.attackZone = "chest";
 
+  const logBefore = view.battle.log.length;
   const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
 
-  // Комбо-атака передаёт готовый объект action; остальные действия
-  // (зелья, предметы, приёмы, смена оружия, побег) собираются как раньше.
   const action = type && typeof type === "object"
     ? { ...type }
     : { type, zone: view.attackZone, style: view.attackStyle, id: potionId };
   action.zone = action.zone || view.attackZone || "chest";
   action.style = action.style || view.attackStyle || "slashing";
+  // В Real-Time дуэли обычные удары/защита идут своим путём. Здесь остаются
+  // зелья, предметы, навыки и побег — они не должны вызывать «ход моба»
+  // и не открывают старые QTE-окна крита/парирования.
+  if (view.duelActive) {
+    action.typingPhase = action.typingPhase || "attack";
+    if (action.typingSpeed === undefined) action.typingSpeed = 1.0;
+  }
+  const nextPhase = action.typingPhase === "attack" ? "defense" : "attack";
 
   const result = exchange(state, view.battle, action, mainInst);
-  
-  if (result.error) { 
-    toast(result.error, "warn"); 
-    // Действие не состоялось — возвращаем QTE, которое было на паузе.
-    resumeCombo();
-    if (!view.comboState && !view.battle.over) startCombo("attack");
+
+  if (result.error) {
+    toast(result.error, "warn");
+    if (!view.duelActive) {
+      // Действие не состоялось — возвращаем QTE, которое было на паузе.
+      resumeCombo();
+      if (!view.comboState && !view.typingState && !view.battle.over) startTyping(nextPhase);
+    }
     render();
-    return; 
-  } 
-  
-  // Крит в размене — трясём контейнер боя (Этап 4).
-  if (view.battle.log.slice(logBefore).some((l) => l.cls === "crit")) {
+    return;
+  }
+
+  // Удар, крит или ответ врага — трясём контейнер боя (Этап 4).
+  if (view.battle.log.slice(logBefore).some((l) => ["hit", "crit", "enemy"].includes(l.cls))) {
     shakeBattleContainer();
   }
 
-  if (result.summary) { 
-    view.comboState = null;
-    view.comboPaused = null;
-    view.summary = result.summary;
-    // Дроп дневника с убитого охотника (Блок 6): при победе с state._hunterBattle.
-    // Не победа (поражение/бегство) — флаг продратившегося боя сбрасываем.
-    if (!result.summary.victory) state._hunterBattle = null;
-    if (result.summary.victory && state._hunterBattle) {
-      const enc = HUNTER_ENCOUNTERS.find((h) => h.id === state._hunterBattle.encId);
-      const dropId = enc ? enc.killDrop : null;
-      if (dropId) {
-        const already = state.owned.some((it) => it && (typeof it === "object" ? it.id === dropId : it === dropId));
-        if (already) {
-          state.gold += 25;
-          toast(`Из вещей охотника — дневник этого этажа, он у вас уже есть. Продан за 25 💰.`, "ok");
-        } else {
-          addItemInstance(dropId, DURABILITY_MAX, "common");
-          toast(`Из вещей охотника выпадает «${ITEMS[dropId].name}».`, "ok");
-        }
-      }
-      state._hunterBattle = null;
-    }
-    // Звуковые эффекты исхода боя (Этап 4): победа/поражение + лут/уровень.
-    if (result.summary.victory) {
-      Sfx.play("victory");
-      if (Array.isArray(result.summary.loot) && result.summary.loot.length) Sfx.play("chest");
-      if (Array.isArray(result.summary.levels) && result.summary.levels.length) Sfx.play("levelup");
-    } else {
-      Sfx.play("defeat");
-    }
-    render(); 
-    return;
-  } 
-  // Крит/парирование открывают собственное QTE. Комбо запустится после него,
-  // чтобы таймер не тикал под модалкой.
-  if (view.battle.critWindow || view.battle.parryWindow) {
-    view.comboState = null;
-    view.comboPaused = null;
-    render();
+  if (result.summary) {
+    finalizeBattleResult(result.summary);
     return;
   }
 
-  // Непрерывный цикл: после размена сразу начинается новый удар.
-  startCombo("attack");
+  if (view.duelActive) {
+    duelOnRealtimeAction();
+    return;
+  }
+
+  // Старый режим: непрерывный цикл атака → защита → атака.
+  startTyping(nextPhase);
   render();
 }
 
@@ -200,8 +382,11 @@ function autoExploreLoop() {
   clearTimeout(ae.timer);
   if (battleActive()) return;
   if (view.exploreResult) return;
-  // Открыта модалка события — ждём игрока, не зажигаем новый цикл.
-  if (state.activeEvent || state.activeFloorEvent) return;
+  // Открыта панель события — останавливаем авто-режим и ждём игрока.
+  if (state.activeEvent || state.activeFloorEvent) {
+    stopAutoExplore("Произошло событие. Авто-исследование остановлено.");
+    return;
+  }
   if (isNight()) { stopAutoExplore("Наступила ночь. Авто-исследование остановлено."); return; }
   
   if (state.activeSceneId) resolveSceneAction("leave");
@@ -210,6 +395,8 @@ function autoExploreLoop() {
   if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
   
   autoExploreTick(ae.floorId, ae.avoidDanger);
+  // Тик мог остановить авто-режим (событие/сцена/энергия) — новый цикл не зажигаем.
+  if (!view.autoExplore) return;
   scheduleAutoExplore(2100);
 }
 
@@ -656,7 +843,10 @@ function buyFromTrader(entryId, viewRef = view) {
   state.gold -= entry.price;
   let name;
 
-  if (entry.kind === "potion") {
+  if (entry.kind === "chest") {
+    grantChest(entry.id, 1);
+    name = entry.name;
+  } else if (entry.kind === "potion") {
     state.potions[entry.id] = (state.potions[entry.id] || 0) + 1;
     name = ITEMS[entry.id].name;
   } else {

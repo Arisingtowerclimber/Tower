@@ -1,9 +1,11 @@
 {
+  "autoupdate": false,
+  "snapshot": false,
   "compaction": {
     "auto": true,
-    "prune": true,
-    "reserved": 800000
-  },
-  "autoupdate": false,
-  "snapshot": false
+    "keep": {
+      "tokens": 12000
+    },
+    "buffer": 64000
+  }
 }

@@ -92,7 +92,7 @@ function createBattle(enemyDef, floorId) {
     hp: enemy.hp,
     maxHp: enemy.maxHp,
     rage: 0,
-    turn: 0,
+    round: 0,
     log: [],
     over: false,
     floorId,
@@ -100,15 +100,6 @@ function createBattle(enemyDef, floorId) {
     boss: Boolean(enemyDef.boss),
     lastPlayerAttack: null,
     lastPlayerHit: null, // null — прошлого хода ещё не было
-    staggered: false,
-    tripped: false,
-    riskyMiss: false,
-    secondWindUsed: false,
-    critWindow: null,
-    parryWindow: null,
-    enemyBlockHistory: [],
-    enemyAttackHistory: [],
-    playerBlocksHistory: [], // <--- ДОБАВЛЕНО
     playerDebuffs: [],
     monkStance: MONK_DEFAULT_STANCE,
     skillCd: {}, // откат активных навыков: { talentId: ходов до готовности }
@@ -116,12 +107,387 @@ function createBattle(enemyDef, floorId) {
     alvaStunChance: 10,
     companionStunned: false,
     companionBlocked: false,
+    // ── Real-Time дуэль ──────────────────────────────────────────────────
+    balance: 100,          // Равновесие (Posture): 0 → оглушение
+    maxBalance: 100,
+    enemyWindup: 0,        // длительность текущего замаха, сек
+    enemyTimeLeft: 0,      // сколько осталось до удара, сек
+    enemyTimer: null,      // id интервала; владелец — ui.js
+    enemyRecoveryTimer: 0, // окно восстановления моба до следующего замаха, сек
+    stunned: false,
+    comboWord: "",
+    comboTyped: "",
+    comboTimeLeft: 0,
+    // Слоты слов
+    attackWord: "SLASH",
+    attackTyped: "",
+    attackAuto: "",
+    attackStyle: "slashing",
+    attackIsCrit: false,
+    attackHasAffix: false,
+    attackAffix: "",
+    attackAffixType: null,
+    attackGlitch: false,  // INT моба выше — слово атаки «глючит»
+    defenseGlitch: false, // то же для слова защиты
+    defenseWord: "",
+    defenseTyped: "",
+    defenseAuto: "",
+    activeSlot: "attack",
   };
   
   const label = variationLabel(enemy);
   if (label) battleLog(battle, `${enemy.name} — ${label}`, "info");
   if (enemy.weaponId) battleLog(battle, `${enemy.name} достаёт ${ITEMS[enemy.weaponId].name}!`, "warn");
   return battle;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Real-Time дуэль: два слота слов, замах врага, Равновесие и статы.
+// Все функции ниже меняют только state/battle и пишут в лог — DOM не трогают.
+// ══════════════════════════════════════════════════════════════════════════
+
+function duelAutoLetters(st) {
+  // Автоввод первых букв отключен. Интеллект влияет на шанс выпадения аффиксов.
+  return 0;
+}
+
+// Итоговый атрибут игрока: очки героя + бонусы снаряжения.
+function duelTotalAttr(st, key) {
+  return Math.max(0, Number(st?.attrs?.[key]) || 0) + Math.max(0, Number(st?.gearAttrs?.[key]) || 0);
+}
+
+// Стиль текущего оружия игрока (для слова, урона и звука).
+function duelPlayerStyle(state, battle) {
+  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  const weapon = mainInst ? ITEMS[mainInst.id] : null;
+  if (state.archetype === "monk" && !weapon) {
+    return (battle && STYLE_ORDER.includes(battle.monkStance)) ? battle.monkStance : MONK_DEFAULT_STANCE;
+  }
+  return weapon ? weaponBestStyle(weapon, mainInst) : "slashing";
+}
+
+// Новое слово в СЛОТЕ АТАКИ. AGI повышает шанс длинного слова-крита,
+// INT — шанс аффикса и автоматически введённые первые буквы.
+function duelNewAttackWord(state, battle) {
+  if (!battle || battle.over) return;
+  const st = stats();
+  const agi = Math.max(0, Number(st.attrs?.agi) || 0);
+  const int = duelTotalAttr(st, "int");
+  const mobInt = Math.max(0, Number(battle.enemy?.int) || 0);
+  const style = duelPlayerStyle(state, battle);
+  const critChance = 5 + agi * 1.0;
+  // Чужой INT выше — на слове висит эффект ментального давления (красное
+  // свечение), но сами буквы не меняются. Наш INT выше — повышенный шанс
+  // аффикса (яд/кровотечение).
+  const glitchActive = mobInt > int;
+  const affixChance = 5 + int * 1.0 + (int > mobInt ? 15 : 0);
+  const isCrit = Math.random() * 100 < critChance;
+  const hasAffix = Math.random() * 100 < affixChance;
+
+  const basePool = ATTACK_WORDS_BASE;
+  const longPool = ATTACK_WORDS_LONG;
+  const pool = isCrit && longPool.length ? longPool : (basePool.length ? basePool : longPool);
+  const baseWord = pick(pool) || "SLASH";
+
+  const affixType = hasAffix ? pick(WORD_AFFIXES) : null;
+  const affix = affixType ? String(affixType) : "";
+  const word = affix + baseWord;
+  battle.attackGlitch = glitchActive;
+  const autoCount = Math.min(duelAutoLetters(st), Math.max(0, word.length - 1));
+  let typed = word.slice(0, autoCount);
+  // Пробелы вводить не нужно — они засчитываются автоматически.
+  while (typed.length < word.length && word[typed.length] === " ") typed += " ";
+
+  battle.attackWord = word;
+  battle.attackTyped = typed;
+  battle.attackAuto = typed;
+  battle.attackStyle = style;
+  battle.attackIsCrit = isCrit;
+  battle.attackHasAffix = hasAffix && Boolean(affix.trim());
+  battle.attackAffix = affix;
+  battle.attackAffixType = affixType;
+}
+
+// Новое слово в СЛОТЕ ЗАЩИТЫ на текущий замах.
+function duelNewDefenseWord(battle) {
+  if (!battle || battle.over) return;
+  const st = stats();
+  const int = duelTotalAttr(st, "int");
+  const mobInt = Math.max(0, Number(battle.enemy?.int) || 0);
+  const glitchActive = mobInt > int;
+  const rawWord = pick(DEFEND_WORDS) || "DODGE";
+  const word = rawWord;
+  const autoCount = Math.min(duelAutoLetters(st), Math.max(0, word.length - 1));
+  battle.defenseGlitch = glitchActive;
+  battle.defenseWord = word;
+  battle.defenseTyped = word.slice(0, autoCount);
+  battle.defenseAuto = battle.defenseTyped;
+}
+
+// Старт замаха: окно реакции на слово защиты зависит от AGI моба против AGI
+// игрока (timeWindow = 2.0 + (agi игрока − agi моба) * 0.05, клэмп 0.8…4.0 c).
+function duelBeginWindup(state, battle) {
+  if (!battle || battle.over || battle.stunned) return;
+  const st = stats();
+  const agi = duelTotalAttr(st, "agi");
+  const mobAgi = Math.max(0, Number(battle.enemy?.agi) || 0);
+  const timeWindow = 2.0 + (agi - mobAgi) * 0.05;
+  const duration = Math.max(0.8, Math.min(4.0, timeWindow));
+  battle.enemyWindup = duration;
+  battle.enemyTimeLeft = duration;
+  battle.activeSlot = "attack";
+  // Слово атаки могло быть убито переходом на защиту — новый замах всегда
+  // начинается с чистым, свежим словом атаки.
+  if (!battle.attackWord) duelNewAttackWord(state, battle);
+  duelNewDefenseWord(battle);
+}
+
+// Следующая буква слова с пропуском пробелов.
+function duelPeekChar(word, typed) {
+  const w = String(word || "");
+  let i = String(typed || "").length;
+  while (i < w.length && w[i] === " ") i += 1;
+  return i < w.length ? w[i].toUpperCase() : null;
+}
+
+// Ввод одной буквы в слово. Пробелы засчитываются сами.
+function duelAdvanceWord(word, typed, letter) {
+  const w = String(word || "");
+  let next = String(typed || "");
+  while (next.length < w.length && w[next.length] === " ") next += " ";
+  if (next.length >= w.length) return { ok: true, complete: true, typed: next };
+  if (w[next.length].toUpperCase() !== String(letter || "").toUpperCase()) {
+    return { ok: false, complete: false, typed };
+  }
+  next += w[next.length];
+  while (next.length < w.length && w[next.length] === " ") next += " ";
+  return { ok: true, complete: next.length >= w.length, typed: next };
+}
+
+// Равновесие: 0 → моб оглушён, замах остановлен, в слоте атаки комбо-слово.
+function duelStun(battle) {
+  if (!battle || battle.stunned) return;
+  battle.balance = 0;
+  battle.stunned = true;
+  battle.enemyTimeLeft = 0;
+  battle.enemyWindup = 0;
+  battle.comboWord = pick(COMBO_WORDS) || "CRUSHING SMASH";
+  battle.comboTyped = "";
+  battle.comboTimeLeft = 3.0;
+  battle.attackWord = battle.comboWord;
+  battle.attackTyped = "";
+  battle.attackAuto = "";
+  battle.attackIsCrit = false;
+  battle.attackHasAffix = false;
+  battle.attackAffix = "";
+  battle.attackAffixType = null;
+  battle.defenseWord = "";
+  battle.defenseTyped = "";
+  battle.defenseAuto = "";
+  battle.activeSlot = "attack";
+  battleLog(battle, `${battle.enemy.name} теряет равновесие — ОГЛУШЁН! Напечатайте комбо за 3 секунды!`, "crit");
+}
+
+// Моб приходит в себя: Равновесие восстанавливается, бой продолжается.
+function duelRecover(battle) {
+  if (!battle) return;
+  battle.stunned = false;
+  battle.balance = battle.maxBalance || 100;
+  battle.comboWord = "";
+  battle.comboTyped = "";
+  battle.comboTimeLeft = 0;
+  battleLog(battle, `${battle.enemy.name} приходит в себя. Равновесие восстановлено.`, "info");
+}
+
+function duelBalanceLoss(battle, amount) {
+  if (!battle || battle.stunned) return;
+  battle.balance = Math.max(0, (battle.balance || 0) - amount);
+  if (battle.balance <= 0) duelStun(battle);
+}
+
+// Удар игрока по мобу. STR — базовый множитель урона, крит ×1.5,
+// аффикс ×1.2, комбо ×2.5. Возвращает { damage, style, crit }.
+// ЛОГИКА ПРЕРЫВАНИЯ: звонок сюда идёт только из duelAttackComplete после
+// полного слова атаки. Бесшовный переход на защиту (duelTypeLetter) сбрасывает
+// attackTyped до автобукв INT — слово больше не может досчитаться, поэтому
+// отменённая атака урона не наносит, даже если не хватало одной буквы.
+function duelPlayerAttack(state, battle, opts = {}) {
+  if (!battle || battle.over) return { damage: 0, style: "slashing", crit: false };
+  const st = stats();
+  const e = battle.enemy;
+  const style = battle.attackStyle || duelPlayerStyle(state, battle);
+  const mainInst = state.equipped.mainhand ? getInstance(state.equipped.mainhand) : null;
+  const weapon = mainInst ? ITEMS[mainInst.id] : null;
+  const isMonkUnarmed = state.archetype === "monk" && !weapon;
+  const styleMult = isMonkUnarmed ? MONK_UNARMED_STYLE_MULT : weaponStyleMult(weapon, style, mainInst);
+  const armorType = e.armorType || "leather";
+  const armorMult = ARMOR_STYLE_MULT[style][armorType] || 1;
+  const pierce = (st.armorPierce || 0) / 100;
+
+  let base = st.atk * styleMult * armorMult * rnd(0.9, 1.1);
+  base -= e.def * (1 - pierce) * 0.6;
+  const str = duelTotalAttr(st, "str");
+  // Пробитие: разница СИЛ игрока и ЗАЩ моба даёт множитель урона (0.3x…2.5x).
+  const strDiff = str - Math.max(0, Number(e.def) || 0);
+  const damageMult = Math.max(0.3, Math.min(2.5, 1.0 + strDiff * 0.02));
+  let damage = Math.max(1, Math.round(base * damageMult));
+  if (strDiff < 0) battleLog(battle, "Удар вязнет в защите врага!", "warn");
+
+  const achVs = achievementVsMobBonus(state, e.id);
+  if (achVs.dmgPct) damage = Math.max(1, Math.round(damage * (1 + achVs.dmgPct / 100)));
+  damage += achVs.flat;
+
+  const isCrit = opts.isCombo !== true && opts.isCrit === true;
+  const hasAffix = opts.isCombo !== true && opts.hasAffix === true;
+  if (isCrit) damage = Math.round(damage * 1.5);
+  if (hasAffix) damage = Math.round(damage * 1.2);
+  if (opts.isCombo === true) damage = Math.round(damage * 2.5);
+  damage = Math.max(1, damage);
+
+  battle.hp = Math.max(0, battle.hp - damage);
+  battle.round = (battle.round || 0) + 1;
+  gainEnemyRage(battle);
+  battle.lastPlayerHit = true;
+  battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
+
+  const uniques = equippedUniques();
+  const lifestealPct = (uniques.includes("lifesteal") ? LIFESTEAL_PERCENT : 0) + (st.lifesteal || 0) / 100;
+  if (lifestealPct > 0) {
+    const healed = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(damage * lifestealPct)));
+    if (healed > 0) {
+      state.hp += healed;
+      battleLog(battle, `Вампиризм восстанавливает ${healed} HP.`, "heal");
+    }
+  }
+
+  if (hasAffix) {
+    const affixName = String(opts.affixType || battle.attackAffix || "АФФИКС").trim();
+    const debuffId = affixName === "DEADLY" ? "poison" : "bleed";
+    const dot = Math.max(1, Math.round(damage * 0.12));
+    if (!Array.isArray(battle.enemyDebuffs)) battle.enemyDebuffs = [];
+    const existing = battle.enemyDebuffs.find((d) => d.id === debuffId);
+    if (existing) {
+      existing.turns = Math.max(Number(existing.turns) || 0, 2);
+      existing.damage = Math.max(Number(existing.damage) || 0, dot);
+    } else {
+      battle.enemyDebuffs.push({ id: debuffId, turns: 2, damage: dot });
+    }
+    battleLog(battle, `Аффикс «${affixName}»: ${debuffId === "poison" ? "яд" : "кровотечение"} — ${dot} урона.`, "warn");
+  }
+
+  const suffix = opts.isCombo === true ? " — КОМБО ×2.5!" : (isCrit ? " — КРИТ!" : "");
+  battleLog(
+    battle,
+    `Удар (${STYLE_NAMES[style] || style})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType] || armorType} x${armorMult.toFixed(1)}).`,
+    opts.isCombo === true || isCrit ? "crit" : "hit"
+  );
+  playHitSound(style, { isCrit: isCrit || opts.isCombo === true });
+  if (isCrit || opts.isCombo === true) checkAchievements(state);
+
+  if (opts.isCombo !== true) duelBalanceLoss(battle, 10);
+  return { damage, style, crit: isCrit || opts.isCombo === true };
+}
+
+// Успешный блок: урона нет, Равновесие −20, кураж +1.
+function duelPlayerBlock(state, battle) {
+  if (!battle || battle.over) return { stunned: false };
+  const st = stats();
+  battle.round = (battle.round || 0) + 1;
+  battle.rage = Math.min(5, battle.rage + 1);
+  battleLog(battle, `Вы блокируете удар ${battle.enemy.name}. +1 кураж.`, "block");
+  Sfx.play("hit_block", { rate: COMBAT_HIT_RATE });
+
+  if (state.archetype === "guardian") {
+    const retaliation = Math.max(2, Math.round(battle.enemy.atk * (st.mods?.blockCounter || 0.1)));
+    battle.hp = Math.max(0, battle.hp - retaliation);
+    battleLog(battle, `Страж отвечает на блок: ${battle.enemy.name} теряет ${retaliation} HP.`, "hit");
+  }
+
+  duelBalanceLoss(battle, 20);
+  return { stunned: battle.stunned === true };
+}
+
+// Удар моба по истечении замаха. Уворот/броня/шипы работают как раньше.
+function duelEnemyStrike(state, battle) {
+  if (!battle || battle.over) return { damage: 0, dodged: false, defeat: false };
+  const st = stats();
+  const e = battle.enemy;
+  const uniques = equippedUniques();
+  battle.round = (battle.round || 0) + 1;
+  const zone = pick(ZONES);
+  const zoneSlot = ZONE_TO_SLOT[zone.id] || "chest";
+  const zoneArmorType = equippedArmorTypeFor(state, zoneSlot);
+  const enemyWpn = e.weaponId ? ITEMS[e.weaponId] : null;
+  const isNaturalAttack = !enemyWpn || enemyWpn.weaponType === "claw";
+  const enemyStyle = isNaturalAttack ? (e.unarmedStyle || "bludgeoning") : weaponBestStyle(enemyWpn);
+  const armorMult = ARMOR_STYLE_MULT[enemyStyle][zoneArmorType] || 1;
+
+  const dodged = Math.random() * 100 < st.dodge;
+  if (dodged) {
+    battleLog(battle, `${e.name} бьёт в «${zone.name}», но вы уходите в сторону.`, "miss");
+    Sfx.play("hit_miss", { rate: COMBAT_HIT_RATE });
+    if ((st.counterOnDodge || 0) > 0) {
+      const shadowDmg = Math.max(1, Math.round(st.atk * st.counterOnDodge - e.def * 0.3));
+      battle.hp = Math.max(0, battle.hp - shadowDmg);
+      battleLog(battle, `Талант «Тень»: контрудар! ${e.name} теряет ${shadowDmg} HP.`, "crit");
+    }
+    return { damage: 0, dodged: true, defeat: false };
+  }
+
+  let base = e.atk * rnd(0.85, 1.15) * armorMult;
+  if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
+  base -= Math.min(st.def * 0.8, base * DEFENSE_CAP);
+  base *= 1 - Math.min(0.5, (st.damageReduction || 0) / 100);
+  if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
+  const damage = Math.max(2, Math.round(base));
+  state.hp = Math.max(0, state.hp - damage);
+  battleLog(battle, `${e.name} бьёт в «${zone.name}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
+  playHitSound(enemyStyle, { isCrit: false });
+  battle.lastPlayerHit = false;
+
+  if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
+    if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
+    state.brinkSurvived = true;
+    checkAchievements(state);
+  }
+
+  reflectThorns(battle, uniques, damage);
+
+  if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
+    battle.secondWindUsed = true;
+    const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
+    if (healed > 0) {
+      state.hp += healed;
+      battleLog(battle, `Талант «Невозгибимый»: +${healed} HP!`, "heal");
+    }
+  }
+
+  if (e.ability === "vampire") {
+    const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));
+    battle.hp = Math.min(battle.maxHp, battle.hp + healed);
+    battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
+  }
+  if (e.ability === "poison") {
+    if (battle.poisonImmune) {
+      battleLog(battle, "Щит веры отражает яд!", "heal");
+    } else {
+      if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
+      const existing = battle.playerDebuffs.find((d) => d.id === "poison");
+      if (existing) existing.turns = POISON_TURNS;
+      else battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
+      battleLog(battle, `${e.name} отравляет вас!`, "warn");
+    }
+  }
+
+  return { damage, dodged: false, defeat: state.hp <= 0 };
+}
+
+// Комбо по оглушённому мобу: урон ×2.5, затем враг приходит в себя.
+function duelComboAttack(state, battle) {
+  if (!battle) return { damage: 0 };
+  const res = duelPlayerAttack(state, battle, { isCombo: true });
+  if (battle.hp > 0) duelRecover(battle);
+  return res;
 }
 
 // Поражение: общая ветка для обычного размена и смерти от яда.
@@ -291,66 +657,93 @@ function estimateDamage(state, battle, zoneId, style, weaponInst = null) {
 }
 
 // Звук попадания: стиль оружия → набор вариантов, крит — отдельный файл.
+// Небольшое ускорение (1.1×) не даёт длинным файлам ударов наслаиваться
+// в «кашу» при быстром вводе комбинаций.
+const COMBAT_HIT_RATE = 1.1;
+
 function playHitSound(style, { isCrit = false } = {}) {
   if (isCrit) {
-    if (style === "bludgeoning") Sfx.play("hit_crit_blunt");
-    else Sfx.play("hit_crit_slash");
+    if (style === "bludgeoning") Sfx.play("hit_crit_blunt", { rate: COMBAT_HIT_RATE });
+    else Sfx.play("hit_crit_slash", { rate: COMBAT_HIT_RATE });
     return;
   }
   const id = (style === "bludgeoning") ? "hit_blunt" : "hit_slash";
-  Sfx.play(id);
+  Sfx.play(id, { rate: COMBAT_HIT_RATE });
 }
 
 function exchange(state, battle, action, weaponInst = null) {
   if (!battle || battle.over) return { error: "Бой уже закончился." };
+  // «Боевая печать» идёт двумя раздельными разменами: attack — только удар
+  // игрока, defense — только ответ врага. Остальные действия — одним разменом.
+  const typingPhase = action && action.typingPhase;
+  const typingAttackPhase = typingPhase === "attack";
+  const typingDefensePhase = typingPhase === "defense";
+
   const wasStaggered = battle.staggered;
   battle.staggered = false;
 
   const st = stats();
   const e = battle.enemy;
-  // Регенерация маны моба в начале каждого хода.
-  e.mana = Math.min(e.maxMana || 20, (e.mana || 0) + 1);
+  // Регенерация маны моба — раз за раунд, в фазе атаки.
+  if (!typingDefensePhase) e.mana = Math.min(e.maxMana || 20, (e.mana || 0) + 1);
   const achVs = achievementVsMobBonus(state, e.id);
   const uniques = equippedUniques();
-  const enemyAction = chooseEnemyAction(battle, battle.lastPlayerAttack);
-  battle.lastPlayerHit = false;
+  // В фазе атаки враг ещё не действует: его ход рассчитывается в фазе защиты.
+  const enemyAction = typingAttackPhase
+    ? { blocks: [], attack: null, action: null, manaSpent: 0 }
+    : chooseEnemyAction(battle, battle.lastPlayerAttack);
+  if (!typingDefensePhase) battle.lastPlayerHit = false;
 
-  if (!Array.isArray(battle.enemyBlockHistory)) battle.enemyBlockHistory = [];
-  battle.enemyBlockHistory.push([...enemyAction.blocks]);
-  if (battle.enemyBlockHistory.length > 8) battle.enemyBlockHistory.shift();
-  
-  if (!Array.isArray(battle.enemyAttackHistory)) battle.enemyAttackHistory = [];
-  battle.enemyAttackHistory.push(enemyAction.attack);
-  if (battle.enemyAttackHistory.length > 8) battle.enemyAttackHistory.shift();
+  if (!typingAttackPhase) {
+    if (!Array.isArray(battle.enemyBlockHistory)) battle.enemyBlockHistory = [];
+    battle.enemyBlockHistory.push([...enemyAction.blocks]);
+    if (battle.enemyBlockHistory.length > 8) battle.enemyBlockHistory.shift();
 
-  if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.length) {
-    const poison = battle.playerDebuffs.find((d) => d.id === "poison");
-    if (poison) {
-      let damage = Math.max(2, Math.round(e.atk * POISON_ATK_MULT));
-      if (state.archetype === "guardian") damage = Math.round(damage * (st.mods?.dmgTakenMult || 1));
-      state.hp = Math.max(0, state.hp - damage);
-      poison.turns -= 1;
-      if (poison.turns <= 0) battle.playerDebuffs = battle.playerDebuffs.filter((d) => d !== poison);
-      battleLog(battle, `Яд разъедает раны: ${damage} урона.`, "warn");
-    }
+    if (!Array.isArray(battle.enemyAttackHistory)) battle.enemyAttackHistory = [];
+    battle.enemyAttackHistory.push(enemyAction.attack);
+    if (battle.enemyAttackHistory.length > 8) battle.enemyAttackHistory.shift();
   }
 
-  if (Array.isArray(battle.enemyDebuffs) && battle.enemyDebuffs.length) {
-    const poison = battle.enemyDebuffs.find((d) => d.id === "poison");
-    if (poison) {
-      const damage = Number(poison.damage) || 5;
-      battle.hp = Math.max(0, battle.hp - damage);
-      poison.turns -= 1;
-      if (poison.turns <= 0) battle.enemyDebuffs = battle.enemyDebuffs.filter((d) => d !== poison);
-      battleLog(battle, `Яд разъедает врага на ${damage} урона!`, "warn");
+  // Яды, кровотечения и регенерация тикают раз за раунд — в фазе атаки.
+  // В фазе защиты это уже произошло, второй тик не нужен.
+  if (!typingDefensePhase) {
+    if (Array.isArray(battle.playerDebuffs) && battle.playerDebuffs.length) {
+      const poison = battle.playerDebuffs.find((d) => d.id === "poison");
+      if (poison) {
+        let damage = Math.max(2, Math.round(e.atk * POISON_ATK_MULT));
+        if (state.archetype === "guardian") damage = Math.round(damage * (st.mods?.dmgTakenMult || 1));
+        state.hp = Math.max(0, state.hp - damage);
+        poison.turns -= 1;
+        if (poison.turns <= 0) battle.playerDebuffs = battle.playerDebuffs.filter((d) => d !== poison);
+        battleLog(battle, `Яд разъедает раны: ${damage} урона.`, "warn");
+      }
     }
-  }
 
-  if ((st.hpRegen || 0) > 0 && state.hp > 0) {
-    const regen = Math.min(st.hpRegen, st.maxHp - state.hp);
-    if (regen > 0) {
-      state.hp += regen;
-      battleLog(battle, `Регенерация: +${regen} HP.`, "heal");
+    if (Array.isArray(battle.enemyDebuffs) && battle.enemyDebuffs.length) {
+      const poison = battle.enemyDebuffs.find((d) => d.id === "poison");
+      if (poison) {
+        const damage = Number(poison.damage) || 5;
+        battle.hp = Math.max(0, battle.hp - damage);
+        poison.turns -= 1;
+        if (poison.turns <= 0) battle.enemyDebuffs = battle.enemyDebuffs.filter((d) => d !== poison);
+        battleLog(battle, `Яд разъедает врага на ${damage} урона!`, "warn");
+      }
+      const bleed = battle.enemyDebuffs.find((d) => d.id === "bleed");
+      if (bleed) {
+        const damage = Number(bleed.damage) || 3;
+        battle.hp = Math.max(0, battle.hp - damage);
+        bleed.turns -= 1;
+        if (bleed.turns <= 0) battle.enemyDebuffs = battle.enemyDebuffs.filter((d) => d !== bleed);
+        battleLog(battle, `Кровотечение наносит врагу ${damage} урона.`, "warn");
+      }
+    }
+
+    if ((st.hpRegen || 0) > 0 && state.hp > 0) {
+      const regen = Math.min(st.hpRegen, st.maxHp - state.hp);
+      if (regen > 0) {
+        state.hp += regen;
+        battleLog(battle, `Регенерация: +${regen} HP.`, "heal");
+      }
     }
   }
 
@@ -414,9 +807,11 @@ function exchange(state, battle, action, weaponInst = null) {
   } else if (action.type === "pass") {
     battleLog(battle, "Вы меняете оружие.", "info");
   } else if (action.type === "defend") {
-    // Защитный размен без удара игрока: смена оружия или провал комбинации
-    // навыка. Моб бьёт, игрок только пытается защититься.
-    battleLog(battle, "Вы прикрываетесь и ждёте ответного удара.", "info");
+    // Защитный размен без удара игрока: смена оружия, провал комбинации
+    // навыка или отдельная фаза защиты печати. Моб бьёт, игрок защищается.
+    if (!typingDefensePhase) {
+      battleLog(battle, "Вы прикрываетесь и ждёте ответного удара.", "info");
+    }
   } else {
     const isSkill = action.type === "skill";
     let skillInfo = null;
@@ -447,17 +842,22 @@ function exchange(state, battle, action, weaponInst = null) {
     const zoneName = zone.name;
     const skillEffect = skillInfo ? skillInfo.talent.skill.effect : null;
     const skillUnblockable = skillEffect === "fury" || skillEffect === "aim"; // «в 2 зоны»: блок не помогает
-    const blocked = !skillUnblockable && !wasStaggered && enemyAction.blocks.includes(action.zone);
+    // Успешно введённое слово печати всегда пробивает блок и стан:
+    // старые проверки зон/ошеломления больше не съедают урон.
+    const typingSpeed = Number.isFinite(action.typingSpeed) ? action.typingSpeed : null;
+    const typingAttack = typingSpeed !== null;
+    const blocked = !typingAttack && !skillUnblockable && !wasStaggered && enemyAction.blocks.includes(action.zone);
+    const enemyDodged = !typingAttack && (e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus;
 
     if (blocked) {
       battleLog(battle, `Удар в «${zoneName}» — ${e.name} успевает закрыться.`, "block");
-      Sfx.play("hit_block");
+      Sfx.play("hit_block", { rate: COMBAT_HIT_RATE });
       if (zone.risk && Math.random() < zone.risk) {
         battle.riskyMiss = true;
       }
-    } else if ((e.dodgeBonus || 0) > 0 && Math.random() * 100 < e.dodgeBonus) {
+    } else if (enemyDodged) {
       battleLog(battle, `${e.name} уклоняется от удара в «${zoneName}».`, "miss");
-      Sfx.play("hit_miss");
+      Sfx.play("hit_miss", { rate: COMBAT_HIT_RATE });
     } else {
       const power = skillEffect === "fury" ? 1.8 : 1;
       const zoneMult = zone.damageMult || 1;
@@ -476,11 +876,20 @@ function exchange(state, battle, action, weaponInst = null) {
 
       let base = computeStrikeBase(st, { power, zoneMult, styleMult, armorMult, variance: rnd(0.9, 1.1) });
       const critChance = st.crit + achVs.crit + (zone.critBonus || 0);
+      // «Боевая печать»: крит выпадает вместе с длинным словом (флаг isCrit),
+      // поэтому случайный крит в этом режиме не бросается.
+      const typingFailed = typingAttack && (action.typingAttackSuccess === false || typingSpeed >= 999);
       // навык «Точный выстрел» гарантирует крит; быстрое комбо тоже критует
-      const crit = (action.comboFast === true || skillEffect === "aim")
-        ? true
-        : Math.random() * 100 < critChance;
-      if (crit) { base *= 1.7; state.critCount = (state.critCount || 0) + 1; }
+      const crit = typingAttack
+        ? (!typingFailed && action.isCrit === true)
+        : ((action.comboFast === true || skillEffect === "aim")
+          ? true
+          : Math.random() * 100 < critChance);
+      if (crit) {
+        // В режиме печати множитель ×1.5 применяется к готовому урону ниже.
+        if (!typingAttack) base *= 1.7;
+        state.critCount = (state.critCount || 0) + 1;
+      }
 
       const pierce = (zone.armorPierce || 0) + (st.armorPierce || 0) / 100;
       const effectiveDef = e.def * (1 - pierce);
@@ -496,16 +905,31 @@ function exchange(state, battle, action, weaponInst = null) {
         battleLog(battle, "Вы сбились с ритма!", "warn");
       }
 
-      // «Точный удар»: критический удар превращается в QTE. Урон пока не
-      // применяется — его нанесёт ui.js после остановки указателя.
-      const preciseStrike = crit && state.abilities && state.abilities.preciseStrike === true;
-      if (preciseStrike) {
-        battle.critWindow = { zone: action.zone, damageBase: damage, timeLeft: 3.0 };
-        battle.lastPlayerHit = true;
-        battle.rage = Math.min(5, battle.rage + (st.ragePerHit || 1));
-        battleLog(battle, "КРИТ! Точный удар — остановите указатель в зелёной зоне!", "crit");
-        playHitSound(style, { isCrit: true });
-        checkAchievements(state);
+      // Медленный ввод комбо (меньше 1.5 с на таймере): −10% урона.
+      if (action.comboSlow === true) {
+        damage = Math.max(1, Math.round(damage * 0.9));
+      }
+
+      // «Боевая печать»: сила даёт множитель за быстрый ввод (<1.5 с),
+      // длинное слово — крит ×1.5, аффикс — ×1.2 и эффект. Множители
+      // перемножаются; провал/таймаут — 0 урона.
+      if (typingAttack) {
+        if (typingFailed) {
+          damage = 0;
+        } else {
+          const str = Math.max(0, Number(st.attrs?.str) || 0);
+          const speedMult = typingSpeed < 1.5 ? 1.0 + str * 0.02 : 1.0;
+          const critMult = action.isCrit === true ? 1.5 : 1.0;
+          const affixMult = action.hasAffix === true ? 1.2 : 1.0;
+          damage = Math.max(1, Math.round(damage * speedMult * critMult * affixMult));
+        }
+      }
+
+      if (damage <= 0) {
+        // Провал печати: удар не нанесён, кураж и вампиризм не срабатывают.
+        battle.lastPlayerHit = false;
+        battleLog(battle, "Печать сбилась — удар ушёл в пустоту.", "miss");
+        Sfx.play("hit_miss", { rate: COMBAT_HIT_RATE });
       } else {
         battle.hp = Math.max(0, battle.hp - damage);
         gainEnemyRage(battle);
@@ -527,7 +951,35 @@ function exchange(state, battle, action, weaponInst = null) {
           `Удар в «${zoneName}» (${STYLE_NAMES[style]})${suffix}: ${damage} урона (${ARMOR_TYPE_NAMES[armorType]} x${armorMult.toFixed(1)}).`,
           crit ? "crit" : "hit"
         );
-        playHitSound(style, { isCrit: crit });
+
+        // Аффикс усиливает удар и накладывает эффект: «DEADLY» — яд,
+        // остальные приставки — кровотечение.
+        if (action.hasAffix === true) {
+          const affixName = String(action.affixType || "АФФИКС").trim();
+          const debuffId = affixName === "DEADLY" ? "poison" : "bleed";
+          const dot = Math.max(1, Math.round(damage * 0.12));
+          if (!Array.isArray(battle.enemyDebuffs)) battle.enemyDebuffs = [];
+          const existing = battle.enemyDebuffs.find((d) => d.id === debuffId);
+          if (existing) {
+            existing.turns = Math.max(Number(existing.turns) || 0, 2);
+            existing.damage = Math.max(Number(existing.damage) || 0, dot);
+          } else {
+            battle.enemyDebuffs.push({ id: debuffId, turns: 2, damage: dot });
+          }
+          battleLog(
+            battle,
+            `Аффикс «${affixName}»: ${debuffId === "bleed" ? "кровотечение" : "яд"} — ${dot} урона 2 хода.`,
+            "warn"
+          );
+        }
+
+        if (crit) {
+          // Крит-звук мог уже сыграть на последней стрелке быстрого комбо.
+          if (!action.silentPlayerCrit) playHitSound(style, { isCrit: true });
+        } else if (!action.silentPlayerHit) {
+          // Обычный удар уже прозвучал на последней верной стрелке — не дублируем.
+          playHitSound(style, { isCrit: false });
+        }
 
         // Криты считаются на «Мастера клинка» — проверка ачивок прямо здесь.
         if (crit) checkAchievements(state);
@@ -551,7 +1003,7 @@ function exchange(state, battle, action, weaponInst = null) {
   const companion = activeCompanion();
   battle.companionStunned = false;
   battle.companionBlocked = false;
-  if (companion && battle.hp > 0 && state.hp > 0) {
+  if (companion && !typingDefensePhase && battle.hp > 0 && state.hp > 0) {
     battle.companionTurn = (battle.companionTurn || 0) + 1;
     if (companion.id === "mira" && battle.companionTurn % 3 === 0) {
       const heal = Math.min(st.maxHp - state.hp, Math.max(1, Math.round(st.maxHp * 0.1)));
@@ -583,7 +1035,8 @@ function exchange(state, battle, action, weaponInst = null) {
     }
   }
 
-  if (battle.hp > 0) {
+  // Ответ врага — только в фазе защиты (или в обычном совместном размене).
+  if (!typingAttackPhase && battle.hp > 0) {
     if (battle.companionStunned || battle.companionBlocked) {
       battleLog(battle, battle.companionStunned
         ? `${e.name} не успевает ответить.`
@@ -620,29 +1073,24 @@ function exchange(state, battle, action, weaponInst = null) {
       }
       // Комбо защиты: успех — парирование (0 урона, +1 кураж),
       // провал — полный урон моба без уворота и парирования.
-      const hasDefenseQte = action.defenseSuccess === true || action.defenseSuccess === false;
       const playerParried = action.defenseSuccess === true;
       const defenseFailed = action.defenseSuccess === false;
       const enemyZone = ZONE_NAME[enemyAction.attack];
-      // «Парирование» бросается до проверки уворота, иначе уворот всегда
-      // перехватывал бы окно (его шанс выше, чем dodge * 0.5).
-      const parryTrigger = !hasDefenseQte && state.abilities && state.abilities.parry === true
-        && Math.random() * 100 < st.dodge * 0.5;
 
       if (playerParried) {
         // Кураж за парирование: успешное комбо защиты даёт +1 кураж.
         battle.rage = Math.min(5, battle.rage + 1);
         battleLog(battle, `${e.name} бьёт в «${enemyZone}» — вы парируете. +1 кураж.`, "block");
-        Sfx.play("hit_block");
+        Sfx.play("hit_block", { rate: COMBAT_HIT_RATE });
 
         if (state.archetype === "guardian") {
           const retaliation = Math.max(2, Math.round(e.atk * (st.mods?.blockCounter || 0.1)));
           battle.hp = Math.max(0, battle.hp - retaliation);
           battleLog(battle, `Страж отвечает на парирование: ${e.name} теряет ${retaliation} HP.`, "hit");
         }
-      } else if (!defenseFailed && !parryTrigger && Math.random() * 100 < st.dodge + achVs.dodge) {
+      } else if (!defenseFailed && Math.random() * 100 < st.dodge + achVs.dodge) {
         battleLog(battle, `${e.name} бьёт в «${enemyZone}», но вы уходите в сторону.`, "miss");
-        Sfx.play("hit_miss");
+        Sfx.play("hit_miss", { rate: COMBAT_HIT_RATE });
         Sfx.play("footstep_land");
         
         if ((st.counterOnDodge || 0) > 0) {
@@ -675,52 +1123,45 @@ function exchange(state, battle, action, weaponInst = null) {
         if ((e.enrage || e.ability === "rage") && battle.hp / battle.maxHp < 0.3) base *= 1.3;
         if (state.archetype === "guardian") base *= (st.mods?.dmgTakenMult || 1);
         const damage = Math.max(2, Math.round(base));
-        // «Парирование»: вместо пассивного уворота — окно QTE. Урон
-        // применяется только после реакции игрока (или по таймеру).
-        if (parryTrigger) {
-          battle.parryWindow = { damageBase: damage, zone: enemyZone, timeLeft: 2.0 };
-          battleLog(battle, `⚠️ Удар в «${enemyZone}»! Парируй!`, "warn");
-        } else {
-          state.hp = Math.max(0, state.hp - damage);
-          battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
-          playHitSound(enemyStyle, { isCrit: false });
+        state.hp = Math.max(0, state.hp - damage);
+        battleLog(battle, `${e.name} бьёт в «${enemyZone}» (${ARMOR_TYPE_NAMES[zoneArmorType]}, x${armorMult.toFixed(1)}): ${damage} урона.`, "enemy");
+        playHitSound(enemyStyle, { isCrit: false });
 
-          // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
-          if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
-            if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
-            state.brinkSurvived = true;
-            checkAchievements(state);
+        // На волоске от смерти: удар чуть не убил — счёт для «Бессмертного».
+        if (state.hp > 0 && state.hp <= Math.max(2, Math.round(st.maxHp * 0.05))) {
+          if (!state.brinkSurvived) battleLog(battle, "Вы выживаете на последних каплях крови!", "warn");
+          state.brinkSurvived = true;
+          checkAchievements(state);
+        }
+
+        reflectThorns(battle, uniques, damage);
+
+        if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
+          battle.secondWindUsed = true;
+          const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
+          if (healed > 0) {
+            state.hp += healed;
+            battleLog(battle, `Талант «Невозгибимый»: вы приходите в себя и восстанавливаете ${healed} HP!`, "heal");
           }
+        }
 
-          reflectThorns(battle, uniques, damage);
-
-          if ((st.secondWind || 0) > 0 && state.hp > 0 && state.hp < st.maxHp * 0.2 && !battle.secondWindUsed) {
-            battle.secondWindUsed = true;
-            const healed = Math.min(st.maxHp - state.hp, Math.round(st.maxHp * 0.3));
-            if (healed > 0) {
-              state.hp += healed;
-              battleLog(battle, `Талант «Невозгибимый»: вы приходите в себя и восстанавливаете ${healed} HP!`, "heal");
-            }
-          }
-
-          if (e.ability === "vampire") {
-            const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));
-            battle.hp = Math.min(battle.maxHp, battle.hp + healed);
-            battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
-          }
-          if (e.ability === "poison") {
-            if (battle.poisonImmune) {
-              battleLog(battle, "Щит веры отражает яд!", "heal");
+        if (e.ability === "vampire") {
+          const healed = Math.max(1, Math.round(damage * VAMPIRE_HEAL_PERCENT));
+          battle.hp = Math.min(battle.maxHp, battle.hp + healed);
+          battleLog(battle, `${e.name} впитывает ${healed} HP.`, "heal");
+        }
+        if (e.ability === "poison") {
+          if (battle.poisonImmune) {
+            battleLog(battle, "Щит веры отражает яд!", "heal");
+          } else {
+            if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
+            const existing = battle.playerDebuffs.find((d) => d.id === "poison");
+            if (existing) {
+              existing.turns = POISON_TURNS;
+              battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
             } else {
-              if (!Array.isArray(battle.playerDebuffs)) battle.playerDebuffs = [];
-              const existing = battle.playerDebuffs.find((d) => d.id === "poison");
-              if (existing) {
-                existing.turns = POISON_TURNS;
-                battleLog(battle, `Яд обновлён: ещё ${POISON_TURNS} хода.`, "warn");
-              } else {
-                battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
-                battleLog(battle, `${e.name} отравляет вас!`, "warn");
-              }
+              battle.playerDebuffs.push({ id: "poison", turns: POISON_TURNS });
+              battleLog(battle, `${e.name} отравляет вас!`, "warn");
             }
           }
         }
@@ -728,21 +1169,25 @@ function exchange(state, battle, action, weaponInst = null) {
     }
   }
 
-  state.mana = Math.min(st.maxMana, state.mana + MANA_REGEN);
+  // Конец раунда: мана, откаты, ход и износ снаряжения — только в фазе
+  // защиты (или в обычном размене). В фазе атаки раунд ещё не закончен.
+  if (!typingAttackPhase) {
+    state.mana = Math.min(st.maxMana, state.mana + MANA_REGEN);
 
-  // Тик откатов активных навыков: −1 ход за размен.
-  if (battle.skillCd) {
-    for (const id of Object.keys(battle.skillCd)) {
-      if (battle.skillCd[id] > 0) battle.skillCd[id] -= 1;
+    // Тик откатов активных навыков: −1 ход за размен.
+    if (battle.skillCd) {
+      for (const id of Object.keys(battle.skillCd)) {
+        if (battle.skillCd[id] > 0) battle.skillCd[id] -= 1;
+      }
     }
-  }
 
-  battle.turn += 1;
+    battle.round = (battle.round || 0) + 1;
 
-  const brokenGear = wearEquipment();
-  if (brokenGear.length) {
-    const names = brokenGear.map((inst) => getItemDisplayName(inst)).join(", ");
-    battleLog(battle, `Сломалось: ${names}.`, "warn");
+    const brokenGear = wearEquipment();
+    if (brokenGear.length) {
+      const names = brokenGear.map((inst) => getItemDisplayName(inst)).join(", ");
+      battleLog(battle, `Сломалось: ${names}.`, "warn");
+    }
   }
 
   let summary = null;

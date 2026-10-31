@@ -40,11 +40,15 @@ const platform = {
     },
   },
 
-  // Короткие звуковые эффекты (Этап 4). Каждый id — отдельный <audio>;
-  // проще и надёжнее, чем WebAudio-decode, для Electron/Capacitor.
+  // Короткие звуковые эффекты (Этап 4). Один общий <audio> для путей: новый
+  // звук принудительно обрывает предыдущий и стартует с нуля — без задержек
+  // и наслоения, удар слышен ровно в момент нажатия.
   sfx: {
-    cache: {}, // id/path → Audio
+    cache: {}, // id → Audio (совместимость с play(id))
     _missing: {}, // path → true, если файл не загрузился (чтобы не спамить 404)
+    _prefetched: {}, // path → true, уже прогревали HTTP-кеш
+    _pathEl: null, // единственный Audio-элемент для playPath
+    _pathSrc: null,
 
     create(id) {
       const el = new Audio(`assets/audio/${id}.mp3`);
@@ -59,54 +63,71 @@ const platform = {
       }
     },
 
-    // Создаёт <audio> для конкретного пути и запоминает битые файлы.
-    _createPath(path) {
-      const el = new Audio(path);
+    // Единственный <audio> для коротких эффектов по прямому пути.
+    _pathAudio() {
+      if (this._pathEl || typeof Audio === "undefined") return this._pathEl;
+      const el = new Audio();
       el.preload = "auto";
       el.addEventListener("error", () => {
-        this._missing[path] = true;
-        console.warn(`[sfx] Файл не найден или не загрузился: ${path}`);
-      }, { once: true });
+        if (!this._pathSrc) return;
+        this._missing[this._pathSrc] = true;
+        console.warn(`[sfx] Файл не найден или не загрузился: ${this._pathSrc}`);
+      });
+      this._pathEl = el;
       return el;
     },
 
-    // Предзагрузка по прямым путям (варианты из SOUND_VARIANTS).
+    // Прогрев HTTP-кеша по прямым путям (варианты из SOUND_VARIANTS).
+    // Audio-элементы не создаём: звук всегда играет один общий элемент.
     preloadPaths(paths) {
-      if (typeof Audio === "undefined") return;
+      if (typeof fetch !== "function") return;
       for (const path of paths) {
-        if (this._missing[path] || this.cache[path]) continue;
-        this.cache[path] = this._createPath(path);
+        if (this._missing[path] || this._prefetched[path]) continue;
+        this._prefetched[path] = true;
+        try { fetch(path).catch(() => {}); } catch (err) {}
       }
     },
 
-    // Проигрывает конкретный файл по пути (assets/audio/...). Кеш — по пути,
-    // чтобы разные варианты одного звука не перетирали друг друга.
-    playPath(path, { volume = null, rate = null } = {}) {
+    // Общая точка запуска: гасим текущий звук, сбрасываем время и играем заново.
+    _play(el, { volume = null, rate = null } = {}) {
+      if (this.volume !== null && this.volume !== undefined) el.volume = Math.max(0, Math.min(1, this.volume));
+      if (volume !== null) el.volume = Math.max(0, Math.min(1, Number(volume) || 0));
+      try { el.pause(); } catch (err) {}
+      try { el.currentTime = 0; } catch (err) {}
+      try { el.playbackRate = rate ? Math.max(0.25, Math.min(4, rate)) : 1; } catch (err) {}
+      const p = el.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    },
+
+    // Проигрывает конкретный файл по пути (assets/audio/...). Перед новым
+    // звуком текущий обрывается и его время сбрасывается в 0.
+    playPath(path, opts = {}) {
       if (typeof Audio === "undefined" || !path) return;
       if (this._missing[path]) return;
-      let el = this.cache[path];
-      if (!el) {
-        el = this._createPath(path);
-        this.cache[path] = el;
+      const el = this._pathAudio();
+      if (!el) return;
+
+      try { el.pause(); } catch (err) {}
+      if (this._pathSrc !== path) {
+        this._pathSrc = path;
+        el.src = path;
       }
+      try { el.currentTime = 0; } catch (err) {}
+
+      const { volume = null, rate = null } = opts;
       if (this.volume !== null && this.volume !== undefined) el.volume = Math.max(0, Math.min(1, this.volume));
       if (volume !== null) el.volume = Math.max(0, Math.min(1, Number(volume) || 0));
       try { el.playbackRate = rate ? Math.max(0.25, Math.min(4, rate)) : 1; } catch (err) {}
-      try { el.currentTime = 0; } catch (err) {}
+
       const p = el.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     },
 
-    play(id, { volume = null, rate = null } = {}) {
-      if (typeof Audio === "undefined") return;
+    play(id, opts = {}) {
+      if (typeof Audio === "undefined" || !id) return;
       let el = this.cache[id];
       if (!el) { el = this.create(id); this.cache[id] = el; }
-      if (this.volume !== null && this.volume !== undefined) el.volume = Math.max(0, Math.min(1, this.volume));
-      if (volume !== null) el.volume = Math.max(0, Math.min(1, Number(volume) || 0));
-      try { el.playbackRate = rate ? Math.max(0.25, Math.min(4, rate)) : 1; } catch (err) {}
-      try { el.currentTime = 0; } catch (err) {}
-      const p = el.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
+      this._play(el, opts);
     },
 
     volume: 0.25,

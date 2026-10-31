@@ -303,10 +303,14 @@ p { margin: 0; }
   height: 100%;
   opacity: 0.15;
   object-fit: cover;
-  transition: opacity 0.2s;
+  filter: brightness(0.55) contrast(1.1);
+  transition: opacity 0.2s, filter 0.2s;
 }
 
-.loc-card:hover .loc-image { opacity: 0.25; }
+.loc-card:hover .loc-image {
+  opacity: 0.25;
+  filter: brightness(0.8) contrast(1.1);
+}
 
 .loc-content {
   position: relative;
@@ -568,6 +572,20 @@ kbd {
 .btn.tech { border-color: #6a3b2a; background: linear-gradient(180deg, #4a241a, #2b1610); color: #f0b89a; }
 .btn.tech:not(:disabled):hover { border-color: #c0603c; }
 .btn.danger { border-color: #6a2a24; color: #e28f86; }
+
+/* Быстрый бой: тёмно-бордовый фарм-акцент, отделён от «Исследовать». */
+.btn.quick-fight {
+  border-color: #7a2b2b;
+  background: linear-gradient(180deg, #5a1f22, #2c0f11);
+  color: #ffb3a3;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 12px rgba(60, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.btn.quick-fight:hover:not(:disabled) {
+  border-color: #ff6b5b;
+  background: linear-gradient(180deg, #7d2a2d, #431417);
+  color: #ffd2c8;
+}
 
 /* ── Общие блоки ────────────────────────────────────────── */
 
@@ -1238,7 +1256,7 @@ kbd {
 .battle-top { margin-bottom: 16px; flex: 0 0 auto !important; }
 .battle-top h1 { font-size: 28px; margin-top: 2px; }
 .fighters { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); gap: 14px; align-items: stretch; margin-bottom: 18px; }
-.fighter { display: flex; gap: 14px; padding: 10px !important; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, #191310, #130e0b); overflow: hidden; }
+.fighter { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px !important; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, #191310, #130e0b); overflow: hidden; }
 .hero-fighter { border-color: #3c4a35; }
 .enemy-fighter { border-color: #4d3226; }
 .enemy-fighter.dead { opacity: 0; transform: scale(0.9); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -1977,7 +1995,12 @@ kbd {
 .sell-row .sell-name { flex: 1; min-width: 0; }
 .sell-row .hint { opacity: 0.6; font-size: 0.85em; font-style: normal; }
 
-.battle-log { max-height: 280px !important; min-height: 220px !important; margin-bottom: 10px !important; flex: 1 !important; overflow-y: auto; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #0e0a08; font-size: 13.5px; scrollbar-width: thin; scrollbar-color: #3d2c21 #0e0a08; }
+.battle-log { max-height: 280px !important; min-height: 220px !important; margin-top: 0 !important; margin-bottom: 10px !important; flex: 1 !important; overflow-y: auto; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: #0e0a08; font-size: 13.5px; scrollbar-width: thin; scrollbar-color: #3d2c21 #0e0a08; }
+.battle-log.collapsed { display: none !important; }
+.battle-log-toggle { margin: 0 0 6px; align-self: flex-start; }
+.last-battle-log { margin: 16px 0 4px; }
+.last-battle-log .battle-log { min-height: 0 !important; max-height: 180px !important; flex: 0 1 auto !important; }
+.last-battle-log-title { margin-bottom: 4px; color: var(--gold2); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; }
 
 .battle-middle {
   flex: 0 0 auto !important;
@@ -1989,7 +2012,7 @@ kbd {
   display: flex !important;
   flex-direction: column !important;
   gap: 10px !important;
-  min-height: 100vh !important; /* Разрешаем растягиваться */
+  min-height: 0 !important; /* Высоту задаёт контент, без жёсткого 100vh */
   padding: 10px 16px 20px !important;
   box-sizing: border-box !important;
   overflow-y: auto !important; /* Включаем скролл, если не влезает */
@@ -2100,7 +2123,7 @@ kbd {
 .resource-list { display: flex; flex-direction: column; gap: 8px; }
 .resource-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 6px; }
 
-.inventory-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.inventory-grid { display: grid; grid-template-columns: repeat(5, 1fr); align-content: start; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; }
 .inv-slot { position: relative; display: grid; place-items: center; aspect-ratio: 1; min-height: 56px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: #130f0c; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
 .inv-slot:hover { border-color: var(--gold); background: #1c1510; }
 
@@ -2236,6 +2259,8 @@ kbd {
   background-repeat: no-repeat;
   z-index: -1;
   pointer-events: none;
+  filter: blur(2px) brightness(0.5) contrast(1);
+  transform: scale(1.02); /* Предотвращает появление белых краев из-за размытия */
 }
 
 /* Универсальный затемняющий градиент поверх фонового изображения.
@@ -2248,10 +2273,14 @@ kbd {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(10, 8, 7, 0.7) 0%,
-    rgba(10, 8, 7, 0.4) 50%,
-    rgba(10, 8, 7, 0.9) 100%
+    rgba(10, 8, 7, 0.85) 0%,
+    rgba(10, 8, 7, 0.6) 50%,
+    rgba(10, 8, 7, 0.95) 100%
   );
+}
+
+.floor-card .bg-overlay {
+  background: linear-gradient(to bottom, rgba(10, 8, 7, 0.4) 0%, rgba(10, 8, 7, 0.2) 50%, rgba(10, 8, 7, 0.7) 100%);
 }
 
 /* Контент экранов — отдельный слой над фоном и градиентом. */
@@ -2790,6 +2819,11 @@ kbd {
   background-position: center;
   z-index: -1;
   pointer-events: none;
+}
+
+/* Смягчение фона боя: размытие и приглушение, чтобы не рябило в глазах */
+.battle {
+  backdrop-filter: blur(4px) brightness(0.6);
 }
 
 /* ── Колонки боя: грациозная перестановка (Удар | Центр | Блок) ── */
@@ -3776,7 +3810,7 @@ kbd {
   overflow-wrap: anywhere;
   overflow: visible;
 }
-.ability-combo-box span { font-size: 22px; line-height: 1; font-weight: 700; }
+.ability-combo-box span { font-size: 22px; line-height: 1; font-weight: 900; -webkit-text-stroke: 2px #000; text-shadow: 0 2px 0 #000, 0 0 8px rgba(0, 0, 0, 0.8); }
 .ability-empty { margin: 0; padding: 16px 4px; text-align: center; }
 
 /* Модалка выбора титула */
@@ -3869,6 +3903,188 @@ kbd {
   color: var(--dim);
 }
 
+/* Панель QTE под карточками бойцов: плавное появление */
+.combo-panel { transition: opacity 0.2s ease; }
+
+/* «Боевая печать»: слово над портретом и тонкий таймер под ним */
+.typing-word {
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0 0 6px;
+  text-align: center;
+  --typing-accent: #6fdc7f;
+}
+.typing-word.style-slashing { --typing-accent: #6fdc7f; }
+.typing-word.style-piercing { --typing-accent: #5bb8ff; }
+.typing-word.style-bludgeoning { --typing-accent: #ff6b5b; }
+.typing-word.defense { --typing-accent: #ffd75e; }
+.typing-word.skill { --typing-accent: #dfb86c; }
+.typing-word-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  color: var(--typing-accent);
+}
+.typing-word-text {
+  display: block;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 3px;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #000, 0 0 10px rgba(0, 0, 0, 0.85);
+}
+.typing-word .typed { color: #6fdc7f; }
+.typing-word .wrong { color: #ff4040; text-shadow: 0 0 10px rgba(255, 64, 64, 0.9); }
+.typing-word .rest { color: #ffffff; }
+.typing-word .affix-typed { color: #c084fc; text-shadow: 0 0 10px rgba(192, 132, 252, 0.8); }
+.typing-word .affix-rest { color: #9a6bd6; }
+.typing-word.defense .typed { color: #6fdc7f; }
+.typing-word.defense .rest { color: #ffffff; }
+/* Длинное слово-крит: золото с красным свечением и подпись «КРИТ!». */
+.typing-word.crit-word { --typing-accent: #ff6b5b; }
+.typing-word.crit-word .typed { color: #ffd75e; }
+.typing-word.crit-word .rest { color: #ff9d7a; }
+.typing-word.crit-word .typing-word-label { color: #ffd75e; text-shadow: 0 0 8px rgba(255, 107, 91, 0.8); }
+.typing-word.crit-word .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 14px rgba(255, 107, 91, 0.8); }
+/* Метка аффикса рядом с подписью типа удара. */
+.typing-word.has-affix .typing-word-label::after { content: " · АФФИКС"; color: #c084fc; }
+.typing-word.attack .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 12px rgba(111, 220, 127, 0.55); }
+.typing-word.style-piercing .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 12px rgba(91, 184, 255, 0.6); }
+.typing-word.style-bludgeoning .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 107, 91, 0.6); }
+.typing-word.defense .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 215, 94, 0.6); }
+.typing-word.skill .typing-word-text { text-shadow: 0 2px 0 #000, 0 0 12px rgba(223, 184, 108, 0.6); }
+.typing-word.failed { animation: typing-shake 0.15s linear; }
+@keyframes typing-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+.typing-word-timer {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: 3px;
+  margin: 4px auto 0;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.typing-word-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  background: var(--typing-accent);
+  transition: width 0.1s linear;
+}
+/* Пока печатается приём, слово обычной атаки гаснет. */
+.typing-word.dimmed { opacity: 0.28; filter: grayscale(1); }
+
+/* Блок «ДОСТУПНЫЕ ПРИЁМЫ»: отдельно от слова обычной атаки. */
+.skill-words {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 1px solid rgba(223, 184, 108, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(223, 184, 108, 0.12), rgba(20, 14, 10, 0.55));
+}
+.skill-words-title {
+  margin-bottom: 5px;
+  color: #dfb86c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+.skill-words-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.skill-words-empty { color: var(--dim); font-size: 12px; }
+.skill-word-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid rgba(223, 184, 108, 0.35);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.skill-word-chip.active {
+  border-color: #ffd75e;
+  box-shadow: 0 0 10px rgba(255, 215, 94, 0.55);
+}
+.skill-word-icon { font-size: 17px; line-height: 1; }
+.skill-word-body { display: flex; flex-direction: column; line-height: 1.1; }
+.skill-word-name { color: var(--dim); font-size: 10px; }
+.skill-word-text {
+  color: #ffe6a3;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+.skill-word-typed { color: #6fdc7f; }
+.skill-word-rest { color: #ffe6a3; }
+.skill-word-meta { margin-left: 4px; color: var(--dim); font-size: 9px; white-space: nowrap; }
+
+/* Три боевых слота оружия рядом с портретом героя. */
+.battle-weapon-slots {
+  display: flex;
+  flex: 0 0 auto;
+  align-self: center;
+  gap: 4px;
+}
+.battle-weapon-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 42px;
+  padding: 2px;
+  box-sizing: border-box;
+  border: 1px solid #3a2c22;
+  border-radius: 8px;
+  background: #140f0c;
+  cursor: pointer;
+}
+.battle-weapon-slot.filled img { width: 28px; height: 28px; object-fit: contain; }
+.battle-weapon-slot.empty { border-color: #3a3a3a; background: #1b1b1b; }
+.battle-weapon-slot:hover { border-color: #dfb86c; }
+.battle-weapon-slot.active {
+  border-color: #dfb86c;
+  box-shadow: 0 0 8px rgba(223, 184, 108, 0.65);
+}
+.battle-weapon-slot-key {
+  position: absolute;
+  top: -5px;
+  left: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #dfb86c;
+  color: #1a120b;
+  font-size: 9px;
+  font-weight: 900;
+}
+.battle-weapon-slot.empty .battle-weapon-slot-key {
+  position: static;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: transparent;
+  color: #777;
+  font-size: 14px;
+}
+
 /* Крупные стрелки QTE в боевой панели */
 .combo-arrows {
   display: flex;
@@ -3877,6 +4093,8 @@ kbd {
   gap: 10px;
   min-height: 48px;
   line-height: 1;
+  font-weight: 900;
+  text-shadow: 0 0 4px #000;
 }
 .combo-arrow {
   flex: 0 0 auto;
@@ -3886,6 +4104,8 @@ kbd {
   font-weight: 900;
   line-height: 1;
   text-align: center;
+  -webkit-text-stroke: 2px #000;
+  text-shadow: 0 2px 0 #000, 0 0 8px rgba(0, 0, 0, 0.8);
 }
 .skill-hint-arrow {
   display: inline-block;
@@ -4046,6 +4266,21 @@ kbd {
 .custom-tooltip .tt-set { color: var(--gold); font-style: italic; }
 .custom-tooltip .tt-set-active { color: #a9d3b1; }
 
+/* Клавиша-хоткей внутри подсказки. */
+.custom-tooltip kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-top: 6px;
+  border: 1px solid var(--line2);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #130f0c;
+  color: var(--gold2);
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: bold;
+}
+
 /* Сравнение предметов: магазинный слева, надетый справа. */
 .custom-tooltip.tooltip-wide { max-width: 560px; }
 .tooltip-compare-container {
@@ -4115,4 +4350,769 @@ body:has(.screen[data-screen="battle"]) .settings-fab {
     bottom: 14px; right: 14px;
   }
   body:has(.screen[data-screen="battle"]) .settings-fab { bottom: 72px; }
+}
+
+/* ======================================================================
+   REAL-TIME �����: ��� ����� ���� ����� ����������, ����� � ����������.
+   �������� ������ ������������� �� ������ � ����� �� ������� �����.
+   ====================================================================== */
+.fighters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.9fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  height: 236px;
+  min-height: 236px;
+  margin-top: 10px;
+  margin-bottom: 18px;
+  overflow: visible;
+}
+.fighter {
+  height: 100%;
+  min-height: 200px;
+  box-sizing: border-box;
+  overflow: visible;
+  align-content: flex-start;
+}
+.fighter-body { justify-content: center; }
+
+/* �����: ��� ������������ ������� ������. */
+.duel-center {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  height: 100%;
+  min-height: 200px;
+  align-self: stretch;
+  overflow: visible;
+}
+.duel-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  box-sizing: border-box;
+  padding: 26px 6px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(22, 16, 13, 0.94), rgba(14, 10, 8, 0.94));
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.duel-slot.attack {
+  border-color: rgba(111, 220, 127, 0.42);
+  background: linear-gradient(180deg, rgba(30, 62, 38, 0.42), rgba(14, 20, 15, 0.94));
+}
+.duel-slot.defense {
+  border-color: rgba(255, 107, 91, 0.4);
+  background: linear-gradient(180deg, rgba(62, 26, 22, 0.42), rgba(20, 12, 10, 0.94));
+}
+.duel-slot.attack.active {
+  border-color: #5a7d5e;
+  box-shadow: none;
+}
+.duel-slot.defense.active {
+  border-color: #7d5a5a;
+  box-shadow: none;
+}
+.duel-slot.combo {
+  border-color: #ffd75e;
+  box-shadow: 0 0 0 1px rgba(255, 215, 94, 0.45), 0 0 28px rgba(255, 215, 94, 0.25);
+  animation: duel-combo-pulse 0.8s ease-in-out infinite alternate;
+}
+.duel-slot.empty { opacity: 0.45; }
+@keyframes duel-combo-pulse {
+  from { box-shadow: 0 0 0 1px rgba(255, 215, 94, 0.35), 0 0 14px rgba(255, 215, 94, 0.18); }
+  to { box-shadow: 0 0 0 2px rgba(255, 215, 94, 0.7), 0 0 30px rgba(255, 215, 94, 0.35); }
+}
+
+.duel-slot-label {
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+.duel-slot.attack .duel-slot-label { color: #8fe39b; }
+.duel-slot.defense .duel-slot-label { color: #ff9d90; }
+.duel-slot.combo .duel-slot-label { color: #ffe066; }
+
+/* ��������� ����� � ������ �������������, ������ �����, ��� �������. */
+.typing-word-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 28px;
+  bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 4px;
+  pointer-events: none;
+}
+.duel-word {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: clamp(17px, 1.9vw, 26px);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: 0.1em;
+  word-break: break-word;
+  opacity: 0.9;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.9);
+}
+.duel-slot.attack .duel-word { color: #e0d6c8; }
+.duel-slot.defense .duel-word { color: #e0d6c8; }
+.duel-slot.attack .duel-word .typed {
+  color: #8ce09a;
+  text-shadow: 0 0 6px rgba(140, 224, 154, 0.5);
+}
+.duel-slot.defense .duel-word .typed { color: #b87368; text-shadow: none; }
+.duel-slot .duel-word .affix-typed {
+  color: #e6a84b;
+  text-shadow: 0 0 8px rgba(230, 168, 75, 0.6);
+}
+.duel-slot .duel-word .affix-rest {
+  color: #7a6b58;
+  text-shadow: none;
+}
+.duel-slot .duel-word .crit-typed { color: #d9b54b; text-shadow: none; }
+.duel-slot .duel-word .combo-typed { color: #d9b54b; text-shadow: none; }
+.duel-word.empty { opacity: 0.35; }
+
+.duel-slot-timer {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.duel-slot-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #b45309, #ffd75e);
+  box-shadow: 0 0 8px rgba(255, 215, 94, 0.65);
+  transition: width 0.05s linear;
+}
+.duel-slot.defense .duel-slot-fill { background: linear-gradient(90deg, #9b2c20, #ff8b7d); box-shadow: none; }
+.duel-slot.combo .duel-slot-fill { background: linear-gradient(90deg, #b8860b, #ffe066); }
+/* Бесшовный перехват ввода атака→защита: короткая вспышка слота защиты. */
+.duel-slot.switch-flash {
+  animation: duel-slot-switch 0.45s ease-out;
+}
+@keyframes duel-slot-switch {
+  0%   { box-shadow: 0 0 0 0 rgba(140, 180, 255, 0.65); }
+  60%  { box-shadow: 0 0 0 3px rgba(140, 180, 255, 0.45); }
+  100% { box-shadow: 0 0 0 16px rgba(140, 180, 255, 0); }
+}
+.duel-slot-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+/* ������ ������ ��� �����. */
+.windup-wrap {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  min-height: 14px;
+}
+.windup-label {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ffd75e;
+}
+.windup-bar {
+  flex: 1 1 auto;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 215, 94, 0.25);
+  overflow: hidden;
+}
+.windup-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #c2410c, #ffd75e);
+  box-shadow: 0 0 10px rgba(255, 215, 94, 0.7);
+  transition: width 0.05s linear;
+}
+.windup-seconds {
+  flex: 0 0 48px;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd75e;
+}
+
+/* ������ ����� ������� ���������� ��� ��������� ����. */
+.balance-wrap {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 215, 94, 0.12);
+}
+.balance-label {
+  flex: 0 0 auto;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #d9b64b;
+}
+.balance-bar {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(217, 182, 75, 0.2);
+  overflow: hidden;
+}
+.balance-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #9a6b10, #ffe066);
+  box-shadow: 0 0 9px rgba(255, 215, 94, 0.65);
+  transition: width 0.2s ease;
+}
+.balance-value {
+  flex: 0 0 26px;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffe066;
+}
+
+@media (max-width: 680px) {
+  .fighters {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .fighter { height: auto; min-height: 200px; }
+  .duel-center { min-height: 168px; height: 168px; }
+  .duel-slot { min-height: 168px; padding-top: 24px; }
+  .duel-word { font-size: 17px; }
+}
+
+/* ── Статы моба в карточке (Real-Time дуэль) ───────────────────────────── */
+.mob-stats {
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  color: var(--dim, #8a7f74);
+  margin: 2px 0;
+  white-space: nowrap;
+}
+.mob-stats .stat-higher {
+  color: #ff6b5b;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 82, 65, 0.65);
+}
+
+/* ── Ментальное давление: чужой INT глушит наш — буквы на месте, слово
+      тускнеет и уходит в красно-коричневый оттенок без свечения ── */
+.duel-word.glitch {
+  opacity: 0.6; /* Просто делаем слово полупрозрачным, чтобы показать давление, без изменения цвета */
+}
+
+/* ── Окна восстановления мобов: метки состояния над карточкой ──────────── */
+.windup-label.recovery { color: #8a7f74; text-shadow: none; }
+.windup-label.stun { color: #ffe066; }
+.windup-label.windup { color: #ffd75e; text-shadow: 0 0 8px rgba(255, 140, 66, 0.55); }
+
+/* ── Доска объявлений: заказчик и массовые кнопки ──────────────────────── */
+.contract-customer { margin: 4px 0 2px; font-size: 11px; color: var(--dim, #8a7f74); }
+.contract-customer b { color: var(--gold2, #d7b76c); }
+.board-mass { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── Сундуки (Гача) ─────────────────────────────────────────────────────── */
+.chest-stock .group-title { margin-bottom: 4px; }
+.chest-row { flex-wrap: wrap; gap: 8px; }
+.chest-loot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.chest-loot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--line, #3a322a);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+.chest-loot-card .chest-loot-name { font-size: 12px; font-weight: 700; }
+.chest-loot-card .chest-loot-amount { color: var(--gold, #d7b76c); font-weight: 800; }
+.chest-loot-card .chest-loot-kind { font-size: 10px; color: var(--dim, #8a7f74); }
+.chest-loot-list { text-align: left; max-height: 300px; overflow-y: auto; margin: 12px 0; }
+.chest-loot-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.chest-result-card { max-width: 560px; }
+.chest-result-card .chest-loot-card .chest-loot-name { line-height: 1.3; }
+
+/* Список зон на экране этажа */
+.zone-list { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 20px; }
+
+.zone-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-radius: 12px; border: 1px solid var(--line);
+  background: linear-gradient(90deg, #1e1612 0%, #130e0b 100%);
+  color: var(--text); position: relative; overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.zone-row:not(.locked):hover {
+  border-color: var(--gold); background: linear-gradient(90deg, #291f17 0%, #17110d 100%);
+  transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+}
+
+.zone-row.locked {
+  opacity: 0.6; background: #0d0a08; border-style: dashed; border-color: #2b2019;
+}
+
+.zone-row-info { display: flex; flex-direction: column; gap: 4px; }
+.zone-row-title { font-family: Georgia, serif; font-size: 17px; font-weight: bold; color: var(--gold2); }
+.zone-row.locked .zone-row-title { color: var(--dim); }
+.zone-row-desc { font-size: 13px; color: var(--dim); font-style: italic; }
+
+.zone-row-action { display: flex; align-items: center; gap: 15px; }
+.zone-row-cost { font-size: 14px; color: #e0a96d; font-weight: bold; }
+
+/* Цветовые полоски */
+.zone-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.zone-row.zone-1::before { background: #5a9e6b; }
+.zone-row.zone-2::before { background: #9e9a5a; }
+.zone-row.zone-3::before { background: #9e7b5a; }
+.zone-row.zone-4::before { background: #9e5a5a; }
+.zone-row.zone-5::before { background: #7e5a9e; }
+
+/* Нижняя выезжающая панель событий (Bottom Sheet) */
+.event-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: linear-gradient(180deg, #1b140f 0%, #0d0907 100%);
+  border-top: 2px solid var(--gold);
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+  padding: 20px 30px 30px;
+  animation: slideUp 0.3s ease-out forwards;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.event-content { max-width: 800px; margin: 0 auto; text-align: center; }
+.event-content h2 { color: var(--gold2); font-size: 22px; margin-top: 0; }
+.event-content p { font-size: 15px; line-height: 1.5; margin-bottom: 20px; color: var(--text); }
+.event-actions { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+
+/* ── FIFA-карточка открытия сундука ────────────────────────────────────── */
+.fifa-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
+  animation: fade-in 0.2s ease;
+}
+
+.fifa-card {
+  width: 320px;
+  height: 460px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  border: 2px solid;
+  overflow: hidden;
+  animation: fifa-card-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes fifa-card-in {
+  from { opacity: 0; transform: scale(0.86) rotateY(70deg); }
+  to { opacity: 1; transform: scale(1) rotateY(0deg); }
+}
+
+/* Цвета карточек в зависимости от редкости */
+.rarity-common { background: linear-gradient(180deg, #2a2a2a, #111); border-color: #555; }
+.rarity-uncommon { background: linear-gradient(180deg, #1a2e1a, #0a110a); border-color: #4caf50; }
+.rarity-rare { background: linear-gradient(180deg, #1a2a3a, #0a111a); border-color: #2196f3; }
+.rarity-epic { background: linear-gradient(180deg, #2a1a3a, #110a1a); border-color: #9c27b0; }
+.rarity-legendary { background: linear-gradient(180deg, #3a2a1a, #1a110a); border-color: #ff9800; box-shadow: 0 0 30px rgba(255, 152, 0, 0.4); }
+
+.fifa-card-closed {
+  background: linear-gradient(180deg, #1b1b1b, #070707);
+  border-color: #444;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.03);
+}
+
+.fifa-card h2 {
+  font-size: clamp(22px, 6vw, 30px);
+  line-height: 1.1;
+  margin: 0;
+  text-transform: uppercase;
+  text-shadow: 0 2px 5px #000;
+  word-break: break-word;
+}
+
+.fifa-card img {
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+.fifa-card-stats {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-size: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.fifa-card-back,
+.fifa-card-reveal,
+.fifa-card-item {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.fifa-card-back-mark {
+  font-size: 112px;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
+}
+
+.fifa-card-back-caption {
+  font-size: 13px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.fifa-card-rarity {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 8px #000;
+}
+
+.fifa-card-type {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.fifa-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.fifa-card-item .fifa-card-stats {
+  margin-bottom: 0;
+}
+
+.fifa-card-affix {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold2, #f0d79a);
+}
+
+.fifa-card-btn {
+  flex-shrink: 0;
+  margin-top: 16px;
+  min-width: 160px;
+}
+
+.fifa-card:hover {
+  transform: scale(1.02);
+}
+
+.card-hint {
+  margin-top: 15px;
+  font-size: 14px;
+  color: var(--gold2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  animation: pulseHint 1.5s infinite;
+}
+
+@keyframes pulseHint {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Плавная смена шагов: контейнер гаснет/появляется без перерисовки всего экрана. */
+.fifa-card-container {
+  transition: opacity 0.2s ease-in-out;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.fifa-card {
+  animation: cardFlipIn 0.6s ease-out;
+  transform-style: preserve-3d;
+}
+
+@keyframes cardFlipIn {
+  0% { transform: rotateY(90deg) scale(0.8); opacity: 0; }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+
+.rarity-legendary {
+  animation: legendaryGlow 2s infinite alternate;
+}
+
+/* Легендарная карточка должна одновременно переворачиваться и пульсировать. */
+.fifa-card.rarity-legendary {
+  animation: cardFlipIn 0.6s ease-out, legendaryGlow 2s infinite alternate;
+}
+
+@keyframes legendaryGlow {
+  from { box-shadow: 0 0 15px rgba(255, 152, 0, 0.3), inset 0 0 15px rgba(255, 152, 0, 0.1); }
+  to { box-shadow: 0 0 40px rgba(255, 152, 0, 0.8), inset 0 0 30px rgba(255, 152, 0, 0.4); border-color: #ffd700; }
+}
+
+.btn-delayed {
+  animation: fadeInUp 0.4s ease-out 0.6s both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Массовое открытие сундуков: сетка лута ─────────────────────────────── */
+.mass-loot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(5px);
+}
+
+.mass-loot-window {
+  width: 90vw;
+  max-width: 800px;
+  max-height: 85vh;
+  box-sizing: border-box;
+  background: #14100d;
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.mass-loot-title {
+  margin: 0;
+  text-align: center;
+  color: var(--gold2, #f0d79a);
+  font-size: 20px;
+}
+
+.mass-loot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: 10px;
+}
+
+.mass-loot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a120e;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  gap: 5px;
+  position: relative;
+}
+
+.mass-loot-card img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.mass-loot-card .name {
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.mass-loot-card .amount {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold2, #f0d79a);
+}
+
+.mass-loot-card.rarity-uncommon { border-color: #4caf50; }
+.mass-loot-card.rarity-rare { border-color: #2196f3; }
+.mass-loot-card.rarity-epic { border-color: #9c27b0; }
+.mass-loot-card.rarity-legendary { box-shadow: 0 0 15px rgba(255, 152, 0, 0.5); border-color: #ff9800; }
+
+.mass-loot-close {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+/* ── Массовое открытие: рубашки карт и подсветка редкости ───────────────── */
+.mass-card-wrapper {
+  position: relative;
+  min-height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a120e;
+  border: 1px solid var(--line2);
+}
+
+.mass-card-back {
+  width: 100%;
+  height: 100%;
+  background: #110d0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--dim);
+  border-radius: 8px;
+}
+
+/* Свечение рубашек в зависимости от редкости */
+.mass-card-wrapper.rarity-uncommon { border: 2px solid #4caf50; box-shadow: 0 0 10px rgba(76,175,80,0.35); }
+.mass-card-wrapper.rarity-rare { border: 2px solid #2196f3; box-shadow: 0 0 10px rgba(33,150,243,0.4); }
+.mass-card-wrapper.rarity-epic { border: 2px solid #9c27b0; box-shadow: 0 0 10px rgba(156,39,176,0.4); }
+.mass-card-wrapper.rarity-legendary { border: 2px solid #ff9800; box-shadow: 0 0 15px rgba(255,152,0,0.6); }
+
+.mass-card-wrapper.mass-card-opened {
+  animation: mass-card-fade-in 0.28s ease both;
+}
+
+@keyframes mass-card-fade-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.mass-card-wrapper .mass-loot-card {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+}
+
+.mass-loot-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.mass-loot-actions .btn {
+  flex: 1;
+  width: auto;
+}
+
+.mass-reveal-all {
+  border-color: var(--gold);
+  color: var(--gold2, #f0d79a);
+}
+
+.mass-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+}
+
+.mass-card-stats .chip {
+  font-size: 9px;
+  padding: 1px 4px;
 }
