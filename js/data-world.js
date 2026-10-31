@@ -59,23 +59,23 @@ function ambushMobIndex(floor, excludeIndex = -1) {
 // остальное — контракты на охоту вида «Истребить 5 [имя моба] на [этаж]».
 const HUNT_CONTRACTS = [
   // Недельные заказы Ивана — по шаблону на каждый этаж.
-  { id: "ivan_weekly_f1", type: "weekly", mobId: "goblin_scout", floorId: 1, target: 10, gold: 420, xp: 280, rep: 2, desc: "Капитан собирает трофейные счёты: десять гостей Тёмного Леса к концу недели." },
-  { id: "ivan_weekly_f2", type: "weekly", mobId: "kobold_miner", floorId: 2, target: 10, gold: 620, xp: 420, rep: 2, desc: "Кобольды копают слишком близко к караванным путям. Ивану это не нравится." },
-  { id: "ivan_weekly_f3", type: "weekly", mobId: "skeleton_warrior", floorId: 3, target: 10, gold: 860, xp: 560, rep: 2, desc: "Из склепа доносится стук костей. Капитан платит за тишину." },
-  { id: "ivan_weekly_f4", type: "weekly", mobId: "orc_raider", floorId: 4, target: 10, gold: 1150, xp: 740, rep: 2, desc: "Орочьи набеги участились. Заплатят за каждый клинок, что не вернётся в лагерь." },
-  { id: "ivan_weekly_f5", type: "weekly", mobId: "fire_imp", floorId: 5, target: 10, gold: 1500, xp: 980, rep: 2, desc: "Бесы жгут леса на подходах к Башне. Гильдия объявила облаву." },
+  { id: "ivan_weekly_f1", type: "weekly", mobId: "goblin_scout", floorId: 1, target: 10, gold: 420, xp: 280, rep: 2, desc: "Капитан собирает трофейные счёты: десять гостей Тёмного Леса к концу недели (Этаж 1)." },
+  { id: "ivan_weekly_f2", type: "weekly", mobId: "kobold_miner", floorId: 2, target: 10, gold: 620, xp: 420, rep: 2, desc: "Кобольды копают слишком близко к караванным путям. Ивану это не нравится (Этаж 2)." },
+  { id: "ivan_weekly_f3", type: "weekly", mobId: "skeleton_warrior", floorId: 3, target: 10, gold: 860, xp: 560, rep: 2, desc: "Из склепа доносится стук костей. Капитан платит за тишину (Этаж 3)." },
+  { id: "ivan_weekly_f4", type: "weekly", mobId: "orc_raider", floorId: 4, target: 10, gold: 1150, xp: 740, rep: 2, desc: "Орочьи набеги участились. Заплатят за каждый клинок, что не вернётся в лагерь (Этаж 4)." },
+  { id: "ivan_weekly_f5", type: "weekly", mobId: "fire_imp", floorId: 5, target: 10, gold: 1500, xp: 980, rep: 2, desc: "Бесы жгут леса на подходах к Башне. Гильдия объявила облаву (Этаж 5)." },
 
   // Контракты на охоту — на доске висят по два.
-  { id: "hc_hobgoblin", type: "hunt", mobId: "hobgoblin", floorId: 1, target: 5, gold: 180, xp: 120, rep: 1, desc: "Хобгоблины топчут покосы и пугают дровосеков." },
-  { id: "hc_bugbear", type: "hunt", mobId: "bugbear", floorId: 1, target: 5, gold: 220, xp: 160, rep: 1, desc: "Багбиры ломают изгороди по краю Тёмного Леса." },
-  { id: "hc_kobold_servant", type: "hunt", mobId: "kobold_servant", floorId: 2, target: 5, gold: 280, xp: 190, rep: 1, desc: "Кобольдские слуги таскают руду наверх и путаются под ногами у караванов." },
-  { id: "hc_kobold_overseer", type: "hunt", mobId: "kobold_overseer", floorId: 2, target: 5, gold: 300, xp: 210, rep: 1, desc: "Надсмотрщики сгоняют кобольдов в шахты и не дают им разбежаться." },
-  { id: "hc_unquiet_ghost", type: "hunt", mobId: "unquiet_ghost", floorId: 3, target: 5, gold: 380, xp: 250, rep: 1, desc: "Призраки шепчут путникам странные вещи." },
-  { id: "hc_crypt_ghoul", type: "hunt", mobId: "crypt_ghoul", floorId: 3, target: 5, gold: 400, xp: 270, rep: 1, desc: "Упыри растащили половину старого кладбища." },
-  { id: "hc_orc_shaman", type: "hunt", mobId: "orc_shaman", floorId: 4, target: 5, gold: 460, xp: 310, rep: 1, desc: "Орочьи шаманы варят у костров что-то зловещее." },
-  { id: "hc_ogre_brute", type: "hunt", mobId: "ogre_brute", floorId: 4, target: 5, gold: 520, xp: 350, rep: 1, desc: "Огр выворачивает валуны прямо на тракте." },
-  { id: "hc_hell_hound", type: "hunt", mobId: "hell_hound", floorId: 5, target: 5, gold: 600, xp: 400, rep: 1, desc: "Гончие псарни Бездны вырвались на прогалины." },
-  { id: "hc_horned_devil", type: "hunt", mobId: "horned_devil", floorId: 5, target: 5, gold: 680, xp: 450, rep: 1, desc: "Рогатый дьявол вершит свой суд на пятом ярусе." },
+  { id: "hc_hobgoblin", type: "hunt", mobId: "hobgoblin", floorId: 1, target: 5, gold: 180, xp: 120, rep: 1, desc: "Хобгоблины топчут покосы и пугают дровосеков (Этаж 1)." },
+  { id: "hc_bugbear", type: "hunt", mobId: "bugbear", floorId: 1, target: 5, gold: 220, xp: 160, rep: 1, desc: "Багбиры ломают изгороди по краю Тёмного Леса (Этаж 1, зона 3)." },
+  { id: "hc_kobold_servant", type: "hunt", mobId: "kobold_servant", floorId: 2, target: 5, gold: 280, xp: 190, rep: 1, desc: "Кобольдские слуги таскают руду наверх и путаются под ногами у караванов (Этаж 2)." },
+  { id: "hc_kobold_overseer", type: "hunt", mobId: "kobold_overseer", floorId: 2, target: 5, gold: 300, xp: 210, rep: 1, desc: "Надсмотрщики сгоняют кобольдов в шахты и не дают им разбежаться (Этаж 2)." },
+  { id: "hc_unquiet_ghost", type: "hunt", mobId: "unquiet_ghost", floorId: 3, target: 5, gold: 380, xp: 250, rep: 1, desc: "Призраки шепчут путникам странные вещи (Этаж 3)." },
+  { id: "hc_crypt_ghoul", type: "hunt", mobId: "crypt_ghoul", floorId: 3, target: 5, gold: 400, xp: 270, rep: 1, desc: "Упыри растащили половину старого кладбища (Этаж 3)." },
+  { id: "hc_orc_shaman", type: "hunt", mobId: "orc_shaman", floorId: 4, target: 5, gold: 460, xp: 310, rep: 1, desc: "Орочьи шаманы варят у костров что-то зловещее (Этаж 4)." },
+  { id: "hc_ogre_brute", type: "hunt", mobId: "ogre_brute", floorId: 4, target: 5, gold: 520, xp: 350, rep: 1, desc: "Огр выворачивает валуны прямо на тракте (Этаж 4)." },
+  { id: "hc_hell_hound", type: "hunt", mobId: "hell_hound", floorId: 5, target: 5, gold: 600, xp: 400, rep: 1, desc: "Гончие псарни Бездны вырвались на прогалины (Этаж 5)." },
+  { id: "hc_horned_devil", type: "hunt", mobId: "horned_devil", floorId: 5, target: 5, gold: 680, xp: 450, rep: 1, desc: "Рогатый дьявол вершит свой суд на пятом ярусе (Этаж 5)." },
 ];
 
 const MOB_ICONS = {
@@ -335,21 +335,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/orc_camp.webp",
     bg: "assets/backgrounds/orc_camp.webp",
     mobs: [
-      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", hp: 828, atk: 91, str: 30, agi: 18, int: 8, def: 30, gold: 145, xp: 205, armorType: "chain", weapons: ["runic_great_axe", "runic_mace", "runic_short_sword"], prefers: ["head", "chest"],
+      enemy({ id: "orc_raider", name: "Орк-налётчик", icon: "🐗", zone: 1, hp: 828, atk: 91, str: 30, agi: 18, int: 8, def: 30, gold: 145, xp: 205, armorType: "chain", weapons: ["runic_great_axe", "runic_mace", "runic_short_sword"], prefers: ["head", "chest"],
         desc: "Свирепый налётчик, чья секира помнит десятки черепов. Рубит сверху, целясь в голову и грудь.",
         drops: [
           { id: "iron_chain", chance: 0.35, min: 1, max: 2 },
           { id: "orc_tusk", chance: 0.3, min: 1, max: 2 },
           { id: "bone", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", hp: 900, atk: 96, str: 18, agi: 14, int: 32, def: 22, gold: 158, xp: 215, armorType: "cloth", weapons: ["runic_maul"], prefers: ["belly", "waist"],
+      enemy({ id: "orc_shaman", name: "Орк-шаман", icon: "🐺", zone: 2, hp: 900, atk: 96, str: 18, agi: 14, int: 32, def: 22, gold: 158, xp: 215, armorType: "cloth", weapons: ["runic_maul"], prefers: ["belly", "waist"],
         desc: "Шаман, обвешанный костями и амулетами. Его проклятия бьют в живот и пояс, пока он бормочет боевые молитвы.",
         drops: [
           { id: "blood_herb", chance: 0.35, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.25, min: 1, max: 2 },
           { id: "rune_dust", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", hp: 990, atk: 102, str: 34, agi: 8, int: 6, def: 34, gold: 170, xp: 230, armorType: "plate", weapons: ["runic_maul", "runic_great_axe", "runic_great_sword"], prefers: ["chest", "legs"],
+      enemy({ id: "ogre_brute", name: "Огр-громила", icon: "👹", zone: 3, hp: 990, atk: 102, str: 34, agi: 8, int: 6, def: 34, gold: 170, xp: 230, armorType: "plate", weapons: ["runic_maul", "runic_great_axe", "runic_great_sword"], prefers: ["chest", "legs"],
         desc: "Гора мяса и шрамов, вооружённая вырванным из земли валуном. Бьёт по груди и ногам — медленно, но смертельно.",
         drops: [
           { id: "mithril_ore", chance: 0.35, min: 1, max: 2 },
@@ -371,21 +371,21 @@ const FLOORS = [
     cardImg: "assets/backgrounds/hell_plane.webp",
     bg: "assets/backgrounds/hell_plane.webp",
     mobs: [
-      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", hp: 918, atk: 125, str: 22, agi: 34, int: 24, def: 18, gold: 184, xp: 274, armorType: "cloth", weapons: ["runic_rapier", "runic_maul"], prefers: ["belly", "waist"],
+      enemy({ id: "fire_imp", name: "Огненный бес", icon: "🔥", zone: 1, hp: 918, atk: 125, str: 22, agi: 34, int: 24, def: 18, gold: 184, xp: 274, armorType: "cloth", weapons: ["runic_rapier", "runic_maul"], prefers: ["belly", "waist"],
         desc: "Мелкий бес, объятый пламенем, что хихикает из дыма. Жалит в живот и пояс, пока вы ищете его в огне.",
         drops: [
           { id: "brimstone", chance: 0.35, min: 1, max: 2 },
           { id: "infernal_ash", chance: 0.3, min: 1, max: 2 },
           { id: "war_crystal", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", hp: 990, atk: 130, str: 28, agi: 36, int: 10, def: 22, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "runic_rapier"], unarmedStyle: "piercing", prefers: ["head", "chest"],
+      enemy({ id: "hell_hound", name: "Адская гончая", icon: "🐺", zone: 2, hp: 990, atk: 130, str: 28, agi: 36, int: 10, def: 22, gold: 190, xp: 280, armorType: "leather", weapons: ["claws", "runic_rapier"], unarmedStyle: "piercing", prefers: ["head", "chest"],
         desc: "Адская гончая с глазами-углями и клыками длиной в кинжал. Рвётся к горлу и груди.",
         drops: [
           { id: "hellstone", chance: 0.35, min: 1, max: 2 },
           { id: "demon_horn", chance: 0.25, min: 1, max: 2 },
           { id: "iron_chain", chance: 0.2, min: 1, max: 2 },
         ] }),
-      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", hp: 1080, atk: 138, str: 34, agi: 20, int: 18, def: 34, gold: 200, xp: 290, armorType: "plate", weapons: ["runic_maul", "runic_great_sword", "runic_spear"], prefers: ["chest", "head"],
+      enemy({ id: "horned_devil", name: "Рогатый дьявол", icon: "🐏", zone: 3, hp: 1080, atk: 138, str: 34, agi: 20, int: 18, def: 34, gold: 200, xp: 290, armorType: "plate", weapons: ["runic_maul", "runic_great_sword", "runic_spear"], prefers: ["chest", "head"],
         desc: "Рогатый дьявол в багровых латах, вооружённый чёрным клинком. Бьёт в грудь и голову, наслаждаясь чужой болью.",
         drops: [
           { id: "demon_horn", chance: 0.35, min: 1, max: 2 },
@@ -785,7 +785,7 @@ const HUNTER_ENCOUNTERS = [
 
 // ── Спонтанные события на этажах (FLOOR_EVENTS) ─────────────────────────────
 // Не сцены, а случайные встречи при exploreFloor. Разбирает
-// resolveFloorEventAction (actions.js); рендерит renderFloorEventModal (ui.js).
+// resolveFloorEventAction (actions.js); рендерит единая нижняя панель eventSheetHtml (ui-world.js).
 // Формат outcome: { chance, effects, text } — chance суммируются от 0 до 1.
 // Эффекты: gold([min,max]|n), resource([id,min,max]), potion(id), rep[фракция, n],
 // rumor(строка), diary( bool → дневник этажа, если он уже есть — золото),

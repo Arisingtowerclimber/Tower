@@ -141,7 +141,23 @@ const PROCEDURAL_EVENTS = [
       { id: "back", label: "Не гневить духов" },
     ],
   },
+
+  // ── Любой этаж: добыча ресурса ─────────────────────────────────────────────
+  {
+    id: "ore_vein", name: "Богатая жила", title: "Богатая жила", icon: "⛏️", floor: null,
+    text: "Вы нашли хорошую каменную породу. Остановитесь, чтобы добыть её? Это займёт время и силы.",
+    options: [
+      { id: "mine", label: "Добыть (2 ⚡)", energy: 2, mine: true },
+      { id: "back", label: "Пройти мимо" },
+    ],
+  },
 ];
+
+// Порог проверки статов растёт с этажом: 10 на первом, 18 на пятом.
+function eventFloorDifficulty(floorId) {
+  const id = Math.max(1, Math.min(5, Number(floorId) || 1));
+  return 10 + (id - 1) * 2;
+}
 
 // Выбор события: шанс EVENT_CHANCE, с учётом кулдауна. Возвращает событие или null.
 // Меняет только state.eventCooldown (счётчик исследований).
@@ -160,13 +176,33 @@ function resolveEventAction(optionId, event, state, st) {
   const option = event?.options?.find((o) => o.id === optionId);
   if (!event || !option) return { ok: false, success: false, text: "Неизвестное действие.", effects: {} };
 
+  // «Богатая жила»: добыча стоит энергии и гарантирует ресурс текущего этажа.
+  // Скрытый бросок d20 не нужен — риск здесь во внезапной засаде.
+  if (option.mine) {
+    const cost = Math.max(1, Number(option.energy) || 2);
+    if ((state.energy || 0) < cost) {
+      return { ok: false, success: false, text: `Не хватает энергии: нужно ${cost} ⚡.`, effects: {} };
+    }
+    const ambush = Math.random() < 0.10;
+    return {
+      ok: true, success: true, check: null,
+      text: ambush
+        ? "Вы выбили из породы руду, но шум разбудил хозяина залежи!"
+        : "Вы вгрызаетесь в породу и добываете ресурс. Пыль оседает на зубах.",
+      effects: { energy: cost, floorResource: true },
+      ambush,
+    };
+  }
+
   // Благоразумный отказ — без проверки и без последствий.
   if (option.noCheck || !option.stat) {
     return { ok: true, success: true, skipped: true, text: "Вы благоразумно отступаете.", effects: {} };
   }
 
   const attr = option.stat;
-  const difficulty = event.difficulty || 10;
+  // Сложность растёт с этажом; базовая сложность события сохраняет свой нюанс.
+  const floorId = Math.max(1, Math.min(5, Number(event.floorId) || Number(event.floor) || 1));
+  const difficulty = eventFloorDifficulty(floorId) + Math.max(0, (event.difficulty || 10) - 10);
   const check = eventCheck(state, attr, difficulty, st);
 
   if (check.success) {
@@ -180,11 +216,27 @@ function resolveEventAction(optionId, event, state, st) {
   return { ok: true, success: false, check, text: event.failText, effects: event.failEffects || {} };
 }
 
-// Применяет эффекты события к state (золото, HP, дебафф на дни).
-// Возвращает список коротких строк-приобретений для тоста.
-function applyEventEffects(effects, state, st) {
+// Применяет эффекты события к state (золото, HP, дебафф на дни, энергия,
+// ресурс текущего этажа). Возвращает список коротких строк для панели события.
+function applyEventEffects(effects, state, st, floorId = 1) {
   const e = effects || {};
   const gained = [];
+  if (Number.isFinite(e.energy) && e.energy > 0) {
+    const before = state.energy || 0;
+    state.energy = Math.max(0, before - e.energy);
+    gained.push(`−${before - state.energy} ⚡`);
+  }
+  if (e.floorResource) {
+    const pool = (typeof FLOOR_RESOURCES !== "undefined" && FLOOR_RESOURCES[floorId]) || [];
+    if (pool.length) {
+      const res = pool[Math.floor(Math.random() * pool.length)];
+      const amount = Math.floor(Math.random() * (res.maxAmount - res.minAmount + 1)) + res.minAmount;
+      state.resources = state.resources || {};
+      state.resources[res.id] = (state.resources[res.id] || 0) + amount;
+      if (typeof weekQuestResourceGain === "function") weekQuestResourceGain(res.id, amount);
+      gained.push(`${res.name} ×${amount}`);
+    }
+  }
   if (e.gold) { state.gold = (state.gold || 0) + e.gold; gained.push(`+${e.gold} 💰`); }
   if (Number.isFinite(e.hp) && e.hp !== 0) {
     const maxHp = st ? st.maxHp : (state.hp || 0) + 100;

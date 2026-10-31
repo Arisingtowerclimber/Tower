@@ -167,7 +167,7 @@ function duelPlayerStyle(state, battle) {
 }
 
 // Новое слово в СЛОТЕ АТАКИ. AGI повышает шанс длинного слова-крита,
-// INT — шанс аффикса и автоматически введённые первые буквы.
+// INT — автоматически введённые первые буквы. Аффикс даёт только масло.
 function duelNewAttackWord(state, battle) {
   if (!battle || battle.over) return;
   const st = stats();
@@ -177,20 +177,39 @@ function duelNewAttackWord(state, battle) {
   const style = duelPlayerStyle(state, battle);
   const critChance = 5 + agi * 1.0;
   // Чужой INT выше — на слове висит эффект ментального давления (красное
-  // свечение), но сами буквы не меняются. Наш INT выше — повышенный шанс
-  // аффикса (яд/кровотечение).
+  // свечение), но сами буквы не меняются. Аффикс зависит только от масла.
   const glitchActive = mobInt > int;
-  const affixChance = 5 + int * 1.0 + (int > mobInt ? 15 : 0);
   const isCrit = Math.random() * 100 < critChance;
-  const hasAffix = Math.random() * 100 < affixChance;
+
+  // Аффикс появляется ТОЛЬКО при нанесённом масле. Случайного ролла нет.
+  let hasAffix = false;
+  let affixType = null;
+
+  if (battle.oilEffect && Number(battle.oilEffect.charges) > 0) {
+    hasAffix = true;
+    // Определяем текст аффикса в зависимости от типа масла
+    const oilMap = {
+      fire: "ОГНЕННЫЙ",
+      ice: "ЛЕДЯНЫЙ",
+      poison: "ЯДОВИТЫЙ",
+      blood: "КРОВАВЫЙ"
+    };
+    const oilKind = String(battle.oilEffect.type || battle.oilEffect.id || "").toLowerCase().replace(/^oil_/, "");
+    affixType = oilMap[oilKind] || "ОГНЕННЫЙ";
+
+    // Тратим заряд масла
+    battle.oilEffect.charges -= 1;
+    if (battle.oilEffect.charges <= 0) {
+      battle.oilEffect = null;
+    }
+  }
 
   const basePool = ATTACK_WORDS_BASE;
   const longPool = ATTACK_WORDS_LONG;
   const pool = isCrit && longPool.length ? longPool : (basePool.length ? basePool : longPool);
   const baseWord = pick(pool) || "SLASH";
 
-  const affixType = hasAffix ? pick(WORD_AFFIXES) : null;
-  const affix = affixType ? String(affixType) : "";
+  const affix = affixType ? `${String(affixType).trim()} ` : "";
   const word = affix + baseWord;
   battle.attackGlitch = glitchActive;
   const autoCount = Math.min(duelAutoLetters(st), Math.max(0, word.length - 1));
@@ -384,7 +403,8 @@ function duelPlayerAttack(state, battle, opts = {}) {
   playHitSound(style, { isCrit: isCrit || opts.isCombo === true });
   if (isCrit || opts.isCombo === true) checkAchievements(state);
 
-  if (opts.isCombo !== true) duelBalanceLoss(battle, 10);
+  // Равновесие снимает только полный ввод защиты (duelPlayerBlock): обычные
+  // и случайные нажатия не должны сами по себе доводить моба до стана.
   return { damage, style, crit: isCrit || opts.isCombo === true };
 }
 
@@ -404,6 +424,8 @@ function duelPlayerBlock(state, battle) {
   }
 
   duelBalanceLoss(battle, 20);
+  // Успешная защита отодвигает следующий удар врага ещё на секунду.
+  battle.enemyTimeLeft = Math.max(0, (Number(battle.enemyTimeLeft) || 0) + 1.0);
   return { stunned: battle.stunned === true };
 }
 

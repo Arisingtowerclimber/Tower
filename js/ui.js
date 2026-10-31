@@ -11,6 +11,7 @@ const view = {
   questsOpen: false, bestiaryOpen: false, bestiaryFilter: "all",
   timmyTip: null,
   currentFloor: null,
+  selectedZone: 1,
   levelUp: null,
   dollSlot: null, tripActive: false,
   sceneGroup: null, sceneGroupFloorId: null, autoExplore: null,
@@ -44,7 +45,10 @@ const view = {
   ambush: null,
   storyJustPlayed: false,
   introPending: false,
-  exploreResult: null,
+  // Единая нижняя панель событий: текущий результат + история-журнал.
+  eventResult: null, eventJournal: [], eventSelectedIndex: 0,
+  // Карусель журнала исследований: -1 — режим реального времени.
+  eventLog: [], eventLogIndex: -1,
   weaponSwap: false,
   battleModal: null,
   titleModal: false,
@@ -1467,9 +1471,7 @@ function render() {
   if (view.weaponSwap) html += weaponSwapHtml();
   if (view.weaponSlotPicker !== null && view.weaponSlotPicker !== undefined) html += weaponSlotPickerHtml();
   if (view.levelUp) html += levelUpModalHtml();
-  if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
-  if (view.exploreResult) html += exploreResultModalHtml();
-  
+
   // В лавках единый экран взаимодействия уже вернул forgeHtml/alchemyHtml/
   // jewelryHtml. На остальных экранах диалог/торговля/крафт рисуются поверх.
   const interaction = view.npcInteraction;
@@ -1496,9 +1498,10 @@ function render() {
   // QTE тренировки: модалка живёт поверх экрана Зала Охотников.
   if (view.trainingQTE) html += renderTrainingQte();
 
-  // События — нижняя панель поверх всего экрана, но не перекрывающая его целиком.
-  if (state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderEventModal(state.activeEvent);
-  if (state.activeFloorEvent && !state.activeEvent && !state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += renderFloorEventModal(state.activeFloorEvent);
+  // События и сцены — единая нижняя панель (Bottom Sheet) с журналом.
+  // Рисуются в самом конце, поверх интерфейса, но без затемнения экрана.
+  if (!state.activeNpcId && !state.activeSceneId && view.screen !== "battle") html += eventSheetHtml();
+  if (state.activeSceneId && view.screen !== "battle") html += sceneModalHtml();
 
   // Фон экрана переживает перерисовку: если URL и классы не изменились,
   // возвращаем старый уже отрисованный узел вместо создания нового.
@@ -1705,10 +1708,28 @@ function onClick(event) {
   };
 
   switch (act) {
-    case "start-tutorial-qte":
-      view.tutorialQte = { word: "УДАР", typed: "", timeLeft: 10.0 };
+    case "start-tutorial-qte": {
+      // Курс новичка: три случайных слова подряд. Повтор подряд не выдаём,
+      // чтобы переход между словами был заметен.
+      const pool = ["УДАР", "ВЗМАХ", "БЛОК"];
+      const words = [];
+      for (let i = 0; i < 3; i++) {
+        let word = pool[Math.floor(Math.random() * pool.length)];
+        if (i > 0 && word === words[i - 1]) word = pool[(pool.indexOf(word) + 1) % pool.length];
+        words.push(word);
+      }
+      view.tutorialQte = {
+        words,
+        wordIndex: 0,
+        word: words[0],
+        typed: "",
+        completed: 0,
+        timeLeft: 10.0,
+      };
+      view.tutorialStep = 0;
       render();
       break;
+    }
     case "bio-option": {
       const c = view.create;
       if (!c) break;
@@ -2071,32 +2092,33 @@ function onClick(event) {
       if (!event || event.id !== el.dataset.event) break;
       const st = stats();
       const result = resolveEventAction(el.dataset.option, event, state, st);
-      const gained = applyEventEffects(result.effects, state, st);
+      if (!result.ok) { toast(result.text, "warn"); render(); break; }
+      const floorId = Number(event.floorId) || Number(event.floor) || 1;
+      const gained = applyEventEffects(result.effects, state, st, floorId);
       state.activeEvent = null;
       saveState();
       const suffix = gained.length ? ` ${gained.join(", ")}` : "";
-      toast(`${result.text}${suffix}`, result.success ? "ok" : "warn");
+      pushEventResult(
+        event.icon,
+        event.title || event.name,
+        `${result.text}${suffix}`,
+        result.success ? "ok" : "warn"
+      );
+      if (result.ambush) {
+        const floor = FLOORS.find((f) => f.id === floorId);
+        const pool = floor ? floorMobsForZone(floor, event.zone) : [];
+        if (pool.length) {
+          const mob = pool[Math.floor(Math.random() * pool.length)];
+          beginBattle(mob, floor.id);
+          break;
+        }
+      }
       render();
       break;
     }
-    case "explore-result-continue": {
-      const res = view.exploreResult;
-      view.exploreResult = null;
-
-      if (res.encounter) {
-        const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
-        const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
-        if (def) { beginBattle(def, floor.id); break; }
-      }
-
-      if (res.scene) {
-        render(); 
-        break;
-      }
-
-      if (view.autoExplore) {
-        scheduleAutoExplore(2100);
-      }
+    case "event-continue": {
+      view.eventResult = null;
+      view.eventSelectedIndex = 0;
       render();
       break;
     }
@@ -2471,24 +2493,41 @@ function onClick(event) {
     case "fight": startBattle(Number(el.dataset.floor), el.dataset.mob); break;
     case "quick-fight": startQuickFight(Number(el.dataset.floor) || state.maxFloor); break;
     case "arena-leave": leaveArena(); break;
+    case "select-zone":
+      view.selectedZone = Math.max(1, Math.min(5, Number(el.dataset.zone) || 1));
+      render();
+      break;
+    case "log-prev":
+    case "log-next":
+      if (cycleEventLog(act === "log-prev" ? -1 : 1)) render();
+      break;
     case "explore": {
-      const res = exploreFloor(Number(el.dataset.floor) || state.maxFloor, Number(el.dataset.zone) || 1);
+      const zone = Number(el.dataset.zone) || 1;
+      view.selectedZone = zone;
+      const res = exploreFloor(Number(el.dataset.floor) || state.maxFloor, zone);
       if (!res.ok) { toast(res.text, "warn"); break; }
 
-      if (state.activeEvent) { render(); break; }
+      // Карусель журнала: каждое исследование попадает в историю.
+      pushEventLog("Исследование", res.text);
 
-      if (res.encounter || res.scene) {
-        view.exploreResult = { 
-          type: "loot", 
-          encounter: res.encounter?.mobIndex !== undefined ? res.encounter : null, 
-          scene: res.scene, 
-          text: res.text 
-        };
+      if (state.activeEvent || state.activeFloorEvent) {
+        view.eventResult = null;
+        view.eventSelectedIndex = 0;
         render();
         break;
       }
 
-      view.exploreResult = { type: "loot", text: res.text };
+      // Бой начинается сразу, без промежуточного окна «Находка».
+      if (res.encounter) {
+        const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
+        const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
+        if (floor && def) { beginBattle(def, floor.id); break; }
+      }
+
+      if (res.scene) { render(); break; }
+
+      // Обычный текст исследования живёт в нижней панели до «Продолжить».
+      pushEventResult("🧭", "Исследование", res.text, "ok");
       render();
       break;
     }
@@ -2497,7 +2536,7 @@ function onClick(event) {
       if (floor && floor.mobs.length) startBattle(floor.id, Math.floor(Math.random() * floor.mobs.length));
       break;
     }
-    case "auto-explore": startAutoExplore(Number(el.dataset.floor) || state.maxFloor, view.autoExploreMode === "safe"); break;
+    case "auto-explore": startAutoExplore(Number(el.dataset.floor) || state.maxFloor, view.autoExploreMode === "safe", Number(view.selectedZone) || 1); break;
     case "auto-mode": {
       const m = el.dataset.mode === "fight" ? "fight" : "safe";
       if (view.autoExploreMode !== m) { view.autoExploreMode = m; render(); }
@@ -2711,10 +2750,11 @@ function anyModalOpen() {
     || view.talentsModal || view.questsOpen || view.bestiaryOpen || view.companionInfo
     || view.purchaseConfirm || view.weaponSwap || view.levelUp || view.traderStock
     || view.npcInteraction || view.chestResults || view.chestReveal || view.chestMassResults
-    || view.exploreResult || view.trainingQTE || view.battleModal
+    || view.trainingQTE || view.battleModal
     || view.dollSlot || view.invItemUid || view.chestMenu
     || (view.weaponSlotPicker !== null && view.weaponSlotPicker !== undefined)
     || state.activeEvent || state.activeFloorEvent || state.activeSceneId
+    || view.eventResult
   );
 }
 
@@ -2725,6 +2765,101 @@ function handleKey(event) {
   // Хоткеи не перехватывают ввод в текстовых полях. Esc оставляем рабочим,
   // чтобы окно можно было закрыть прямо с ползунка или поля.
   if (!isEscape && event.target?.closest?.("input, textarea, select")) return;
+
+  const confirmKey = event.code === "Space" || event.key === " " || event.key === "Enter" || event.code === "NumpadEnter";
+
+  // ── Нижняя панель событий: 1/2/3 выбирают вариант, Enter/Space — подтверждают ──
+  const eventSheet = document.querySelector(".event-bottom-sheet");
+  if (eventSheet) {
+    const continueBtn = eventSheet.querySelector('[data-act="event-continue"]');
+    if (continueBtn) {
+      if (confirmKey) { event.preventDefault(); continueBtn.click(); return; }
+    } else {
+      const buttons = Array.from(eventSheet.querySelectorAll(".event-actions button:not([disabled])"));
+      if (buttons.length) {
+        const selectEvent = (idx) => {
+          view.eventSelectedIndex = idx;
+          buttons.forEach((b, i) => b.classList.toggle("kbd-selected", i === idx));
+          buttons[idx]?.scrollIntoView({ block: "nearest" });
+        };
+        const digit = /^[1-9]$/.test(event.key || "") ? Number(event.key) - 1 : -1;
+        if (digit >= 0 && digit < buttons.length) {
+          event.preventDefault();
+          selectEvent(digit);
+          return;
+        }
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const cur = Math.max(0, Math.min(buttons.length - 1, Number(view.eventSelectedIndex) || 0));
+          selectEvent(event.key === "ArrowDown" ? (cur + 1) % buttons.length : (cur - 1 + buttons.length) % buttons.length);
+          return;
+        }
+        if (confirmKey) {
+          event.preventDefault();
+          // Enter/Space всегда подтверждают первый вариант в нижней панели.
+          selectEvent(0);
+          buttons[0].click();
+          return;
+        }
+      }
+    }
+  }
+
+  // ── Диалоги: навигация стрелками вверх/вниз и выбор по Enter/Space ─────────
+  const dialogBottom = document.querySelector(".mnb-dialog-bottom");
+  if (dialogBottom) {
+    const buttons = Array.from(dialogBottom.querySelectorAll("button:not([disabled])"));
+    if (buttons.length) {
+      const selectDialog = (idx) => {
+        view.dialogSelectedIndex = idx;
+        buttons.forEach((b, i) => b.classList.toggle("kbd-selected", i === idx));
+        buttons[idx]?.scrollIntoView({ block: "nearest" });
+      };
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const cur = Math.max(0, Math.min(buttons.length - 1, Number(view.dialogSelectedIndex) || 0));
+        selectDialog(event.key === "ArrowDown" ? (cur + 1) % buttons.length : (cur - 1 + buttons.length) % buttons.length);
+        return;
+      }
+      if (confirmKey) {
+        event.preventDefault();
+        const cur = Math.max(0, Math.min(buttons.length - 1, Number(view.dialogSelectedIndex) || 0));
+        buttons[cur].click();
+        return;
+      }
+    }
+  }
+
+  // ── Экран этажа: стрелки вверх/вниз переключают выбранную зону ──────────
+  if (view.screen === "floor" && !anyModalOpen()
+      && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+    event.preventDefault();
+    const cur = Math.max(1, Math.min(5, Number(view.selectedZone) || 1));
+    const next = event.key === "ArrowDown" ? Math.min(5, cur + 1) : Math.max(1, cur - 1);
+    if (next !== cur) { view.selectedZone = next; render(); }
+    return;
+  }
+
+  // ── Экран этажа: E запускает исследование выбранной зоны ────────────────
+  const isExploreKey = event.code === "KeyE" || event.key === "e" || event.key === "E"
+    || event.key === "у" || event.key === "У";
+  if (isExploreKey && view.screen === "floor" && !anyModalOpen() && Number(view.eventLogIndex) < 0
+      && !state.activeEvent && !state.activeFloorEvent && !view.eventResult) {
+    const exploreBtn = document.querySelector('.zone-row.active button[data-act="explore"]');
+    if (exploreBtn && !exploreBtn.disabled) {
+      event.preventDefault();
+      exploreBtn.click();
+      return;
+    }
+  }
+
+  // ── Журнал событий на этаже: ← / → листают карусель ─────────────────────
+  if (view.screen === "floor" && document.querySelector(".event-bottom-sheet")
+      && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+    event.preventDefault();
+    if (cycleEventLog(event.key === "ArrowLeft" ? -1 : 1)) render();
+    return;
+  }
 
   // ── Уровень 1: универсальное подтверждение Space/Enter ────────────────
   const isConfirm = event.code === "Space" || event.key === " " || event.key === "Enter" || event.code === "NumpadEnter";
@@ -2748,8 +2883,8 @@ function handleKey(event) {
     if (levelupBtn) { levelupBtn.click(); return; }
     const eventActions = document.querySelector(".event-actions");
     if (eventActions) {
-      const buttons = eventActions.querySelectorAll("button");
-      if (buttons.length === 1) { buttons[0].click(); return; }
+      const buttons = eventActions.querySelectorAll("button:not([disabled])");
+      if (buttons.length) { buttons[0].click(); return; }
     }
     const dialogBottom = document.querySelector(".mnb-dialog-bottom");
     if (dialogBottom) {

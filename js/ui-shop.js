@@ -1533,24 +1533,60 @@ function renderAbilitiesModal() {
   `;
 }
 
+function tutorialQteWordHtml(qte) {
+  return String(qte.word || "").split("").map((char, i) => {
+    const cls = i < qte.typed.length ? "typed" : "rest";
+    return `<span class="${cls}">${esc(char)}</span>`;
+  }).join("");
+}
+
 function tutorialQteModalHtml() {
   if (!view.tutorialQte) return "";
   const qte = view.tutorialQte;
-  const wordHtml = qte.word.split("").map((char, i) => {
-    const cls = i < qte.typed.length ? "typed" : "rest";
-    return `<span class="${cls}">${char}</span>`;
-  }).join("");
+  const words = Array.isArray(qte.words) && qte.words.length ? qte.words : [qte.word];
+  const index = Math.max(0, Math.min(words.length - 1, Number(qte.wordIndex) || 0));
+  const steps = words.map((_, i) =>
+    `<span class="tutorial-qte-step${i < index ? " done" : ""}${i === index ? " active" : ""}"></span>`
+  ).join("");
 
   return `
-    <div class="result-overlay" style="z-index: 200;">
-      <div class="result-card" style="max-width: 400px; text-align: center;">
+    <div class="result-overlay tutorial-qte-overlay" style="z-index: 200;">
+      <div class="result-card tutorial-qte-card" style="max-width: 420px; text-align: center;">
         <h2 style="color: var(--gold2);">Курс новичка</h2>
-        <p style="margin-bottom: 20px;">Иван: «Покажи, что умеешь. Напечатай слово!»</p>
-        <div class="duel-word" style="font-size: 28px; margin-bottom: 20px;">${wordHtml}</div>
-        <div class="qte-timer-bar" style="margin-bottom: 0;"><span style="width: ${Math.max(0, (qte.timeLeft / 10.0) * 100)}%;"></span></div>
+        <p style="margin-bottom: 14px;">Иван: «Покажи, что умеешь. Напечатай три слова подряд!»</p>
+        <div class="tutorial-qte-steps" data-role="tutorial-qte-steps">${steps}</div>
+        <div class="tutorial-qte-counter" data-role="tutorial-qte-counter">Слово ${index + 1} из ${words.length}</div>
+        <div class="duel-word tutorial-qte-word" data-role="tutorial-qte-word">${tutorialQteWordHtml(qte)}</div>
+        <div class="duel-slot-timer tutorial-qte-timer" data-role="tutorial-qte-timer"><span class="duel-slot-fill" data-role="tutorial-qte-timer-fill" style="width: ${Math.max(0, Math.min(100, (qte.timeLeft / 10.0) * 100))}%;"></span></div>
       </div>
     </div>
   `;
+}
+
+// Точечное обновление без render(): буквы и смена слова не пересоздают
+// модалку и не вызывают мигание экрана. При смене слова — мягкая анимация.
+function updateTutorialQteDisplay(animateWord = false) {
+  const qte = view.tutorialQte;
+  if (!qte) return;
+  const wordEl = document.querySelector('[data-role="tutorial-qte-word"]');
+  if (wordEl) {
+    wordEl.innerHTML = tutorialQteWordHtml(qte);
+    if (animateWord) {
+      wordEl.classList.remove("word-pop");
+      void wordEl.offsetWidth;
+      wordEl.classList.add("word-pop");
+    }
+  }
+  const words = Array.isArray(qte.words) && qte.words.length ? qte.words : [qte.word];
+  const index = Math.max(0, Math.min(words.length - 1, Number(qte.wordIndex) || 0));
+  document.querySelectorAll('[data-role="tutorial-qte-steps"] .tutorial-qte-step').forEach((el, i) => {
+    el.classList.toggle("done", i < index);
+    el.classList.toggle("active", i === index);
+  });
+  const counter = document.querySelector('[data-role="tutorial-qte-counter"]');
+  if (counter) counter.textContent = `Слово ${index + 1} из ${words.length}`;
+  const timerFill = document.querySelector('[data-role="tutorial-qte-timer-fill"]');
+  if (timerFill) timerFill.style.width = `${Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / 10.0) * 100))}%`;
 }
 
 // ── Пошаговое открытие сундука в стиле FIFA Ultimate Team ───────────────────

@@ -1645,13 +1645,26 @@ function claimStoryQuest(qId) {
   return { ok: true, text: `Задание сдано: ${texts.join(", ")}. ${levelText}${repNote}`.trim(), factionLevelUp };
 }
 
-function exploreFloor(floorId) {
+// Мобы, доступные в выбранной зоне этажа. Если в зоне нет своих мобов,
+// берём ближайшую нижнюю зону, чтобы исследование не ломалось.
+function floorMobsForZone(floor, zone) {
+  if (!floor || !Array.isArray(floor.mobs)) return [];
+  const target = Math.max(1, Math.min(5, Number(zone) || 1));
+  for (let z = target; z >= 1; z--) {
+    const pool = floor.mobs.filter((m) => (Number(m.zone) || 1) === z);
+    if (pool.length) return pool;
+  }
+  return floor.mobs;
+}
+
+function exploreFloor(floorId, zone = 1) {
   if (typeof playFootstep === "function") playFootstep("floor", floorId);
   const reason = towerClosedReason();
   if (reason) return { ok: false, text: reason };
 
   const floor = FLOORS.find((f) => f.id === floorId);
   if (!floor) return { ok: false, text: "Этаж не найден." };
+  const zoneId = Math.max(1, Math.min(5, Number(zone) || 1));
   if (state.activeSceneId) return { ok: false, text: "Сначала разберитесь с активной сценой." };
   if (state.activeNpcId) return { ok: false, text: "Сначала закончите разговор." };
   if (state.activeEvent) return { ok: false, text: "Сначала разберитесь с событием." };
@@ -1667,7 +1680,8 @@ function exploreFloor(floorId) {
   // Процедурное событие: ~15% шанс, с кулдауном. Показываем модалку и прерываем исследование.
   const rolledEvent = rollEvent(floor.id, state);
   if (rolledEvent) {
-    state.activeEvent = rolledEvent;
+    // Этаж и зона нужны проверке статов и засаде «Жилы» после перезагрузки.
+    state.activeEvent = { ...rolledEvent, floorId: floor.id, zone: zoneId };
     saveState();
     return { ok: true, text: rolledEvent.text, event: true };
   }
@@ -1707,7 +1721,11 @@ function exploreFloor(floorId) {
     weekQuestResourceGain(res.id, amount);
     return `${res.name} ×${amount}`;
   };
-  const randomMobIndex = () => Math.floor(Math.random() * floor.mobs.length);
+  const randomMobIndex = () => {
+    const pool = floorMobsForZone(floor, zoneId);
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    return Math.max(0, floor.mobs.indexOf(picked));
+  };
 
   const roll = Math.random();
   let text = "";
@@ -1766,7 +1784,7 @@ function exploreFloor(floorId) {
   }
 
   saveState();
-  return { ok: true, text, encounter, scene, npc };
+  return { ok: true, text, encounter, scene, npc, zone: zoneId };
 }
 
 function getTraderInventory() {

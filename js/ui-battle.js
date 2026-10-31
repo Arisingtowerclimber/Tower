@@ -364,7 +364,7 @@ function duelStopTimer() {
 
 function duelEnsureTimer() {
   const battle = view.battle;
-  if (!battle || battle.over || view.summary || !view.duelActive) return;
+  if (!battle || battle.over || battle.victoryPending || view.summary || !view.duelActive) return;
   if (view.screen !== "battle") return;
   if (battle.enemyTimer) return;
   view.duelTimer = setInterval(duelTick, 50);
@@ -419,7 +419,7 @@ function duelPauseReason() {
 
 function duelTick() {
   const battle = view.battle;
-  if (!view.duelActive || !battle || battle.over || !view.duelActive) {
+  if (!view.duelActive || !battle || battle.over || battle.victoryPending || !view.duelActive) {
     duelStopTimer();
     return;
   }
@@ -471,7 +471,7 @@ function duelEnemyAttackNow() {
 
 function duelBlockNow() {
   const battle = view.battle;
-  if (!battle || battle.over) return;
+  if (!battle || battle.over || battle.victoryPending) return;
   duelPlayerBlock(state, battle);
   battle.defenseWord = "";
   battle.defenseTyped = "";
@@ -479,24 +479,25 @@ function duelBlockNow() {
   battle.activeSlot = "attack";
   // Эпизод обороны кончился блоком — генерируем НОВОЕ слово атаки.
   duelNewAttackWord(state, battle);
-  if (battle.hp <= 0) { duelVictory(); return; }
+  if (battle.hp <= 0) { duelVictorySoon(); return; }
   if (battle.stunned) { render(); return; }
   // Удачный блок срывает удар моба — он восстанавливается, у игрока окно.
   battle.enemyWindup = 0;
   battle.enemyTimeLeft = 0;
-  battle.enemyRecoveryTimer = 1.5;
+  // 1.5 базовых + 1.0 сек за успешный блок: защита отодвигает удар врага.
+  battle.enemyRecoveryTimer = 2.5;
   render();
 }
 
 function duelAttackComplete() {
   const battle = view.battle;
-  if (!battle || battle.over) return;
+  if (!battle || battle.over || battle.victoryPending) return;
   duelPlayerAttack(state, battle, {
     isCrit: battle.attackIsCrit === true,
     hasAffix: battle.attackHasAffix === true,
     affixType: battle.attackAffixType,
   });
-  if (battle.hp <= 0) { duelVictory(); return; }
+  if (battle.hp <= 0) { duelVictorySoon(); return; }
   if (battle.stunned) { render(); return; }
   duelNewAttackWord(state, battle);
   // Гиперармор: не дергаем замах моба заново — он продолжает тикать.
@@ -506,9 +507,9 @@ function duelAttackComplete() {
 
 function duelComboSuccess() {
   const battle = view.battle;
-  if (!battle || battle.over) return;
+  if (!battle || battle.over || battle.victoryPending) return;
   duelComboAttack(state, battle);
-  if (battle.hp <= 0) { duelVictory(); return; }
+  if (battle.hp <= 0) { duelVictorySoon(); return; }
   duelNewAttackWord(state, battle);
   // Моб был оглушён — замах сброшен и удар пропущен: даём окно восстановления.
   battle.enemyWindup = 0;
@@ -534,11 +535,11 @@ function duelComboFail() {
 function duelTypeLetter(letter) {
   const battle = view.battle;
   if (!battle || battle.over || view.preBattle || view.summary) return;
-  const ch = String(letter || "").toUpperCase();
-  if (!ch) return;
+  const chStr = String(letter || "").toUpperCase();
+  if (!chStr) return;
 
   if (battle.stunned) {
-    const r = duelAdvanceWord(battle.comboWord, battle.comboTyped, ch);
+    const r = duelAdvanceWord(battle.comboWord, battle.comboTyped, chStr);
     if (!r.ok) { duelComboFail(); return; }
     battle.comboTyped = r.typed;
     if (r.complete) duelComboSuccess();
@@ -550,35 +551,39 @@ function duelTypeLetter(letter) {
   const atkNext = duelPeekChar(battle.attackWord, battle.attackTyped);
   const defenseActive = battle.activeSlot === "defense";
 
-  const matchAtk = (ch === atkNext);
-  const matchDef = (ch === defNext);
+  const matchAtk = (chStr === atkNext);
+  const matchDef = (chStr === defNext);
 
-  // УМНЫЙ ПЕРЕХВАТ С ПЕРЕНОСОМ ПРЕФИКСА
-  if (!matchAtk && !matchDef) {
-    if (!defenseActive && battle.attackTyped && battle.defenseWord.startsWith(battle.attackTyped + ch)) {
-      battle.activeSlot = "defense";
-      battle.defenseTyped = battle.attackTyped + ch;
-      battle.attackWord = "";
-      battle.attackTyped = "";
-      battle.attackAuto = "";
-      if (battle.defenseTyped.length >= battle.defenseWord.length) duelBlockNow();
-      else { duelUpdateWords(); duelUpdateBars(); }
-      return;
-    }
-    if (defenseActive && battle.defenseTyped && battle.attackWord.startsWith(battle.defenseTyped + ch)) {
-      battle.activeSlot = "attack";
-      battle.attackTyped = battle.defenseTyped + ch;
-      battle.defenseWord = "";
-      battle.defenseTyped = "";
-      battle.defenseAuto = "";
-      if (battle.attackTyped.length >= battle.attackWord.length) duelAttackComplete();
-      else { duelUpdateWords(); duelUpdateBars(); }
-      return;
-    }
-    
-    if (defenseActive) battle.defenseTyped = battle.defenseAuto || "";
-    else battle.attackTyped = battle.attackAuto || "";
-    duelUpdateWords();
+  // Проверяем, является ли новая буква продолжением слова в ДРУГОМ слоте (с учетом уже набранных букв)
+  const atkCandidate = (battle.attackTyped || "") + chStr;
+  const defCandidate = (battle.defenseTyped || "") + chStr;
+
+  const canSwitchToDef = !defenseActive && battle.attackTyped && battle.defenseWord && battle.defenseWord.startsWith(atkCandidate);
+  const canSwitchBackToAtk = defenseActive && battle.defenseTyped && battle.attackWord && battle.attackWord.startsWith(defCandidate);
+
+  if (canSwitchToDef) {
+    // Переходим на защиту, перенося префикс атаки
+    battle.activeSlot = "defense";
+    battle.defenseTyped = atkCandidate;
+    battle.attackWord = "";
+    battle.attackTyped = "";
+    battle.attackAuto = "";
+    battleLog(battle, "Вы бросили атаку и перешли в глухую оборону!", "block");
+    duelFlashDefenseSwitch();
+    if (battle.defenseTyped.length >= battle.defenseWord.length) duelBlockNow();
+    else { duelUpdateWords(); duelUpdateBars(); }
+    return;
+  }
+
+  if (canSwitchBackToAtk) {
+    // Переходим обратно на атаку (если была защита)
+    battle.activeSlot = "attack";
+    battle.attackTyped = defCandidate;
+    battle.defenseWord = "";
+    battle.defenseTyped = "";
+    battle.defenseAuto = "";
+    if (battle.attackTyped.length >= battle.attackWord.length) duelAttackComplete();
+    else { duelUpdateWords(); duelUpdateBars(); }
     return;
   }
 
@@ -591,34 +596,54 @@ function duelTypeLetter(letter) {
     target = "defense";
   }
 
+  if (!target) {
+    if (defenseActive) battle.defenseTyped = battle.defenseAuto || "";
+    else battle.attackTyped = battle.attackAuto || "";
+    duelUpdateWords();
+    return;
+  }
+
   if (target === "defense") {
-    const switched = !defenseActive;
-    const r = duelAdvanceWord(battle.defenseWord, battle.defenseTyped, ch);
-    if (!r.ok && !switched) return;
-    if (!switched) {
+    if (defenseActive) {
+      const r = duelAdvanceWord(battle.defenseWord, battle.defenseTyped, chStr);
+      if (!r.ok) return;
       battle.defenseTyped = r.typed;
       if (r.complete) duelBlockNow();
       else { duelUpdateWords(); duelUpdateBars(); }
       return;
+    } else {
+      battle.activeSlot = "defense";
+      battle.attackWord = "";
+      battle.attackTyped = "";
+      battle.attackAuto = "";
+      const r = duelAdvanceWord(battle.defenseWord, "", chStr);
+      battle.defenseTyped = r.typed;
+      battleLog(battle, "Вы бросили атаку и перешли в глухую оборону!", "block");
+      duelFlashDefenseSwitch();
+      if (r.complete) duelBlockNow();
+      else { duelUpdateWords(); duelUpdateBars(); }
+      return;
     }
-    battle.activeSlot = "defense";
-    battle.attackWord = "";
-    battle.attackTyped = "";
-    battle.attackAuto = "";
-    if (r.ok) battle.defenseTyped = r.typed;
-    battleLog(battle, "Вы бросили атаку и перешли в глухую оборону!", "block");
-    duelFlashDefenseSwitch();
-    if (r.complete) duelBlockNow();
+  }
+
+  if (!defenseActive) {
+    const r = duelAdvanceWord(battle.attackWord, battle.attackTyped, chStr);
+    if (!r.ok) return;
+    battle.attackTyped = r.typed;
+    if (r.complete) duelAttackComplete();
+    else { duelUpdateWords(); duelUpdateBars(); }
+    return;
+  } else {
+    battle.activeSlot = "attack";
+    battle.defenseWord = "";
+    battle.defenseTyped = "";
+    battle.defenseAuto = "";
+    const r = duelAdvanceWord(battle.attackWord, "", chStr);
+    battle.attackTyped = r.typed;
+    if (r.complete) duelAttackComplete();
     else { duelUpdateWords(); duelUpdateBars(); }
     return;
   }
-
-  const r = duelAdvanceWord(battle.attackWord, battle.attackTyped, ch);
-  if (!r.ok) return;
-  battle.activeSlot = "attack";
-  battle.attackTyped = r.typed;
-  if (r.complete) duelAttackComplete();
-  else { duelUpdateWords(); duelUpdateBars(); }
 }
 
 // Микро-фидбек перехвата ввода атаки защитой: вспышка на слоте защиты.
@@ -630,6 +655,21 @@ function duelFlashDefenseSwitch() {
   void el.offsetWidth; // перезапуск CSS-анимации
   el.classList.add("switch-flash");
   setTimeout(() => el.classList.remove("switch-flash"), 480);
+}
+
+// Смерть врага синхронизирована с UI: даём DOM отрисовать загоревшиеся буквы
+// и полоску HP, и только затем показываем экран победы.
+function duelVictorySoon() {
+  const battle = view.battle;
+  if (!battle || battle.over || battle.victoryPending) return;
+  battle.victoryPending = true;
+  duelStopTimer();
+  render();
+  setTimeout(() => {
+    if (view.battle !== battle || battle.over) return;
+    battle.victoryPending = false;
+    duelVictory();
+  }, 180);
 }
 
 function duelVictory() {
@@ -757,7 +797,7 @@ function battleHtml(st) {
         <h2 style="color: var(--gold2); font-size: 26px; margin: 0 0 8px;">${esc(enemy.name)}</h2>
         <p style="font-size: 16px; color: var(--text); margin: 0 0 6px;">Противник готовится к атаке!</p>
         ${battle.boss ? `<p style="font-size: 12px; color: #d97a6c; margin: 0 0 18px;">Босс не позволит сбежать.</p>` : `<p style="font-size: 12px; color: var(--dim); margin: 0 0 18px;">Можно отступить, но удар в спину неизбежен.</p>`}
-        <button class="btn primary" data-act="prebattle-start" type="button" style="width: 100%; min-height: 48px; font-size: 16px; margin-bottom: 10px;">[Enter / Space] Начать бой</button>
+        <button class="btn primary" data-act="prebattle-start" type="button" style="width: 100%; min-height: 48px; font-size: 16px; margin-bottom: 10px;">[ПРОБЕЛ] Начать бой</button>
         ${battle.boss ? "" : `<button class="btn ghost" data-act="prebattle-flee" type="button" style="width: 100%; min-height: 42px;">[Esc] Сбежать</button>`}
       </div>
     </div>

@@ -23,6 +23,30 @@ const OIL_SLOT_KEYS = {
 };
 const OIL_ITEM_IDS = ["oil_fire", "oil_ice", "oil_poison", "oil_blood"];
 
+// 1–4 в нижней панели события: сразу выбирают соответствующий вариант.
+const EVENT_OPTION_KEYS = {
+  Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3,
+  Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3,
+};
+
+function handleEventHotkey(event) {
+  if (typeof state === "undefined" || !state) return false;
+  const hasActiveEvent = state.activeEvent || state.activeFloorEvent || state.activeSceneId
+    || (typeof view !== "undefined" && view && view.exploreResult);
+  if (!hasActiveEvent) return false;
+  if (event.target?.closest?.("input, textarea, select")) return false;
+
+  const index = EVENT_OPTION_KEYS[event.code];
+  if (index === undefined) return false;
+
+  const button = document.querySelectorAll(".event-actions button, .result-card .btn")[index];
+  if (!button || button.disabled) return false;
+
+  event.preventDefault();
+  button.click();
+  return true;
+}
+
 function applyBattleOil(index) {
   const oilId = OIL_ITEM_IDS[index];
   if (!oilId) return;
@@ -38,22 +62,46 @@ function applyBattleOil(index) {
 function handleBattleKeydown(event) {
   if (event.target?.closest?.("input, textarea, select")) return;
   if (typeof view === "undefined") return;
+  if (handleEventHotkey(event)) return;
 
   if (view.tutorialQte) {
+    if (typeof view.tutorialStep !== "number") view.tutorialStep = 0;
     if (event.key && event.key.length === 1 && event.key !== " ") {
+      const qte = view.tutorialQte;
       const ch = event.key.toUpperCase();
-      const nextChar = view.tutorialQte.word[view.tutorialQte.typed.length];
+      const nextChar = qte.word[qte.typed.length];
       if (ch === nextChar) {
-        view.tutorialQte.typed += ch;
-        if (view.tutorialQte.typed === view.tutorialQte.word) {
-          // Успех!
+        qte.typed += ch;
+        if (qte.typed === qte.word) {
+          view.tutorialStep += 1;
+          if (view.tutorialStep < 3) {
+            // Слово набрано, но обучение продолжается: даём следующее слово.
+            const pool = ["УДАР", "ВЗМАХ", "БЛОК"];
+            const words = Array.isArray(qte.words) && qte.words.length ? qte.words : pool;
+            let nextWord = words[view.tutorialStep] || pool[Math.floor(Math.random() * pool.length)];
+            if (nextWord === qte.word) nextWord = pool.find((w) => w !== qte.word) || nextWord;
+            qte.word = nextWord;
+            qte.wordIndex = view.tutorialStep;
+            qte.completed = view.tutorialStep;
+            qte.typed = "";
+            qte.timeLeft = 10.0;
+            if (typeof updateTutorialQteDisplay === "function") updateTutorialQteDisplay(true);
+            else render();
+            return;
+          }
+          // Три слова напечатаны: не выбрасываем в хаб, а открываем диалог Ивана.
+          view.tutorialStep = 0;
           view.tutorialQte = null;
           completeTutorial();
+          view.npcInteraction = { npcId: "ivan", mode: "dialog", node: "tutorial_done_dialog" };
           render();
           return;
         }
+        if (typeof updateTutorialQteDisplay === "function") updateTutorialQteDisplay(false);
+        else render();
+        return;
       }
-      render();
+      // Неверная буква — просто игнорируем, без перерисовки экрана.
       return;
     }
   }

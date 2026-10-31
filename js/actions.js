@@ -365,13 +365,19 @@ function scheduleAutoExplore(delay = 2100) {
   ae.timer = setTimeout(autoExploreLoop, delay);
 }
 
-function startAutoExplore(floorId, avoidDanger) {
+function startAutoExplore(floorId, avoidDanger, zone = 1) {
   if (view.autoExplore) return;
   const reason = towerClosedReason();
   if (reason) { toast(reason, "warn"); render(); return; }
   if (state.activeSceneId) { toast("Сначала разберитесь с активной сценой.", "warn"); render(); return; }
   if (state.activeNpcId) { toast("Сначала закончите разговор.", "warn"); render(); return; }
-  view.autoExplore = { floorId, avoidDanger, timer: null, log: [] };
+  view.autoExplore = {
+    floorId,
+    avoidDanger,
+    zone: Math.max(1, Math.min(5, Number(zone) || 1)),
+    timer: null,
+    log: [],
+  };
   toast(avoidDanger ? "⏩ Авто-исследование: безопасный режим." : "⏩ Авто-исследование: боевой режим.", "info");
   render();
   scheduleAutoExplore(1200);
@@ -381,7 +387,6 @@ function autoExploreLoop() {
   const ae = view.autoExplore; if (!ae) return;
   clearTimeout(ae.timer);
   if (battleActive()) return;
-  if (view.exploreResult) return;
   // Открыта панель события — останавливаем авто-режим и ждём игрока.
   if (state.activeEvent || state.activeFloorEvent) {
     stopAutoExplore("Произошло событие. Авто-исследование остановлено.");
@@ -394,13 +399,13 @@ function autoExploreLoop() {
   
   if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
   
-  autoExploreTick(ae.floorId, ae.avoidDanger);
+  autoExploreTick(ae.floorId, ae.avoidDanger, ae.zone);
   // Тик мог остановить авто-режим (событие/сцена/энергия) — новый цикл не зажигаем.
   if (!view.autoExplore) return;
   scheduleAutoExplore(2100);
 }
 
-function autoExploreTick(floorId, avoidDanger) {
+function autoExploreTick(floorId, avoidDanger, zone = 1) {
   const ae = view.autoExplore; if (!ae) return;
   // Тик забрал управление: висящий таймер не должен сработать повторно.
   clearTimeout(ae.timer);
@@ -411,16 +416,20 @@ function autoExploreTick(floorId, avoidDanger) {
   if ((state.floorProgress[floorId] || 0) >= 100) {
     if (avoidDanger) { stopAutoExplore("Этаж пройден — исследовать нечего. В безопасном режиме здесь делать нечего."); return; }
     if (state.energy < FIGHT_ENERGY_COST) { stopAutoExplore("Энергия на исходе. Авто-исследование остановлено."); return; }
-    const mobIndex = Math.floor(Math.random() * floor.mobs.length);
-    ae.log.push(`${stamp} ⚔ Ищем боя: ${floor.mobs[mobIndex].name}.`);
+    const pool = floorMobsForZone(floor, zone);
+    const mob = pool[Math.floor(Math.random() * pool.length)];
+    const mobIndex = Math.max(0, floor.mobs.indexOf(mob));
+    ae.log.push(`${stamp} ⚔ Ищем боя: ${mob.name}.`);
     startBattle(floorId, mobIndex);
     return;
   }
 
-  const res = exploreFloor(floorId);
+  const res = exploreFloor(floorId, zone);
   ae.log.push(`${stamp} ${res.text}`);
+  if (res.ok && typeof pushEventLog === "function") pushEventLog("Исследование", res.text);
   if (ae.log.length > 30) ae.log.splice(0, ae.log.length - 30);
-  toast(res.text, res.ok ? "ok" : "warn");
+  // Текст события не дублируем тостом: он живёт в нижней панели.
+  if (!res.event && !res.floorEvent) toast(res.text, res.ok ? "ok" : "warn");
   if (!res.ok) { stopAutoExplore(); return; }
 
   // Если выпал NPC (Артур) — останавливаем авто-исследование, чтобы игрок мог поговорить
@@ -447,14 +456,14 @@ function autoExploreTick(floorId, avoidDanger) {
 
   if (res.encounter || res.scene) {
     if (res.encounter && !avoidDanger) {
-      view.exploreResult = { 
-        type: "loot", 
-        encounter: res.encounter, 
-        scene: res.scene, 
-        text: res.text 
-      };
-      render();
-      return;
+      // Бой в авто-режиме тоже стартует сразу — без окна «Находка».
+      const floor = FLOORS.find((f) => f.id === res.encounter.floorId);
+      const def = floor ? floor.mobs[res.encounter.mobIndex] : null;
+      if (floor && def) {
+        stopAutoExplore();
+        beginBattle(def, floor.id);
+        return;
+      }
     } else if (res.scene) {
       // Если это сцена, мы должны остановить авто-режим, чтобы игрок её прошел
       stopAutoExplore("Наткнулись на сцену. Авто-исследование остановлено.");
@@ -489,16 +498,23 @@ function resolveSceneAction(type) {
     view.sceneGroupFloorId = floor.id;
     beginBattle(floor.mobs[groupIndexes[0]], floor.id);
   };
+  // Итог сцены пишем в журнал событий, а не показываем тостом.
+  // inBattle — результат сразу уступает место бою, поэтому только история.
+  const logOutcome = (text, tone = "ok", inBattle = false) => {
+    const title = scene.title || "Исход события";
+    pushEventLog(title, text);
+    if (!inBattle) pushEventResult(scene.icon, title, text, tone);
+  };
 
   if (type === "stealth") {
     if (Math.random() < 0.8) {
       addProgress(3);
       closeScene();
-      toast(`Вы переждали в кустах, пока гоблины не ушли. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+      logOutcome(`Вы переждали в кустах, пока гоблины не ушли. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
       render();
     } else {
       closeScene();
-      toast("Гоблин обернулся — вы замечены!", "warn");
+      logOutcome("Гоблин обернулся — вы замечены!", "warn", true);
       startGroup(scene.group);
     }
   } else if (type === "fight") {
@@ -508,7 +524,7 @@ function resolveSceneAction(type) {
     if (Math.random() < 0.6) {
       closeScene();
       const count = Math.min(scene.group.length, 1 + Math.floor(Math.random() * 3));
-      toast(`Земля шевельнулась — поднимаются мертвецы (×${count})!`, "warn");
+      logOutcome(`Земля шевельнулась — поднимаются мертвецы (×${count})!`, "warn", true);
       startGroup(scene.group.slice(0, count));
     } else {
       const pool = FLOOR_RESOURCES[floor.id + 1] || FLOOR_RESOURCES[floor.id] || [];
@@ -518,7 +534,7 @@ function resolveSceneAction(type) {
       weekQuestResourceGain(res.id, amount);
       addProgress(1);
       closeScene();
-      toast(`В земле нашлось: ${res.name} ×${amount}! Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+      logOutcome(`В земле нашлось: ${res.name} ×${amount}! Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
       render();
     }
   } else if (type === "talk" && scene.talkOutcome) {
@@ -549,7 +565,7 @@ function resolveSceneAction(type) {
     if (o.rumor) parts.push(`Слух: «${o.rumor}»`);
     addProgress(3);
     closeScene();
-    toast(parts.join(" "), "ok");
+    logOutcome(parts.join(" "), "ok");
     render();
   } else if (type === "loot" && scene.lootOutcome) {
     // ── «Обобрать» (Блок 7): лут без боя, возможен риск. Формат lootOutcome:
@@ -559,14 +575,14 @@ function resolveSceneAction(type) {
     if (risk > 0 && Math.random() < risk) {
       closeScene();
       if (Array.isArray(o.skirmish)) {
-        toast(o.failText || "Вы потревожили не то, что стоило.", "warn");
+        logOutcome(o.failText || "Вы потревожили не то, что стоило.", "warn", true);
         startGroup(o.skirmish);
       } else {
         const dmg = Array.isArray(o.hp) ? o.hp[0] + Math.floor(Math.random() * (o.hp[1] - o.hp[0] + 1)) : 0;
         if (dmg > 0) state.hp = Math.max(1, state.hp - dmg);
         addProgress(1);
         saveState();
-        toast(`${o.failText || "Добраться до лута не вышло."}${dmg ? ` −${dmg} HP` : ""}`, "warn");
+        logOutcome(`${o.failText || "Добраться до лута не вышло."}${dmg ? ` −${dmg} HP` : ""}`, "warn");
         render();
       }
       return;
@@ -595,12 +611,12 @@ function resolveSceneAction(type) {
     if (o.rumor) parts.push(`Слух: «${o.rumor}»`);
     addProgress(2);
     closeScene();
-    toast(parts.join(" "), "ok");
+    logOutcome(parts.join(" "), "ok");
     render();
   } else {
     addProgress(1);
     closeScene();
-    toast(`Вы обошли это место стороной. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
+    logOutcome(`Вы обошли это место стороной. Прогресс этажа: ${state.floorProgress[floor.id]}%.`, "ok");
     render();
   }
 }
@@ -728,7 +744,7 @@ function resolveFloorEventAction(eventId, actionId) {
   if (Array.isArray(e.skirmish) && floor) {
     const group = e.skirmish.filter((i) => floor.mobs[i]);
     if (group.length) {
-      toast(parts.join(" "), "warn");
+      pushEventResult(event.icon, event.title || event.name, parts.join(" "), "warn");
       view.sceneGroup = group.slice(1);
       view.sceneGroupFloorId = floor.id;
       beginBattle(floor.mobs[group[0]], floor.id);
@@ -743,7 +759,7 @@ function resolveFloorEventAction(eventId, actionId) {
   }
 
   const floorEventCls = parts.some((p) => p.includes("💰") || p.includes("×") || p.includes("🧪") || p.includes("✦")) ? "ok" : "warn";
-  toast(parts.join(" "), floorEventCls);
+  pushEventResult(event.icon, event.title || event.name, parts.join(" "), floorEventCls);
   render();
 }
 
@@ -758,7 +774,7 @@ function resolveHunterEncounterAction(encId, actionId) {
 
   if (actionId === "leave") {
     close();
-    toast(`Вы оставляете «${enc.name}» в покое.`, "ok");
+    pushEventResult(enc.icon, enc.name || enc.title, `Вы оставляете «${enc.name}» в покое.`, "ok");
     render();
     return;
   }
@@ -803,7 +819,7 @@ function resolveHunterEncounterAction(encId, actionId) {
     }
     close();
     if (enc.helpReward && enc.helpReward.rumor) parts.push(`Слух: «${enc.helpReward.rumor}»`);
-    toast(parts.join(", ") + ".", "ok");
+    pushEventResult(enc.icon, enc.name || enc.title, parts.join(", ") + ".", "ok");
     render();
     return;
   }
@@ -827,7 +843,7 @@ function resolveHunterEncounterAction(encId, actionId) {
       boss: false,
     };
     state._hunterBattle = { encId: enc.id, floorId: floor.id }; // дроп дневника — в doExchange
-    toast(enc.killText || `${enc.name} поднимается против вас!`, "warn");
+    pushEventResult(enc.icon, enc.name || enc.title, enc.killText || `${enc.name} поднимается против вас!`, "warn");
     close();
     beginBattle(hunterDef, floor.id);
   }

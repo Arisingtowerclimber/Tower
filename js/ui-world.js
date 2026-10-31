@@ -543,24 +543,19 @@ function floorHtml() {
     </div>
   `;
 
-  // Быстрый бой доступен всегда: фарм моба не трогает прогресс исследования.
-  const quickFightTitle = canFight
-    ? "Бой со случайным мобом этажа (1)"
-    : (state.energy < FIGHT_ENERGY_COST ? "Нужна энергия" : "Ночью бои недоступны — дождитесь утра");
-  const quickFightBtn = `
-    <button class="btn quick-fight" data-act="quick-fight" data-floor="${floor.id}" ${canFight ? "" : "disabled"} type="button" title="${quickFightTitle}" aria-label="${quickFightTitle}" style="font-size: 14px; padding: 10px 16px;">Искать бой</button>`;
-
   const zones = ZONE_NAMES[floor.id] || ["Зона 1", "Зона 2", "Зона 3", "Зона 4", "Зона 5"];
   const zoneDescs = ["Легкие враги", "Средние враги", "Сильные враги", "Элитные враги", "Смертельная зона"];
 
+  const selectedZone = Math.max(1, Math.min(5, Number(view.selectedZone) || 1));
   const zoneRows = zones.map((name, index) => {
     const zoneId = index + 1;
     const requiredProgress = index * 20; // 0%, 20%, 40%, 60%, 80%
     const isLocked = progress < requiredProgress;
     const desc = zoneDescs[index] || "Неизвестно";
+    const activeClass = zoneId === selectedZone ? " active" : "";
 
     if (isLocked) {
-      return '<div class="zone-row locked">' +
+      return '<div class="zone-row locked' + activeClass + '">' +
         '<div class="zone-row-info">' +
         '<span class="zone-row-title">' + name + ' (Заблокировано)</span>' +
         '<span class="zone-row-desc">Требуется исследовать этаж на ' + requiredProgress + '%</span>' +
@@ -569,7 +564,7 @@ function floorHtml() {
         '</div>';
     }
 
-    return '<div class="zone-row zone-' + zoneId + '">' +
+    return '<div class="zone-row zone-' + zoneId + activeClass + '" data-act="select-zone" data-zone="' + zoneId + '" role="button" tabindex="0">' +
       '<div class="zone-row-info">' +
       '<span class="zone-row-title">' + name + '</span>' +
       '<span class="zone-row-desc">' + desc + '</span>' +
@@ -582,10 +577,8 @@ function floorHtml() {
   }).join('');
 
   const exploreActions = '<div class="zone-list">' + zoneRows + '</div>' +
-    '<div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding-top:15px; margin-top:10px; border-top: 1px solid rgba(255,255,255,0.05);">' +
-    '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' + quickFightBtn + '</div>' +
-    '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' + ((!explored || cleared) ? autoBlock : "") + '</div>' +
-    '</div>';
+    '<div style="display:flex; gap:10px; align-items:center; justify-content:flex-end; flex-wrap:wrap; padding-top:15px; margin-top:10px; border-top: 1px solid rgba(255,255,255,0.05);">' +
+    ((!explored || cleared) ? autoBlock : "") + '</div>';
 
   const autoPanel = view.autoExplore ? `
     <div style="margin-top: 15px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,0.25); padding: 12px 14px;">
@@ -602,7 +595,10 @@ function floorHtml() {
   const exploreBlock = `
     <div class="explore-block" style="padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); margin-bottom: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
-        <b style="font-size: 18px; color: var(--gold2);">Выберите зону для исследования</b>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <b style="font-size: 18px; color: var(--gold2);">Выберите зону для исследования</b>
+          <span class="explore-hint">↑ / ↓ — выбрать зону · <b class="explore-key">E</b> — исследовать</span>
+        </div>
         <span style="color: var(--dim); font-size: 14px;">Исследовано: <b style="color: var(--gold2);">${progress}%</b></span>
       </div>
       ${bar("xp", progress, 100)}
@@ -648,37 +644,6 @@ function floorHtml() {
   `;
 }
 
-function exploreResultModalHtml() {
-  const res = view.exploreResult;
-  if (!res) return "";
-
-  let title = "Событие";
-  let icon = "";
-  let color = "var(--gold2)";
-
-  if (res.type === "loot") {
-    title = "Находка";
-    icon = "";
-    color = "#a9d3b1";
-  } else if (res.type === "nothing") {
-    title = "Тишина";
-    icon = "";
-    color = "var(--dim)";
-  }
-
-  return `
-    <div class="result-overlay" style="z-index: 190;">
-      <div class="result-card" style="max-width: 500px;">
-        <h2 style="color: ${color}; font-size: 24px;">${icon} ${title}</h2>
-        <p style="font-size: 15px; line-height: 1.55; margin: 15px 0 25px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">
-          ${esc(res.text)}
-        </p>
-        <button class="btn primary" data-act="explore-result-continue" type="button" style="width: 100%;">Продолжить</button>
-      </div>
-    </div>
-  `;
-}
-
 // Реплика активного компаньона на событие. Возвращает готовую строку или "".
 // Одна и та же реплика для одного и того же key (без мигания при ререндере).
 function companionReaction(type, key = "") {
@@ -693,46 +658,188 @@ function companionReaction(type, key = "") {
   return `${companion.icon} ${companion.name}: «${genderText(lines[seed % lines.length])}»`;
 }
 
-// Процедурное событие: нижняя выезжающая панель (Bottom Sheet).
-function renderEventModal(event) {
-  if (!event) return "";
-  const reaction = companionReaction(event.type || "explore", event.id);
-  const actions = (event.options || []).map((o) =>
-    `<button class="btn primary" data-act="event-action" data-event="${event.id}" data-option="${o.id}" type="button" style="flex:1; min-width:160px;">${o.label}</button>`
-  ).join("");
-  return `
-    <div class="event-bottom-sheet">
-      <div class="event-content">
-        <h2>${event.icon || ""} ${event.title || event.name || ""}</h2>
-        <p>${esc(event.text)}</p>
-        ${reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""}
-        <div class="event-actions">${actions}</div>
-      </div>
-    </div>
-  `;
+// ── Единая нижняя панель событий (Bottom Sheet + журнал) ────────────────────
+// Верхние модалки события больше не рисуются: всё живёт в одной панели.
+// Результат действия не улетает тостом, а висит здесь до кнопки «Продолжить».
+function pushEventResult(icon, title, text, tone = "ok") {
+  const entry = {
+    icon: icon || "",
+    title: title || "Событие",
+    text: String(text || ""),
+    tone: tone === "warn" ? "warn" : "ok",
+  };
+  view.eventJournal = Array.isArray(view.eventJournal) ? view.eventJournal : [];
+  view.eventJournal.push(entry);
+  if (view.eventJournal.length > 40) view.eventJournal.splice(0, view.eventJournal.length - 40);
+  view.eventResult = entry;
+  view.eventSelectedIndex = 0;
+  return entry;
 }
 
-// ── Спонтанные события этажей (Блок 6) ──────────────────────────────────────
-// Вход: state.activeFloorEvent = { eventId, floorId, encounter? }.
-// В отличие от renderEventModal кнопки = сразу выбор действий (не success/fail).
-function renderFloorEventModal(fe) {
-  if (!fe) return "";
-  // Открытый охотник — рисуем диалог охотника поверх.
-  if (fe.encounter) return renderHunterEncounterModal(fe);
-  const event = FLOOR_EVENTS[fe.eventId];
-  if (!event) return "";
-  const reaction = companionReaction(event.type || "explore", `${event.id}:${fe.floorId}`);
-  const actions = (event.actions || []).map((a) =>
-    `<button class="btn primary" data-act="floor-event-action" data-event="${event.id}" data-action="${a.id}" type="button" style="flex:1; min-width:160px;">${a.label}</button>`
-  ).join("");
-  return `
-    <div class="event-bottom-sheet">
-      <div class="event-content">
-        <h2>${event.icon || ""} ${event.title || event.name || ""}</h2>
-        <p>${esc(event.text)}</p>
-        ${reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""}
-        <div class="event-actions">${actions}</div>
+// История для карусели журнала: последние 20 исследований, без скролла.
+function pushEventLog(title, text) {
+  view.eventLog = Array.isArray(view.eventLog) ? view.eventLog : [];
+  view.eventLog.push({ title: title || "Исследование", text: String(text || "") });
+  if (view.eventLog.length > 20) view.eventLog.splice(0, view.eventLog.length - 20);
+  view.eventLogIndex = -1;
+}
+
+// Перелистывание карусели. -1 — реальное время, 0..len-1 — история.
+function cycleEventLog(dir) {
+  const log = Array.isArray(view.eventLog) ? view.eventLog : [];
+  if (!log.length) return false;
+  const len = log.length;
+  let cur = Number(view.eventLogIndex);
+  if (!Number.isFinite(cur) || cur < -1) cur = -1;
+  let next;
+  if (dir < 0) next = cur <= 0 ? (cur === -1 ? len - 1 : -1) : cur - 1;
+  else next = cur === -1 ? 0 : (cur >= len - 1 ? -1 : cur + 1);
+  view.eventLogIndex = next;
+  return true;
+}
+
+function eventJournalHtml(skipLast = false) {
+  const all = Array.isArray(view.eventJournal) ? view.eventJournal : [];
+  const entries = skipLast ? all.slice(0, -1) : all;
+  if (!entries.length) return "";
+  const rows = entries.slice().reverse().map((entry) => `
+    <div class="event-journal-entry ${entry.tone === "warn" ? "warn" : "ok"}">
+      <span class="event-journal-icon">${esc(entry.icon || "•")}</span>
+      <div class="event-journal-body">
+        <b>${esc(entry.title)}</b>
+        <span>${esc(entry.text)}</span>
       </div>
+    </div>`).join("");
+  return `
+    <div class="event-journal">
+      <div class="event-journal-title">Журнал событий</div>
+      <div class="event-journal-scroll">${rows}</div>
+    </div>`;
+}
+
+// Кнопки событий и сцен — строго текстовые, без эмодзи.
+function stripEmoji(text) {
+  return String(text == null ? "" : text)
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu, "")
+    .replace(/\s+([,.:;!?)\]])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function eventOptionButton({ act, attrs, index, label }) {
+  const selected = index === (Number(view.eventSelectedIndex) || 0) ? " kbd-selected" : "";
+  const clean = stripEmoji(label);
+  return `<button class="btn primary event-option${selected}" data-act="${act}" ${attrs} type="button" aria-keyshortcuts="${index + 1}"><span class="event-key">[${index + 1}]</span><span>${clean}</span></button>`;
+}
+
+// Карусель журнала: заголовок с навигацией, текущее событие или история.
+function renderEventLogCarousel() {
+  const log = Array.isArray(view.eventLog) ? view.eventLog : [];
+  const historyIndex = Number(view.eventLogIndex);
+  const inHistory = historyIndex >= 0 && log.length > 0;
+  const index = inHistory ? Math.min(historyIndex, log.length - 1) : -1;
+
+  const head = () => `
+    <div class="event-log-head">
+      <button class="event-log-nav" data-act="log-prev" type="button" aria-label="Предыдущее событие">←</button>
+      <span class="event-log-head-gap" aria-hidden="true"></span>
+      <button class="event-log-nav" data-act="log-next" type="button" aria-label="Следующее событие">→</button>
+    </div>
+  `;
+
+  // Заголовок выносим в отдельную рамку над панелью, тело — в прокручиваемую область.
+  const layout = (title, body = "") => ({
+    title: title || "Журнал событий",
+    html: head() + body,
+  });
+
+  // История: только запись журнала, кнопки выбора события скрыты.
+  if (inHistory) {
+    const entry = log[index] || { title: "Исследование", text: "" };
+    return layout(entry.title || "Исследование",
+      `<p class="event-result-text">${esc(entry.text)}</p>`);
+  }
+
+  // Режим реального времени: активное событие и его кнопки выбора.
+  const proc = state.activeEvent;
+  const floorEvent = state.activeFloorEvent;
+  const result = view.eventResult;
+
+  if (proc) {
+    const reaction = companionReaction(proc.type || "explore", proc.id);
+    const actions = (proc.options || []).map((o, i) => eventOptionButton({
+      act: "event-action",
+      attrs: `data-event="${proc.id}" data-option="${o.id}"`,
+      index: i,
+      label: esc(o.label),
+    })).join("");
+    return layout(proc.title || proc.name || "Событие",
+      `<p>${esc(proc.text)}</p>` +
+      (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : "") +
+      `<div class="event-actions">${actions}</div>`);
+  }
+
+  if (floorEvent && floorEvent.encounter) {
+    const enc = (HUNTER_ENCOUNTERS || []).find((h) => h.id === floorEvent.encounter);
+    if (enc) {
+      const hint = enc.helpNeed
+        ? (enc.helpNeed.potion ? "Помощь стоит лечащего зелья." : "Помощь стоит одного ресурса.")
+        : "Помощь — за просто так.";
+      const actions = [
+        { id: "help", label: "Помочь" },
+        { id: "kill", label: "Убить" },
+        { id: "leave", label: "Оставить в покое" },
+      ].map((a, i) => eventOptionButton({
+        act: "hunter-enc-action",
+        attrs: `data-enc="${enc.id}" data-action="${a.id}"`,
+        index: i,
+        label: a.label,
+      })).join("");
+      return layout(enc.name || enc.title || "Встреча",
+        `<p>${esc(enc.text)}</p>` +
+        `<p class="event-hint">${esc(hint)}</p>` +
+        `<div class="event-actions">${actions}</div>`);
+    }
+  }
+
+  if (floorEvent) {
+    const event = FLOOR_EVENTS[floorEvent.eventId];
+    if (event) {
+      const reaction = companionReaction(event.type || "explore", `${event.id}:${floorEvent.floorId}`);
+      const actions = (event.actions || []).map((a, i) => eventOptionButton({
+        act: "floor-event-action",
+        attrs: `data-event="${event.id}" data-action="${a.id}"`,
+        index: i,
+        label: esc(a.label),
+      })).join("");
+      return layout(event.title || event.name || "Событие",
+        `<p>${esc(event.text)}</p>` +
+        (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : "") +
+        `<div class="event-actions">${actions}</div>`);
+    }
+  }
+
+  if (result) {
+    return layout(result.title,
+      `<p class="event-result-text ${result.tone === "warn" ? "event-fail" : "event-success"}">${esc(result.text)}</p>` +
+      `<div class="event-actions"><button class="btn primary" data-act="event-continue" type="button">Продолжить</button></div>`);
+  }
+
+  return layout("Журнал событий");
+}
+
+function eventSheetHtml() {
+  const log = Array.isArray(view.eventLog) ? view.eventLog : [];
+  const onExploreScreen = view.screen === "floor" || view.screen === "tower";
+  const hasContent = Boolean(state.activeEvent || state.activeFloorEvent || view.eventResult
+    || (log.length && onExploreScreen));
+  if (!hasContent) return "";
+  const carousel = renderEventLogCarousel();
+  if (!carousel || !carousel.html) return "";
+  return `
+    <div class="event-bottom-sheet${view.eventResult && Number(view.eventLogIndex) < 0 ? " event-result-sheet" : ""}">
+      <div class="event-log-title-badge"><span>${esc(carousel.title)}</span></div>
+      <div class="event-content event-content-journal">${carousel.html}</div>
     </div>
   `;
 }
@@ -746,13 +853,13 @@ function renderHunterEncounterModal(fe) {
     { id: "help", label: "Помочь" },
     { id: "kill", label: "Убить" },
     { id: "leave", label: "Оставить в покое" },
-  ].map((a) =>
-    `<button class="btn primary" data-act="hunter-enc-action" data-enc="${enc.id}" data-action="${a.id}" type="button" style="flex:1; min-width:150px;">${a.label}</button>`
+  ].map((a, i) =>
+    `<button class="btn primary" data-act="hunter-enc-action" data-enc="${enc.id}" data-action="${a.id}" type="button" style="flex:1; min-width:150px;"><span class="event-key">[${i + 1}]</span>${stripEmoji(a.label)}</button>`
   ).join("");
   return `
     <div class="event-bottom-sheet">
       <div class="event-content">
-        <h2>${enc.icon || ""} ${enc.name || enc.title || ""}</h2>
+        <h2>${esc(enc.name || enc.title || "")}</h2>
         <p>${esc(enc.text)}</p>
         <p style="font-size: 13px; color: rgba(220, 205, 175, 0.75); margin: -8px 0 16px;">${esc(hint)}</p>
         <div class="event-actions">${actions}</div>
@@ -788,15 +895,15 @@ function sceneModalHtml() {
   const floor = FLOORS.find((f) => f.id === state.activeSceneFloorId);
   const scene = floor ? (FLOOR_SCENES[floor.id] || []).find((s) => s.id === state.activeSceneId) : null;
   if (!scene) return "";
-  const actions = scene.actions.map((a) =>
-    `<button class="btn primary" data-act="scene-action" data-action="${a.id}" type="button" style="flex:1; min-width:180px;">${a.label}</button>`
+  const actions = scene.actions.map((a, i) =>
+    `<button class="btn primary event-option" data-act="scene-action" data-action="${a.id}" type="button"><span class="event-key">[${i + 1}]</span><span>${esc(stripEmoji(a.label))}</span></button>`
   ).join("");
   return `
-    <div class="result-overlay" data-act="scene-backdrop" style="z-index: 190;">
-      <div class="result-card">
-        <h2 style="color: var(--gold2); font-size: 26px;">${scene.title}</h2>
-        <p style="font-size: 15px; line-height: 1.55; margin: 15px 0 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--line);">${scene.text}</p>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">${actions}</div>
+    <div class="event-bottom-sheet scene-bottom-sheet">
+      <div class="event-content">
+        <h2>${esc(scene.title)}</h2>
+        <p>${esc(scene.text)}</p>
+        <div class="event-actions">${actions}</div>
       </div>
     </div>
   `;
@@ -1405,10 +1512,12 @@ function dialogOptionOnCooldown(npcId, opt) {
 }
 
 function getOptionPriority(opt) {
-  const label = String(opt?.label || "").toLowerCase();
-  // «Уйти» — всегда в самом низу, «← Назад» — прямо перед ней.
-  if (label.includes("уйти") || opt?.next === null) return 100;
-  if (label.includes("назад") || opt?.next === "start") return 90;
+  const label = String(opt?.label || "").trim().toLowerCase();
+  // «Уйти» — всегда последняя кнопка, «← Назад» — предпоследняя.
+  // Приоритет зависит только от подписи: опции с next: null/start не должны
+  // случайно попадать вниз списка (например, «Понял.» или «Не сейчас.»).
+  if (label.includes("уйти")) return 100;
+  if (label.startsWith("←") || label.includes("назад")) return 90;
   if (opt?.action === "open_shop" || opt?.action === "open_trade" || label.includes("показать товары")) return 1;
   if (opt?.action === "open_craft" || label.includes("крафт")) return 2;
   if (opt?.action === "open_quests" || label.includes("взять задание") || label.includes("задания") || label.includes("сюжет") || opt?.next === "story_offer") return 3;
@@ -1478,6 +1587,15 @@ function dialogActionParts(npcId) {
         : "";
     }
   }
+  // У остальных NPC «Поболтать» теперь только в главном меню диалога:
+  // в узлах-подменю эта кнопка больше не дублируется.
+  if (!topicsButton) {
+    const tree = DIALOG_TREES[npcId];
+    const atRoot = !view.npcInteraction || view.npcInteraction.node === tree?.start;
+    if (atRoot && DIALOG_BRANCHES[npcId] && DIALOG_BRANCHES[npcId].length) {
+      topicsButton = `<button class="btn mnb-option-btn" data-act="npc-talk-topics" data-npc="${npcId}" type="button">Поболтать</button>`;
+    }
+  }
 
   // Сдача сюжетного задания тоже идёт через диалог: отдельной панели «Сюжет» больше нет.
   let storyActionBtn = "";
@@ -1529,6 +1647,12 @@ function dialogTopicsHtml(npcId) {
 // ответов справа. Используется и в полосе лавки, и в модальном окне.
 function dialogSceneHtml(npcId, node, { modal = false } = {}) {
   const npcName = NPC_NAMES[npcId] || npcId;
+  // При смене узла сбрасываем клавиатурный курсор на первый вариант.
+  const dialogKey = `${npcId}:${node.topicsMenu ? "topics" : node.text}`;
+  if (view._dialogKey !== dialogKey) {
+    view._dialogKey = dialogKey;
+    view.dialogSelectedIndex = 0;
+  }
   const mood = state.npcMood?.[npcId];
   const moodLabel = mood === "good" ? "расположен" : mood === "bad" ? "недоволен" : "";
   const nodeText = node.tip === "timmy" ? (view.timmyTip || randomTimmyTip()) : node.text;
