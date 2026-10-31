@@ -64,11 +64,8 @@ let invFilterCache = { key: "", list: [] };
 
 // ── QTE: общее состояние анимации ──────────────────────────────────────────
 // Таймер тренировки и «Боевой печати» тикает setInterval раз в 100 мс.
-const QTE_TRAINING_TIME = 6.0;
 const QTE_TICK_MS = 100;
 let qteInterval = null;
-let qteRunnerPos = 0;
-let qteRunnerDir = 1;
 
 // Экранирование для HTML и атрибутов: важны кавычки — в data-tooltip лежит готовый HTML.
 function esc(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
@@ -1110,82 +1107,12 @@ function updateComboArrows() {
   });
 }
 
-function renderTrainingQte() {
-  const qte = view.trainingQTE;
-  if (!qte) return "";
-  const training = TRAINING_MAP[qte.trainingId];
-  if (!training) return "";
-  if (training.qteType === "rhythm") return renderRhythmQte(training);
-  const total = Array.isArray(qte.sequence) && qte.sequence.length ? qte.sequence.length : 3;
-  const step = Math.max(0, Math.min(total, Number(qte.currentStep) || 0));
-  // Подсказка показывает именно текущую случайную комбинацию.
-  const moveLabels = { left: "влево", right: "вправо", strike: "удар" };
-  const hint = (Array.isArray(qte.sequence) ? qte.sequence : []).map((m) => moveLabels[m] || m).join(" → ");
-  const dots = Array.from({ length: total }, (_, i) =>
-    `<span class="qte-step${i < step ? " done" : ""}" data-step="${i}"></span>`
-  ).join("");
-  const pct = Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / QTE_TRAINING_TIME) * 100));
-  const button = (move, label) =>
-    `<button class="btn primary" data-act="training-qte" data-move="${move}" type="button" style="flex:1;min-height:48px;">${label}</button>`;
-  return `
-    <div class="qte-modal" role="dialog" aria-label="Тренировка">
-      <div class="qte-card">
-        <h2 class="qte-title">Тренировка: ${esc(training.name)}</h2>
-        <p class="qte-subtitle">Повтори движение: ${esc(hint)}</p>
-        <div class="qte-steps" data-role="qte-steps">${dots}</div>
-        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:${pct}%"></span></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          ${button("left", "Влево")}
-          ${button("right", "Вправо")}
-          ${button("strike", "Удар")}
-        </div>
-      </div>
-    </div>`;
-}
-
-// «Полоса препятствий»: ритм-QTE. Бегунок ходит по шкале, в центре — зелёная
-// зона. Прыжок в этой зоне — успех, любой другой клик или таймаут — провал.
-function renderRhythmQte(training) {
-  const qte = view.trainingQTE;
-  if (!qte) return "";
-  const pct = Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / QTE_TRAINING_TIME) * 100));
-  return `
-    <div class="qte-modal" role="dialog" aria-label="Полоса препятствий">
-      <div class="qte-card">
-        <h2 class="qte-title">${esc(training.name)}</h2>
-        <p class="qte-subtitle">Прыгай, когда бегунок в зелёной зоне</p>
-        <div class="rhythm-scale">
-          <div class="rhythm-zone"></div>
-          <div class="rhythm-runner" data-role="rhythm-runner" style="left:0%"></div>
-        </div>
-        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="qte-timer-fill" style="width:${pct}%"></span></div>
-        <button class="parry-btn qte-stop-btn" data-act="rhythm-jump" type="button">Прыжок!</button>
-      </div>
-    </div>`;
-}
-
-// Точечное обновление шага тренировки: без render() и без пересоздания
-// модалки, чтобы она не мигала и не перезапускала анимацию появления.
-function updateTrainingQteStep(qte) {
-  const box = document.querySelector('[data-role="qte-steps"]');
-  if (!box) return;
-  const step = Number(qte.currentStep) || 0;
-  box.querySelectorAll(".qte-step").forEach((el, i) => {
-    el.classList.toggle("done", i < step);
-  });
-}
-
 function stopQteLoop() {
   if (qteInterval !== null) {
     clearInterval(qteInterval);
     qteInterval = null;
   }
   view.typingTimer = null;
-}
-
-function updateQteTimer(ratio) {
-  const fill = document.querySelector('.qte-timer-fill');
-  if (fill) fill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
 }
 
 function ensureQteLoop() {
@@ -1195,26 +1122,14 @@ function ensureQteLoop() {
     && (view.typingState || view.comboState);
   if (!view.trainingQTE && !battleQte) return;
 
-  qteRunnerPos = 0;
-  qteRunnerDir = 1;
-
   qteInterval = setInterval(() => {
     const dt = QTE_TICK_MS / 1000;
 
-    // Тренировка: общий таймер на 6 секунд. Для «Полосы препятствий»
-    // дополнительно двигаем бегунок (полный проход шкалы — 3 секунды).
+    // Тренировка: печать слова с общим таймером. Время вышло — провал.
     if (view.trainingQTE) {
       const q = view.trainingQTE;
       q.timeLeft = (Number(q.timeLeft) || 0) - dt;
-      updateQteTimer(q.timeLeft / QTE_TRAINING_TIME);
-      const training = TRAINING_MAP[q.trainingId];
-      if (training && training.qteType === "rhythm") {
-        qteRunnerPos += qteRunnerDir * dt / 3;
-        if (qteRunnerPos >= 1) { qteRunnerPos = 1; qteRunnerDir = -1; }
-        else if (qteRunnerPos <= 0) { qteRunnerPos = 0; qteRunnerDir = 1; }
-        const runner = document.querySelector('[data-role="rhythm-runner"]');
-        if (runner) runner.style.left = `${qteRunnerPos * 100}%`;
-      }
+      updateTrainingQteDisplay();
       if (q.timeLeft <= 0) {
         stopQteLoop();
         completeTraining(false);
@@ -1495,8 +1410,8 @@ function render() {
   html += battlePopupsHtml(newLines);
   if (view.screen === "battle" && (!view.battle || (view.battle.round || 0) === 0)) view.prevLog = 0;
 
-  // QTE тренировки: модалка живёт поверх экрана Зала Охотников.
-  if (view.trainingQTE) html += renderTrainingQte();
+  // Мини-игра тренировки: модалка живёт поверх экрана Зала Охотников.
+  if (view.trainingQTE) html += renderNewTrainingQte();
 
   // События и сцены — единая нижняя панель (Bottom Sheet) с журналом.
   // Рисуются в самом конце, поверх интерфейса, но без затемнения экрана.
@@ -2552,34 +2467,6 @@ function onClick(event) {
       view.logExpanded = view.logExpanded === false;
       render();
       break;
-
-    case "training-qte": {
-      const qte = view.trainingQTE;
-      if (!qte) break;
-      const expected = Array.isArray(qte.sequence) ? qte.sequence[qte.currentStep] : null;
-      if (el.dataset.move !== expected) {
-        stopQteLoop();
-        completeTraining(false);
-        break;
-      }
-      qte.currentStep += 1;
-      if (qte.currentStep >= qte.sequence.length) {
-        stopQteLoop();
-        completeTraining(true);
-      } else {
-        // Только точки шага: модалка и таймер продолжают жить без render().
-        updateTrainingQteStep(qte);
-      }
-      break;
-    }
-    case "rhythm-jump": {
-      if (!view.trainingQTE) break;
-      stopQteLoop();
-      // Зелёная зона занимает центральные 20% шкалы (40–60%).
-      const inZone = qteRunnerPos >= 0.4 && qteRunnerPos <= 0.6;
-      completeTraining(inZone);
-      break;
-    }
 
     // БОЕВЫЕ ДЕЙСТВИЯ С ТРЯСКОЙ
     case "skill":

@@ -4748,24 +4748,37 @@ body:has(.screen[data-screen="battle"]) .settings-fab {
   left: 0;
   right: 0;
   z-index: 1000;
-  height: auto;
-  max-height: 250px;
-  overflow: visible;
+  height: 180px !important; /* жёсткая высота: панель не прыгает при появлении текста и кнопок */
+  overflow: visible; /* рамка-заголовок выступает над панелью */
   overscroll-behavior: contain;
   background: linear-gradient(180deg, #14100d 0%, #0a0807 100%);
   border-top: 1px solid var(--gold2);
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
 }
 .event-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
   max-width: 800px;
   margin: 0 auto;
   text-align: center;
-  padding: 15px;
-  max-height: 250px;
+  padding: 25px 20px 15px; /* сверху отступ под выступающую рамку, снизу — компактнее */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.event-content-journal { padding-top: 30px; }
+.event-content-journal { padding-top: 25px; overflow: hidden; }
+/* Диалоги встреч/сцен без журнальных зон: обычный поток сверху вниз */
+.event-content:not(.event-content-journal) { justify-content: flex-start; }
+/* Верхняя зона: заголовок и текст события — скроллится внутри панели */
+.event-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* Нижняя зона: кнопки действий — всегда прижаты к низу панели */
+.event-footer { flex: 0 0 auto; }
 .event-content h2 { color: #d1c0aa; font-size: 20px; margin-top: 0; }
 
 /* Рамка-заголовок, выступающая над нижней панелью */

@@ -748,9 +748,11 @@ function renderEventLogCarousel() {
   `;
 
   // Заголовок выносим в отдельную рамку над панелью, тело — в прокручиваемую область.
-  const layout = (title, body = "") => ({
+  // Тело панели всегда состоит из двух зон: текст (скроллится) и кнопки (прижаты к низу).
+  const layout = (title, body = "", actions = "") => ({
     title: title || "Журнал событий",
-    html: head() + body,
+    html: `<div class="event-scroll">${head()}${body}</div>` +
+      `<div class="event-footer">${actions}</div>`,
   });
 
   // История: только запись журнала, кнопки выбора события скрыты.
@@ -775,7 +777,7 @@ function renderEventLogCarousel() {
     })).join("");
     return layout(proc.title || proc.name || "Событие",
       `<p>${esc(proc.text)}</p>` +
-      (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : "") +
+      (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""),
       `<div class="event-actions">${actions}</div>`);
   }
 
@@ -797,7 +799,7 @@ function renderEventLogCarousel() {
       })).join("");
       return layout(enc.name || enc.title || "Встреча",
         `<p>${esc(enc.text)}</p>` +
-        `<p class="event-hint">${esc(hint)}</p>` +
+        `<p class="event-hint">${esc(hint)}</p>`,
         `<div class="event-actions">${actions}</div>`);
     }
   }
@@ -814,14 +816,14 @@ function renderEventLogCarousel() {
       })).join("");
       return layout(event.title || event.name || "Событие",
         `<p>${esc(event.text)}</p>` +
-        (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : "") +
+        (reaction ? `<p class="companion-reaction">${esc(reaction)}</p>` : ""),
         `<div class="event-actions">${actions}</div>`);
     }
   }
 
   if (result) {
     return layout(result.title,
-      `<p class="event-result-text ${result.tone === "warn" ? "event-fail" : "event-success"}">${esc(result.text)}</p>` +
+      `<p class="event-result-text ${result.tone === "warn" ? "event-fail" : "event-success"}">${esc(result.text)}</p>`,
       `<div class="event-actions"><button class="btn primary" data-act="event-continue" type="button">Продолжить</button></div>`);
   }
 
@@ -829,13 +831,12 @@ function renderEventLogCarousel() {
 }
 
 function eventSheetHtml() {
-  const log = Array.isArray(view.eventLog) ? view.eventLog : [];
   const onExploreScreen = view.screen === "floor" || view.screen === "tower";
-  const hasContent = Boolean(state.activeEvent || state.activeFloorEvent || view.eventResult
-    || (log.length && onExploreScreen));
-  if (!hasContent) return "";
+  const hasContent = Boolean(state.activeEvent || state.activeFloorEvent || view.eventResult);
+  // На экранах исследования панель присутствует всегда (пустая или с историей),
+  // чтобы её появление не сдвигало интерфейс.
+  if (!hasContent && !onExploreScreen) return "";
   const carousel = renderEventLogCarousel();
-  if (!carousel || !carousel.html) return "";
   return `
     <div class="event-bottom-sheet${view.eventResult && Number(view.eventLogIndex) < 0 ? " event-result-sheet" : ""}">
       <div class="event-log-title-badge"><span>${esc(carousel.title)}</span></div>

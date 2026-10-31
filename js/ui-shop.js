@@ -218,6 +218,40 @@ function hotelHtml() {
   `;
 }
 
+// Мини-игра тренировки: печать слова, как в бою. Набранные буквы зелёные.
+function renderNewTrainingQte() {
+  const qte = view.trainingQTE;
+  if (!qte) return "";
+  const training = TRAINING_MAP[qte.trainingId];
+  if (!training) return "";
+  const timeLimit = Number(qte.timeLimit) > 0 ? Number(qte.timeLimit) : 4.0;
+  const pct = Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / timeLimit) * 100));
+  return `
+    <div class="qte-modal" role="dialog" aria-label="Тренировка">
+      <div class="qte-card">
+        <h2 class="qte-title">Тренировка: ${esc(training.name)}</h2>
+        <p class="qte-subtitle">Иван: Покажи, чему научился. Напечатай слово!</p>
+        <div class="typing-word attack" data-role="training-qte-word" style="margin:0 auto 18px;max-width:560px;">
+          <span class="typing-word-text" style="font-size:52px;letter-spacing:0.08em;">${typingWordTextHtml(qte)}</span>
+        </div>
+        <p class="qte-subtitle" style="font-size:12px;opacity:0.7;">Нажимайте буквы на клавиатуре. Ошибка или просроченное время — травма.</p>
+        <div class="qte-timer-bar"><span class="qte-timer-fill" data-role="training-timer-fill" style="width:${pct}%"></span></div>
+      </div>
+    </div>`;
+}
+
+// Точечное обновление: слово и полоска таймера без полного render().
+function updateTrainingQteDisplay() {
+  const qte = view.trainingQTE;
+  if (!qte) return;
+  const wordEl = document.querySelector('[data-role="training-qte-word"] .typing-word-text');
+  if (wordEl) wordEl.innerHTML = typingWordTextHtml(qte);
+  const fill = document.querySelector('[data-role="training-timer-fill"]');
+  if (!fill) return;
+  const timeLimit = Number(qte.timeLimit) > 0 ? Number(qte.timeLimit) : 4.0;
+  fill.style.width = `${Math.max(0, Math.min(100, ((Number(qte.timeLeft) || 0) / timeLimit) * 100))}%`;
+}
+
 function trainingHtml() {
   const tutorialProgress = Number(state.tutorialProgress) || 0;
   const boardLocked = tutorialProgress < 2;

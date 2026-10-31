@@ -2591,30 +2591,30 @@ function trainAttr(trainingId) {
   if (state.phase === 3) return { ok: false, text: "Иван: Я уже сплю. Приходи утром." };
   if (state.energy < TRAINING_ENERGY_COST) return { ok: false, text: `Нужно ${TRAINING_ENERGY_COST} ⚡. Отдохните или сходите в Башню.` };
 
-  // Статы, фаза и энергия меняются только после QTE в completeTraining().
+  // Статы, фаза и энергия меняются только после мини-игры в completeTraining().
   // Сохранение здесь фиксирует только «тренировка начата» — если игрок
   // перезагрузит страницу, он ничего не потеряет.
-  // Случайная комбинация 3–5 шагов; две одинаковые подряд не выдаём.
-  const moves = ["left", "right", "strike"];
-  const len = 3 + Math.floor(Math.random() * 3);
-  let seq;
-  do {
-    seq = Array.from({ length: len }, () => moves[Math.floor(Math.random() * moves.length)]);
-  } while (JSON.stringify(seq) === JSON.stringify(view._lastTrainingSequence || []));
-  view._lastTrainingSequence = seq;
+  // Мини-игра — печать слова, как в бою. Слово не повторяем дважды подряд.
+  const pool = Array.isArray(ATTACK_WORDS_BASE) && ATTACK_WORDS_BASE.length
+    ? ATTACK_WORDS_BASE
+    : ["УДАР"];
+  const fresh = pool.length > 1 ? pool.filter((w) => w !== view._lastTrainingWord) : pool;
+  const word = fresh[Math.floor(Math.random() * fresh.length)] || pool[0] || "УДАР";
+  view._lastTrainingWord = word;
 
   view.trainingQTE = {
     trainingId,
-    sequence: seq,
-    currentStep: 0,
-    timeLeft: 6.0,
+    word,
+    typed: "",
+    timeLeft: 4.0,
+    timeLimit: 4.0,
   };
   saveState();
   if (typeof render === "function") render();
   return { ok: true, text: `Тренировка: ${training.name}. Соберись!` };
 }
 
-// Завершение QTE-тренировки. success=false — ошибка/таймер: травма,
+// Завершение мини-игры-тренировки. success=false — ошибка/таймер: травма,
 // потеря HP и одной фазы, без прироста атрибута.
 function completeTraining(success = true) {
   const qte = typeof view !== "undefined" ? view.trainingQTE : null;

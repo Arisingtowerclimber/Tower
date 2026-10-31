@@ -106,6 +106,33 @@ function handleBattleKeydown(event) {
     }
   }
 
+  // Мини-игра тренировки: печать слова. Успех — completeTraining(true),
+  // ошибка — травма и completeTraining(false).
+  if (view.trainingQTE) {
+    if (event.repeat) return;
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+    const key = event.key || "";
+    if (key.length !== 1 || !key.trim()) return;
+    const qte = view.trainingQTE;
+    const word = String(qte.word || "");
+    const expected = word[String(qte.typed || "").length];
+    if (expected === undefined) return;
+    event.preventDefault();
+    if (key.toUpperCase() !== String(expected).toUpperCase()) {
+      stopQteLoop();
+      completeTraining(false);
+      return;
+    }
+    qte.typed = String(qte.typed || "") + expected;
+    if (qte.typed.length >= word.length) {
+      stopQteLoop();
+      completeTraining(true);
+    } else {
+      updateTrainingQteDisplay();
+    }
+    return;
+  }
+
   const inBattle = view.screen === "battle" && view.battle && !view.battle.over && !view.summary;
 
   // Экран подготовки: Enter/Space начинает бой, Esc — побег (кроме босса).
