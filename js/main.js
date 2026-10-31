@@ -101,7 +101,17 @@ function handleBattleKeydown(event) {
         else render();
         return;
       }
-      // Неверная буква — просто игнорируем, без перерисовки экрана.
+      // Неверная буква — не выбрасываем в хаб: тряска, тост Ивана и сброс слова.
+      if (typeof battleShake === "function") battleShake();
+      else {
+        document.body.classList.remove("screen-shake");
+        void document.body.offsetWidth;
+        document.body.classList.add("screen-shake");
+        setTimeout(() => document.body.classList.remove("screen-shake"), 400);
+      }
+      if (typeof toast === "function") toast("Иван: Сконцентрируйся! Соберись!", "warn");
+      qte.typed = "";
+      render();
       return;
     }
   }
